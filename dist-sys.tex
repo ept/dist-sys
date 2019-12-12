@@ -6,6 +6,8 @@
 \usepackage[hyphens]{url}
 \usepackage{doi}
 \usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
 \urlstyle{rm}
 
 \begin{document}
@@ -16,10 +18,46 @@
 
 \section{Models of distributed systems}
 
+Relationship between dist sys and networking: networking is how you get the bytes ``over the wire'' to another machine; dist sys is what you do with the bytes once they get there.
+
+Why distribute?
+- Inherently distributed: communication, collaboration (Facebook, google docs).
+- Scale, performance, fault tolerance
+
+It's easy if you can do it on one machine! Don't distribute unless you have to. 
+
+Calendar app supports offline reads and writes (short video in airplane mode).
+
 \begin{itemize}
 \item synchronous, partially synchronous~\cite{Dwork:1988dr}, and asynchronous model
 \item crash-stop, crash-recovery, and arbitrary (Byzantine) faults
+\item network may drop, duplicate, reorder packets (and even sniff and spoof?)
 \end{itemize}
+
+Fundamental building blocks of distributed systems: replication and partitioning.
+
+Replication example: two clients A and B, four servers. Server 1 receives only A's request,
+server 2 receives A then B, server 3 receives B then A, and server 4 receives only B.
+How do we ensure replicas become consistent with each other?
+
+Use this as motivation for introducing causality and happens-before.
+Show that physical timestamp ordering may  be inconsistent with causality.
+Distinguish between A and B being concurrent, and A happening before B
+(determining which one should overwrite the other).
+
+ABD algorithm. Last writer wins. Linearizability.
+
+notion of causality: taken from physics (relativity).
+When a happened before b, that doesn't mean that a necessarily caused b; it just means that a \emph{might have} caused b.
+For this reason, we sometimes say that the happens-before relationship encodes \emph{potential causality}.
+
+However, when a and b happened independently (no message sent after a arrived before b, and no message sent after b arrived before a), we know that a \emph{cannot have caused} b and vice versa.
+
+Hybrid Logical Clocks - Kulkarni et al, Logical physical clocks (OPODIS 2014) \url{https://doi.org/10.1007/978-3-319-14472-6_2}
+
+Exercise. A relation R is a strict partial order if it is transitive ($\forall a,b,c.\; (a,b) \in R \wedge (b,c) \in R \Longrightarrow (a,c) \in R$) and irreflexive ($\nexists a.\; (a,a) \in R$). Show that the happens-before relation is a strict partial order.
+
+Exercise. Show that for any two events $a$ and $b$, exactly one of the three following statements must be true: either $a \rightarrow b$, or $b \rightarrow a$, or $a \parallel b$.
 
 \bibliographystyle{plainurl}
 \bibliography{references}{}
