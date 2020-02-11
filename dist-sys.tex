@@ -26,6 +26,8 @@ Followed by slide 2:
     \label{s:test}
     \frametitle{This is the frame title}
     Text in the frame
+
+    partial synchrony~\cite{Dwork:1988dr}
 \end{frame}
 \inlineslide{s:test}
 
@@ -86,4 +88,11 @@ Exercise. Show that for any two events $a$ and $b$, exactly one of the three fol
 
 \bibliographystyle{plainurl}
 \bibliography{references}{}
+
+\mode<beamer|handout> {
+    \begin{frame}
+        \bibliographystyle{plainurl}
+        \bibliography{references}{}
+    \end{frame}
+}
 \end{document}
