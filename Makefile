@@ -1,6 +1,9 @@
 .SUFFIXES: .tex .bib .aux .bbl .dvi .ps .pdf .thy
 
-all:	dist-sys.pdf
+all:	slides.pdf dist-sys.pdf
+
+slides.pdf:
+	pdflatex slides
 
 %.pdf:	%.bbl
 	pdflatex $(@:.pdf=)
