@@ -1,0 +1,25 @@
+\PassOptionsToPackage{hyphens}{url}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage[hyphens]{url}
+\usepackage{doi}
+\usepackage{hyperref}
+\usepackage{pgf}
+\urlstyle{sf}
+
+\newcounter{inlineslides}
+
+\newcommand{\inlineslide}[1]{
+    \refstepcounter{inlineslides}
+    \vspace{1em}\noindent
+    \fbox{
+      \begin{minipage}[t]{11.7cm}
+        \begin{center}
+          \includeslide[width=11.7cm,page=0]{#1} \\
+        \end{center}
+      \end{minipage}
+    }
+    \hspace{1em}\textsf{Slide \theinlineslides} \\[1em]
+}
+
+\definecolor{darkblue}{rgb}{0,0,0.7}

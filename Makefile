@@ -1,9 +1,7 @@
 .SUFFIXES: .tex .bib .aux .bbl .dvi .ps .pdf .thy
 
-all:	slides.pdf dist-sys.pdf
-
-slides.pdf:
-	pdflatex slides
+dist-sys-notes.pdf:	dist-sys-slides.pdf dist-sys-handout.pdf
+	pdflatex dist-sys-notes
 
 %.pdf:	%.bbl
 	pdflatex $(@:.pdf=)
@@ -16,4 +14,4 @@ slides.pdf:
 	pdflatex $(@:.aux=)
 
 clean:
-	rm -f dist-sys.{log,aux,out,bbl,blg,dvi,ps,pdf}
+	rm -f dist-sys-{slides,handout,notes}.{log,aux,out,bbl,blg,dvi,ps,pdf}

@@ -1,0 +1,13 @@
+\documentclass{article}
+\usepackage[a4paper,margin=2.5cm]{geometry}
+\usepackage{beamerarticle}
+\usepackage{environ}
+\setjobnamebeamerversion{dist-sys-handout}
+
+% Suppress frame content by default; include slides via \inlineslide instead
+\mode<article>{
+  \RenewEnviron{frame}{\iffalse\fi}
+}
+
+\input{setup.tex}
+\input{dist-sys.tex}
