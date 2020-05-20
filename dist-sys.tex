@@ -42,13 +42,28 @@ Followed by slide 2:
 
 \section{Models of distributed systems}
 
-Relationship between dist sys and networking: networking is how you get the bytes ``over the wire'' to another machine; dist sys is what you do with the bytes once they get there.
+Relationship between dist sys and networking: networking is how you get the bytes ``over the wire'' (or over the wireless network) to another machine; dist sys is what you do with the bytes once they get there.
+
+The ``wire'' may actually be radio waves, lasers, hard drives in a van, or even a USB thumb drive in someone's pocket
+% AWS Snowball: https://docs.aws.amazon.com/snowball/latest/ug/using-device.html
+
+Fundamental abstraction: nodes (or processes); sending a message from one node to another.
+
+``reliability'' of TCP; screenshots of network error + request timeout
 
 Why distribute?
 - Inherently distributed: communication, collaboration (Facebook, google docs).
 - Scale, performance, fault tolerance
 
 It's easy if you can do it on one machine! Don't distribute unless you have to. 
+
+Distributed systems are fascinating because we have to work with partial knowledge and uncertain
+truths. We never have certainty about the state of the system, because by the time we hear about
+something, that state may already be outdated. In this way it resembles real life more than most of
+computing! In real life you need to often make decisions with incomplete information.
+
+Two generals problem, Byzantine generals problem
+% two generals: https://link.springer.com/chapter/10.1007/3-540-08755-9_9
 
 Calendar app supports offline reads and writes (short video in airplane mode).
 
@@ -57,6 +72,16 @@ Calendar app supports offline reads and writes (short video in airplane mode).
 \item crash-stop, crash-recovery, and arbitrary (Byzantine) faults
 \item network may drop, duplicate, reorder packets (and even sniff and spoof?)
 \end{itemize}
+
+network message delay: synchronous, partially synchronous, asynchronous
+
+network reliability: reliable, fair-loss, arbitrary. (fair-loss means non-zero probability of a
+given message being delivered. links guarantee messages not created out of thin air -- see Cachin et al.
+Arbitrary links need authentication.)
+
+can we make a fair-loss link reliable? send acknowledgements and retransmit on timeout; deduplicate
+on recipient side. however, in crash-recovery model, retry and deduplication state would be lost on
+crash, so this needs to be maintained in stable storage.
 
 Fundamental building blocks of distributed systems: replication and partitioning.
 
@@ -93,7 +118,22 @@ Exercise. Show that for any two events $a$ and $b$, exactly one of the three fol
 % 8. Time and clocks
 % 9. Security (e.g. TLS), byzantine fault tolerance, and blockchains
 
+% Live demo of RESTful API with Dropwizard, curl, browser access
+
 % State machine replication
+
+% "causality is reachability in spacetime"
+% https://twitter.com/palvaro/status/1233208997257170944
+
+% message loss -> retry; duplicates -> detect and suppress duplicates / idempotence
+% idempotence: f(f(x)) = f(x)
+% incrementing number of likes on a post: not idempotent
+% adding current user to the set of users who have liked a post: idempotent
+% what state must a recipient maintain in order to eliminate duplicates?
+% the entire message? a unique message ID? a sequence number? (what assumptions does this require making about the sender?)
+
+% MIT graduate dist-sys course https://pdos.csail.mit.edu/6.824/schedule.html
+% Raft animations: http://thesecretlivesofdata.com/raft/
 
 \bibliographystyle{plainurl}
 \bibliography{references}{}
