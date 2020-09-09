@@ -1,15 +1,18 @@
 \PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{hidelinks}{hyperref}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage[hyphens]{url}
 \usepackage{doi}
 \usepackage{hyperref}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta}
-\urlstyle{sf}
 
+\usetikzlibrary{arrows.meta}
 \tikzstyle{bigarrow}=[thick,-{Classical TikZ Rightarrow[length=2mm]}]
 
+\usefonttheme[onlymath]{serif}
+
+\urlstyle{sf}
 \newcounter{inlineslides}
 
 \newcommand{\inlineslide}[1]{
@@ -22,7 +25,7 @@
         \end{center}
       \end{minipage}
     }
-    \hspace{1em}\textsf{Slide \theinlineslides} \\[1em]
+    \hspace{1em}\textsf{Slide \theinlineslides} \\
 }
 
 \definecolor{darkblue}{rgb}{0,0,0.7}

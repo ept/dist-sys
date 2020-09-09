@@ -1,8 +1,8 @@
 \begin{document}
 \title{Distributed Systems}
-\subtitle{University of Cambridge\\Computer Science Tripos, Part IB\\Michaelmas term 2020/21}
+\subtitle{University of Cambridge\\Computer Science Tripos, Part IB\\Michaelmas term 2020/21\\\url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/}}
+        
 \author{Martin Kleppmann}
-\institute{Department of Computer Science and Technology\\University of Cambridge}
 \date{}
 \maketitle
 
@@ -13,7 +13,7 @@
     \begin{center}
         \textbf{\huge{\color{darkblue}{Distributed Systems}}} \\[2em]
         The second half of \emph{Concurrent and Distributed Systems}\\[0.5em]
-        \href{https://www.cl.cam.ac.uk/teaching/current/ConcDisSys/}{www.cl.cam.ac.uk/teaching/current/ConcDisSys/}\\[2em]
+        \url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/}\\[2em]
         Martin Kleppmann (mk428@cam) \\[0.5em]
         University of Cambridge \\[0.5em]
         Computer Science Tripos, Part IB \\[0.5em]
@@ -34,7 +34,11 @@ Different computers can only communicate by sending each other messages over a n
 
 (Limited forms of distributed shared memory exist in some supercomputers and research systems, and there are technologies like \emph{remote direct memory access} (RDMA) that allow computers to access each others' memory over a network.
 Also, databases can in some sense be regarded as shared memory, but with a different data model compared to byte-addressable memory.
-Broadly speaking, and most practical distributed systems are based on message-passing.)
+However, broadly speaking, most practical distributed systems are based on message-passing.)
+
+Each of the computers in a distributed system is called a \emph{node}.
+Here, ``computer'' is interpreted quite broadly: nodes might be desktop computers, servers in datacenters, mobile devices, internet-connected cars, industrial control systems, sensors, or many other types of device.
+In this course we don't distinguish them: a node can be any type of communicating computing device.
 
 \begin{frame}
     \label{s:dist-sys-definition}
@@ -43,74 +47,46 @@ Broadly speaking, and most practical distributed systems are based on message-pa
         \item<1-> \emph{``{\dots}a system in which the failure of a computer you didn't even know existed can render your own computer unusable.''} --- Leslie Lamport\\[1em]
         \item<2> {\dots}multiple computers communicating via a network\dots
         \item<2> {\dots}trying to achieve some task together
+        \item<2> Consists of ``nodes'' (computer, phone, car, robot, \dots)
     \end{itemize}
     \hfill\includegraphics<1>[height=4cm]{images/lamport.jpg}
 \end{frame}
 \inlineslide{s:dist-sys-definition}\label{l:dist-sys-definition}
 % reference for Lamport quote: https://www.microsoft.com/en-us/research/publication/distribution/
 
-There are a number of reasons for creating distributed systems.
-Some applications are instrinsically distributed: if you want to send a message from your phone to your friends' phones, that operation inevitably requires that those phones communicate via some kind of network.
+These notes and the lecture recordings should be self-contained, but if you would like to read up on further detail, there are several suggested textbooks:
+\begin{itemize}
+    \item Maarten van Steen and Andrew S.\ Tanenbaum. \emph{Distributed Systems}. ISBN 978-1543057386.
+        Free download from \url{https://www.distributed-systems.net/index.php/books/ds3/} (third edition, 2017).
 
-In other cases, we use distributed systems to do things that can in principle be done on a single computer, but using a distributed system allows us to do it \emph{better}.
-For example, ``better'' might mean ``more reliable'': a single computer can fail and might need to be rebooted from time to time, but if you are using multiple computers, then if one of them fails, another can take over.
-Thus, a distributed system has the potential to be more reliable than a single computer, at least if it is well-designed (somewhat contradicting Lamport's quote on Slide~\ref{l:dist-sys-definition})!
+        This book gives a broad overview over a large range of distributed systems topics, with lots of examples from practical systems.
 
-Another reason for using distribution is for better performance: if a service has users all over the world, and they all have to access a single computer, then either the users in the UK or the users in New Zealand are going to find it slow (or both).
-By placing computers around the world, we can get around the slowness of the speed of light by routing each user to a nearby computer.
+    \item Christian Cachin, Rachid Guerraoui, and Luís Rodrigues.
+        \emph{Introduction to Reliable and Secure Distributed Programming}.
+        Second edition, Springer, 2011. ISBN 978-3-642-15259-7.
 
-Finally, some large-scale data processing or computing tasks are simply too big to perform on a single computer, or would be intolerably slow.
-For example, the Large Hadron Collider at CERN is supported by a worldwide computing infrastructure with 1 million CPU cores for data analysis, and 1 exabyte ($10^{18}$ bytes) of storage! See \url{https://wlcg-public.web.cern.ch/}.
+        Ebook download for Cambridge users: \url{https://link.springer.com/book/10.1007/978-3-642-15260-3} then click Log in $\rightarrow$ via Shibboleth $\rightarrow$ type \emph{University of Cambridge} $\rightarrow$ log in with Raven.
 
-\begin{frame}
-    \label{s:why-distribute}
-    \frametitle{Why make a system distributed?}
-    \begin{itemize}\pause
-        \item \textbf{It's inherently distributed:}\\e.g. sending a message from your mobile phone to your friends' phones\pause
-        \item \textbf{For better reliability:}\\even if one computer fails, the system as a whole keeps functioning\pause
-        \item \textbf{For better performance:}\\get data from a nearby computer rather than one halfway round the world\pause
-        \item \textbf{To solve bigger problems:}\\e.g. huge amounts of data, can't fit on one machine
-    \end{itemize}
-\end{frame}
-\inlineslide{s:why-distribute}
+        This book is more advanced, going into depth on several important distributed algorithms, and proving their correctness.
+        Recommended if you want to go deeper into the theory than what is covered in this course.
 
-However, there are also downsides to distributed systems, because things can go wrong, and the system needs to deal with such faults.
-For example, the network may go down, making the computers unable to communicate.
+    \item Martin Kleppmann. \emph{Designing Data-Intensive Applications}, O'Reilly, 2017. ISBN 978-1449373320.
 
-\begin{frame}
-    \label{s:no-internet}
-    \includegraphics[height=\paperheight]{images/no-internet.png}
-\end{frame}
-\inlineslide{s:no-internet}
+        This book goes more in the direction of databases, but also covers a number of distributed systems topics.
+        It is designed for software engineers in industry working with distributed databases.
 
-For example, one of the computers crashes and another needs to take over.
-This requires detecting that a crash has happened; as we shall see, even that is not straightforward.
+    \item Jean Bacon and Tim Harris. \emph{Operating Systems: Concurrent and Distributed Software Design}.
+        Addison-Wesley, 2003. ISBN 978-0321117892.
 
-Say one of the RAM modules fails in a computer: we don't expect the computer to continue working nevertheless.
-It will probably just crash.
-However, in a distributed system we often \emph{do} want to tolerate some parts of the system being broken, and for the rest to continue working.
-
-
-\begin{frame}
-    \label{s:why-not}
-    \frametitle{Why NOT make a system distributed?}
-    The trouble with distributed systems:
-    \begin{itemize}
-        \item Communication may fail (and we might not even know it has failed).
-        \item Processes may crash (and we might not know).
-        \item All of this may happen nondeterministically.
-    \end{itemize}\vspace{1em}
-    Dealing with this is hard.\\[1em]
-    Writing a program to run on a single computer is comparatively easy?!
-\end{frame}
-\inlineslide{s:why-not}
+        This book provides a link to the \emph{concurrent systems} half of the course, and to operating systems topics.
+\end{itemize}
 
 \begin{frame}
     \label{s:reading}
     \frametitle{Recommended reading}
     \begin{itemize}
-        \item Coulouris et al.\\ ``\textbf{Distributed Systems: Concepts and Design}''\\(5th ed), Addison-Wesley 2012
-        \item Tanenbaum et al.\\ ``\textbf{Distributed Systems: Principles and Paradigms}''\\(2nd ed), Prentice Hall 2006 
+        \item van Steen \& Tanenbaum.\\ ``\textbf{Distributed Systems}''\\(any ed), free ebook available
+        \item Cachin, Guerraoui \& Rodrigues. \\ ``\textbf{Introduction to Reliable and Secure Distributed Programming}'' (2nd ed), Springer 2011
         \item Kleppmann.\\ ``\textbf{Designing Data-Intensive Applications}'',\\O’Reilly 2017
         \item Bacon \& Harris.\\ ``\textbf{Operating Systems: Concurrent and Distributed Software Design}'', Addison-Wesley 2003
     \end{itemize}
@@ -139,6 +115,77 @@ However, in a distributed system we often \emph{do} want to tolerate some parts 
 \end{frame}
 \inlineslide{s:other-courses}
 
+
+\subsection{Pros and cons of distributed systems}
+
+There are a number of reasons for creating distributed systems.
+Some applications are \emph{instrinsically distributed}: if you want to send a message from your phone to your friend's phone, that operation inevitably requires those phones to communicate via some kind of network.
+
+Some distributed systems do things that in principle a single computer could do, but they do it \emph{more reliably}.
+A single computer can fail and might need to be rebooted from time to time, but if you are using multiple nodes, then one node can continue serving users while another node is rebooting.
+Thus, a distributed system has the potential to be more reliable than a single computer, at least if it is well-designed (somewhat contradicting Lamport's quote on Slide~\ref{l:dist-sys-definition})!
+
+Another reason for distribution is for better \emph{performance}: if a service has users all over the world, and they all have to access a single node, then either the users in the UK or the users in New Zealand are going to find it slow (or both).
+By placing nodes in multiple locations around the world, we can get around the slowness of the speed of light by routing each user to a nearby node.
+
+Finally, some large-scale data processing or computing tasks are simply \emph{too big} to perform on a single computer, or would be intolerably slow.
+For example, the Large Hadron Collider at CERN is supported by a worldwide computing infrastructure with 1 million CPU cores for data analysis, and 1 exabyte ($10^{18}$ bytes) of storage! See \url{https://wlcg-public.web.cern.ch/}.
+
+\begin{frame}
+    \label{s:why-distribute}
+    \frametitle{Why make a system distributed?}
+    \begin{itemize}\pause
+        \item \textbf{It's inherently distributed:}\\e.g. sending a message from your mobile phone to your friend's phone\pause
+        \item \textbf{For better reliability:}\\even if one node fails, the system as a whole keeps functioning\pause
+        \item \textbf{For better performance:}\\get data from a nearby node rather than one halfway round the world\pause
+        \item \textbf{To solve bigger problems:}\\e.g. huge amounts of data, can't fit on one machine
+    \end{itemize}
+\end{frame}
+\inlineslide{s:why-distribute}
+
+However, there are also downsides to distributed systems, because things can go wrong, and the system needs to deal with such faults.
+The network may fail, leaving the nodes unable to communicate.
+
+\begin{frame}
+    \label{s:no-internet}
+    \includegraphics[height=\paperheight]{images/no-internet.png}
+\end{frame}
+\inlineslide{s:no-internet}
+
+Another thing that can go wrong is that a node may crash, or run much slower than usual, or misbehave in some other way (perhaps due to a software bug or a hardware failure).
+If we want one node to take over when another node crashes, we need to detect that a crash has happened; as we shall see, even that is not straightforward.
+Network failures and node failures can happen at any moment, without warning.
+
+In a single computer, if one component fails (e.g.\ one of the RAM modules develops a fault), we normally don't expect the computer to continue working nevertheless: it will probably just crash.
+Software does not need to be written in a way that explicitly deals with faulty RAM.
+However, in a distributed system we often \emph{do} want to tolerate some parts of the system being broken, and for the rest to continue working.
+For example, if one node has crashed (a \emph{partial failure}), the remaining nodes may still be able to continue providing the service.
+
+If one component of a system stops working, we call that a \emph{fault}, and many distributed systems strive to provide \emph{fault tolerance}: that is, the system as a whole continues functioning despite the fault.
+Dealing with faults is what makes distributed computing fundamentally different, and often harder, compared to programming a single computer.
+Some distributed system engineers believe that if you can solve a problem on a single computer, it is basically easy!
+Though, in fairness to our colleagues in other areas of computer science, this is probably not true.
+
+\begin{frame}
+    \label{s:why-not}
+    \frametitle{Why NOT make a system distributed?}
+    The trouble with distributed systems:
+    \begin{itemize}
+        \item Communication may fail (and we might not even know it has failed).
+        \item Processes may crash (and we might not know).
+        \item All of this may happen nondeterministically.
+    \end{itemize}\vspace{1em}\pause
+    \textbf{Fault tolerance}: we want the system as a whole to continue working, even when some parts are faulty.\\[1em]
+    This is hard.\\[1em]
+    Writing a program to run on a single computer is comparatively easy?!
+\end{frame}
+\inlineslide{s:why-not}
+
+
+\subsection{Distributed systems and computer networking}
+
+When studying distributed systems, we usually work with a high-level abstraction of the hardware.
+
 \begin{frame}
     \label{s:networking}
     \frametitle{Distributed Systems and Computer Networking}
@@ -159,13 +206,9 @@ However, in a distributed system we often \emph{do} want to tolerate some parts 
 \end{frame}
 \inlineslide{s:networking}
 
-Relationship between dist sys and networking: networking is how you get the bytes ``over the wire'' (or over the wireless network) to another machine; dist sys is what you do with the bytes once they get there.
-We don't care about the ``bits on the wire''.
-
-The ``wire'' may actually be radio waves, lasers, hard drives in a van, or even a USB thumb drive in someone's pocket
-% AWS Snowball: https://docs.aws.amazon.com/snowball/latest/ug/using-device.html
-
-Fundamental abstraction: nodes (or processes); sending a message from one node to another.
+In this course, we just assume that there is some way for one node to send a message to another node.
+We don't particularly care how that message is physically represented or encoded~-- the network protocols, informally known as the \emph{bytes on the wire}~-- because the basic principle of sending and receiving messages remains the same, even as particular networking technologies come and go.
+The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's pocket, or even hard drives in a van.
 
 \begin{frame}[plain]
     \label{s:snowball}
@@ -177,7 +220,23 @@ Fundamental abstraction: nodes (or processes); sending a message from one node t
 \end{frame}
 \inlineslide{s:snowball}
 
+Indeed, if you want to send a very large message (think tens of terabytes), it would be slow to send that data over the Internet, and it is in fact faster to write that data to a bunch of hard drives, load them into a van, and to drive them to their destination.
+But from a distributed systems point of view, the method of delivering the message is not important: we only see an abstract communication channel with a certain \emph{latency} (delay from the time a message is sent until it is received) and \emph{bandwidth} (the volume of data that can be transferred per unit time).
+
+The Computer Networking course in Lent term focusses on the network protocols that enable messages to get to their destination.
+The study of distributed systems builds upon that facility, and instead focusses on how several nodes should coordinate in order to achieve some shared task.
+The design of distributed algorithms is about deciding what messages to send, and how to process the messages when they are received.
+
 \section{Models of distributed systems}
+
+Fundamental abstraction: nodes (or processes); sending a message from one node to another.
+A \emph{system model} captures our assumptions about how nodes and the network behave.
+
+Faults and failures; fault tolerance; single point of failure
+
+Availability (``five nines''), eg. online shop wants to be able to sell stuff 24/7; downtime = losing money
+
+SLA: eg. 99\% of requests receive a successful response in less than 500 ms
 
 ``reliability'' of TCP; screenshots of network error + request timeout
 
@@ -195,6 +254,11 @@ computing! In real life you need to often make decisions with incomplete informa
 Two generals problem, Byzantine generals problem
 % two generals: https://link.springer.com/chapter/10.1007/3-540-08755-9_9
 
+% network cable unplugged (image)
+% sharks bite submarine cables https://slate.com/technology/2014/08/shark-attacks-threaten-google-s-undersea-internet-cables-video.html
+% https://www.theguardian.com/technology/2014/aug/14/google-undersea-fibre-optic-cables-shark-attacks
+% and cows step on optical fibres on land https://twitter.com/uhoelzle/status/1263333283107991558
+
 Calendar app supports offline reads and writes (short video in airplane mode).
 
 \begin{itemize}
@@ -204,6 +268,8 @@ Calendar app supports offline reads and writes (short video in airplane mode).
 \end{itemize}
 
 network message delay: synchronous, partially synchronous, asynchronous
+
+Network partition as type of fault
 
 network reliability: reliable, fair-loss, arbitrary. (fair-loss means non-zero probability of a
 given message being delivered. links guarantee messages not created out of thin air -- see Cachin et al.
@@ -215,6 +281,8 @@ crash, so this needs to be maintained in stable storage.
 
 Fundamental building blocks of distributed systems: replication and partitioning.
 
+Replication on one node: RAID-1. Geo-replication when replicas are geographically distributed
+
 Replication example: two clients A and B, four servers. Server 1 receives only A's request,
 server 2 receives A then B, server 3 receives B then A, and server 4 receives only B.
 How do we ensure replicas become consistent with each other?
@@ -224,11 +292,15 @@ Show that physical timestamp ordering may  be inconsistent with causality.
 Distinguish between A and B being concurrent, and A happening before B
 (determining which one should overwrite the other).
 
-ABD algorithm. Last writer wins. Linearizability.
+ABD algorithm. Last writer wins. Linearizability. Even shared memory on one machine is not linearisable!
+
+CAP: consistent or available in the presence of a partition
 
 notion of causality: taken from physics (relativity).
 When a happened before b, that doesn't mean that a necessarily caused b; it just means that a \emph{might have} caused b.
 For this reason, we sometimes say that the happens-before relationship encodes \emph{potential causality}.
+
+In definition of happens-before, make the simplifying assumption that every sent message is unique.
 
 However, when a and b happened independently (no message sent after a arrived before b, and no message sent after b arrived before a), we know that a \emph{cannot have caused} b and vice versa.
 
@@ -238,8 +310,16 @@ Exercise. A relation R is a strict partial order if it is transitive ($\forall a
 
 Exercise. Show that for any two events $a$ and $b$, exactly one of the three following statements must be true: either $a \rightarrow b$, or $b \rightarrow a$, or $a \parallel b$.
 
+Exercise. Show how to implement total order broadcast using Lamport timestamps [2020P5Q8]. Comment on its fault-tolerance properties.
+
+In a crash-recovery model, Lamport timestamp needs to be in stable storage.
+
+An event: something happened. Not the same as a message.
+
+% http://book.mixu.net/distsys/
+
 % 1. Network communication basics: JSON, TCP, HTTP/REST, UDP. Hands-on: using things like tcpdump?
-% 2. Faults and failures
+% 2. Faults and failures; failure detection; split brain
 % 3. Architectures: client-server, local networks (multicast), peer-to-peer (distributed hash tables, NAT traversal)
 % 4. Programming models: services, RPC, message brokers, actors, map-reduce, stream processing, tuple spaces?
 % 5. Replication
@@ -255,13 +335,25 @@ Exercise. Show that for any two events $a$ and $b$, exactly one of the three fol
 % "causality is reachability in spacetime"
 % https://twitter.com/palvaro/status/1233208997257170944
 
+% Define total order broadcast as:
+% 1. If a correct process delivers message m, then m was broadcast by a process in the system.
+% 2. No message is delivered more than once.
+% 3. If a correct process p broadcasts a message m, then p eventually delivers m.
+% 4. If a correct process delivers a message m, then all correct processes eventually deliver m.
+% 5. If a correct process delivers m1 before delivering message m2, then all correct processes must deliver m1 before m2.
+% Exercise: can't we combine properties 3 and 4 into one property, namely: if a correct process broadcasts a message m, then all correct processes eventually deliver m.
+% Answer: no, this is not equivalent. Say message m is broadcast by faulty process p, and delivered by correct process q. In the original properties, m must now be delivered by all correct processes because it was delivered by one correct process. In the revised property, other processes would not necessarily need to deliver m, because it was sent by a faulty process.
+
 % message loss -> retry; duplicates -> detect and suppress duplicates / idempotence
 % idempotence: f(f(x)) = f(x)
 % incrementing number of likes on a post: not idempotent
 % adding current user to the set of users who have liked a post: idempotent
 % what state must a recipient maintain in order to eliminate duplicates?
 % the entire message? a unique message ID? a sequence number? (what assumptions does this require making about the sender?)
+% Gossip protocols for replication / dissemination
 
+% http://book.mixu.net/distsys/single-page.html
+% BaseDS: https://github.com/vaidehijoshi/baseds-series  /   https://medium.com/baseds
 % MIT graduate dist-sys course https://pdos.csail.mit.edu/6.824/schedule.html
 % Raft animations: http://thesecretlivesofdata.com/raft/
 
