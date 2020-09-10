@@ -1,0 +1,10 @@
+{
+  "request": "processPayment",
+  "card": {
+    "number": "1234567887654321",
+    "expiryDate": "10/2024",
+    "CVC": "123"
+  },
+  "amount": 3.99,
+  "currency": "GBP"
+}

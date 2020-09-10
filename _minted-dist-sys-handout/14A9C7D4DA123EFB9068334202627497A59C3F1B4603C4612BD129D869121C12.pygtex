@@ -1,0 +1,12 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{p}{\PYGZob{}}
+  \PYG{n+nt}{\PYGZdq{}request\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}processPayment\PYGZdq{}}\PYG{p}{,}
+  \PYG{n+nt}{\PYGZdq{}card\PYGZdq{}}\PYG{p}{:} \PYG{p}{\PYGZob{}}
+    \PYG{n+nt}{\PYGZdq{}number\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}1234567887654321\PYGZdq{}}\PYG{p}{,}
+    \PYG{n+nt}{\PYGZdq{}expiryDate\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}10/2024\PYGZdq{}}\PYG{p}{,}
+    \PYG{n+nt}{\PYGZdq{}CVC\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}123\PYGZdq{}}
+  \PYG{p}{\PYGZcb{},}
+  \PYG{n+nt}{\PYGZdq{}amount\PYGZdq{}}\PYG{p}{:} \PYG{l+m+mf}{3.99}\PYG{p}{,}
+  \PYG{n+nt}{\PYGZdq{}currency\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}GBP\PYGZdq{}}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}

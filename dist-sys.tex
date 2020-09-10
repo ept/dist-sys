@@ -280,10 +280,10 @@ On receiving that request, the web server sends a \emph{response} message contai
     \label{s:http-capture}
     \begin{tikzpicture}
         \node at (0,0) {\includegraphics[height=8cm]{images/http-capture.png}};
-        \node<2> (request) at (-2,-4.5) [red] {request message};
+        \node<2> (request) at (-4,-4.5) [red] {request message};
         \node<2> (response) at (2,-4.5) [red] {response message};
-        \draw<2> [-Stealth,red,line width=4pt] (request) -- (-2,0.5);
-        \draw<2> [-Stealth,red,line width=4pt] (response) -- (2,-1.2);
+        \draw<2> [-Stealth,red,line width=4pt] (request) -- (-4,0.5);
+        \draw<2> [-Stealth,red,line width=4pt] (response) -- (0,-1.2);
     \end{tikzpicture}
 \end{frame}
 \inlineslide{s:http-capture}\label{l:http-capture}
@@ -295,14 +295,14 @@ These messages are normally invisible, but we can capture and visualise the netw
 % Also show how in Wireshark it breaks down into lots of small packets, with filter:
 % ip.addr == 128.232.132.21
 
-In a URL such as \courseurl, the part of the URL between the \verb|//| and the \verb|/| is the hostname of the server to which the client is going to send the request (\texttt{www.cst.cam.ac.uk}), and the rest (\texttt{\coursepath}) is the path that the client asks for in its request message.
+In a URL such as \courseurl, the part of the URL between the \verb|//| and the following \verb|/| is the hostname of the server to which the client is going to send the request (\texttt{www.cst.cam.ac.uk}), and the rest (\texttt{\coursepath}) is the path that the client asks for in its request message.
 Besides the path, the request also contains some extra information, such as the version of the client software (the \emph{user-agent}), and a list of file formats that the client understands (the \emph{accept header}).
-The response message contains the file that was requested, and an indicator of its file format (the \emph{content-type}); in the case of a web page, this might be a HTML document, an image, a video, or any other type of file.
+The response message contains the file that was requested, and an indicator of its file format (the \emph{content-type}); in the case of a web page, this might be a HTML document, an image, a video, a PDF document, or any other type of file.
 
 Since the requests and responses can be larger than we can fit in a single network packet, the HTTP protocol runs on top of TCP, which breaks down a large chunk of data into a stream of small network packets (see Slide~\ref{l:wireshark}), and puts them back together again at the recipient.
 HTTP also allows multiple requests and multiple responses to be sent over a single TCP connection.
 However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
-This keeps things simple, and independent of the underlying networking technology.
+This keeps things independent of the underlying networking technology.
 
 \begin{frame}<article:0>[plain]
     \label{s:wireshark}
@@ -315,9 +315,7 @@ This keeps things simple, and independent of the underlying networking technolog
 \subsection{Example: remote procedure calls (RPC)}
 
 Another example of an everyday distributed system is when you buy something online using a credit/debit card.
-There are companies that specialise in processing card payments.
-When you enter your card number in some online shop, that shop will send a payment request (including your card number) over the Internet to the payments service.
-The payments service in turn communicates with a card network such as Visa or MasterCard, which communicates with the bank that issued your card in order to take the payment.
+When you enter your card number in some online shop, that shop will send a payment request over the Internet to a service that specialises in processing card payments.
 
 \begin{frame}
     \label{s:payment-example}
@@ -334,6 +332,127 @@ The payments service in turn communicates with a card network such as Visa or Ma
     \end{center}
 \end{frame}
 \inlineslide{s:payment-example}
+
+The payments service in turn communicates with a card network such as Visa or MasterCard, which communicates with the bank that issued your card in order to take the payment.
+
+For the programmers who are implementing the online shop, the code for processing the payment may look something like the code on Slide~\ref{l:payment-rpc}.
+
+\begin{frame}
+    \label{s:payment-rpc}
+    \frametitle{Remote Procedure Call (RPC) example}
+    \inputminted{java}{code/payment-rpc.java}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node (call) [xshift=2cm,yshift=-0.5cm] at (current page.center) {};
+        \node<2> (label) [anchor=south east,red,yshift=0.5cm] at (current page.south east) {Implementation of this function is on another node!};
+        \draw<2> [-Stealth,red,line width=4pt] (label) -- (call);
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:payment-rpc}\label{l:payment-rpc}
+
+Calling the \verb|processPayment| function looks like calling any other function, but in fact, what is happening behind the scenes is that the shop is sending a request to the payments service, waiting for a response, and then returning the response it received.
+The actual implementation of \verb|processPayment|~-- the logic that communicates with the card network and the banks~-- does not exist in the code of the shop: it is part of the payments service, which is another program running on another node belonging to a different company.
+
+This type of interaction, where code on one node appears to call a function on another node, is called a \emph{Remote Procedure Call} (RPC).
+In Java, it is called \emph{Remote Method Invocation} (RMI).
+The software that implements RPC is called an \emph{RPC framework} or \emph{middleware}.
+(Not all middleware is based on RPC; there is also middleware that uses different communication models.)
+
+When an application wishes to call a function on another node, the RPC framework provides a \emph{stub} in its place.
+The stub has the same type signature as the real function, but instead of executing the real function, it encodes the function arguments in a message and sends that message to the remote node, asking for that function to be called.
+The process of encoding the function arguments is known as \emph{marshalling}.
+In the example on Slide~\ref{l:payment-json}, a JSON encoding is used for marshalling, but various other formats are also used in practice.
+
+\begin{frame}[plain]
+    \label{s:payment-json}
+    \hspace*{-1cm}
+    \begin{tikzpicture}
+        \node [rectangle,fill=red!10,draw] (client) at (0,4) {online shop};
+        \node [rectangle,draw] (rpc-client) at (2.5,4) {RPC client};
+        \node [rectangle,draw] (rpc-server) at (6,4) {RPC server};
+        \node [rectangle,fill=red!10,draw] (server) at (9,4) {payment service};
+        \node [font=\scriptsize] (invoke) at (0,3) {\texttt{processPayment()} stub};
+        \draw [->] (client) -- (invoke);
+        \node<2-> [font=\scriptsize] (send-req) at (2.5,2.5) {marshal args};
+        \draw<2-> [->] (invoke.south) -- (send-req.west);
+        \node<2-> [font=\scriptsize] (recv-req) at (6,2.3) {unmarshal args};
+        \draw<2-> [->] (send-req.east) -- node [above] {$m_1$} (recv-req.west);
+        \node<3-> [font=\scriptsize] (exec) at (9,1.8) {\texttt{processPayment()}};
+        \node<3-> [font=\scriptsize] (exec2) at (9,1.5) {implementation};
+        \draw<3-> [->] (recv-req.east) -- (exec.north);
+        \node<4-> [font=\scriptsize] (send-res) at (6,1) {marshal result};
+        \draw<4-> [->] (exec2.south) -- (send-res.east);
+        \node<4-> [font=\scriptsize] (recv-res) at (2.5,0.8) {unmarshal result};
+        \draw<4-> [->] (send-res.west) -- node [above] {$m_2$} (recv-res.east);
+        \node<5> [font=\scriptsize] (return) at (0,0.3) {function returns};
+        \draw<5> [->] (recv-res.west) -- (return.north);
+        \draw [dotted] (invoke.south) -- (0,0.5);
+        \node at (0,0) {}; % so that messages below stay put as the slide builds
+    \end{tikzpicture}
+    \hspace*{-1cm}\mbox{
+        \onslide<2->{
+            $m_1$ = \begin{minipage}{5.5cm}
+            \inputminted[fontsize=\scriptsize,frame=single,bgcolor=lightgrey]{json}{code/payment-rpc.json}
+            \end{minipage}
+        }
+        \onslide<4->{
+            $m_2$ = \begin{minipage}{3.8cm}
+            \inputminted[fontsize=\scriptsize,frame=single,bgcolor=lightgrey]{json}{code/payment-response.json}
+            \end{minipage}
+        }
+    }
+\end{frame}
+\inlineslide{s:payment-json}\label{l:payment-json}
+
+The sending of the message from the RPC client to the RPC server may happen over HTTP (in which case this is also called a \emph{web service}), or one of a range of different network protocols may be used.
+On the server side, the RPC framework unmarshals (decodes) the message and calls the desired function with the provided arguments.
+When the function returns, the same happens in reverse: the function's return value is marshalled, sent as a message back to the client, unmarshalled by the client, and returned by the stub.
+Thus, to the caller of the stub, it looks as if the function had executed locally.
+
+\begin{frame}
+    \label{s:rpc-discussion}
+    \frametitle{Remote Procedure Call (RPC)}
+    Ideally, RPC makes a call to a remote function look the same as a local function call.\\[1em]
+    \textbf{``Location transparency''}:\\ system hides where a resource is located.\\[1em]\pause
+    In practice\dots
+    \begin{itemize}
+        \item what if the service crashes during the function call?
+        \item what if a message is lost?
+        \item what if a message is delayed?
+        \item if something goes wrong, is it safe to retry?
+    \end{itemize}
+\end{frame}
+\inlineslide{s:rpc-discussion}
+
+\supervision{
+    Networks and nodes might fail.
+    What are the implications for code that calls another node through RPC?
+    How is RPC different from a local function call?
+}{
+    \begin{itemize}
+        \item RPCs may time out if the request or response message is lost.
+            Even if we retry, there is no guarantee that the messages will get through.
+            The application must handle this error condition, and the possibility of failure may need to be reflected in the type signature.
+            For example, JavaScript RPC clients often return a \emph{promise}, which can either succeed or fail.
+        \item If a timeout occurs, the RPC client doesn't know whether the server executed the function; local function calls don't have this uncertainty.
+        \item RPC is often much slower than a local function call, due to network latency.
+        \item RPC clients and servers may need to take measures to make function invocation idempotent, to allow safe retries in case of message loss.
+    \end{itemize}
+}
+
+% If the client sends the RPC request but receives no response, it doesn't know whether or not the server received and processed the request.
+% It could resend the request if it doesn't hear back for a while, but that might cause the request to be performed more than once (e.g.\ charging a credit card twice), unless we take care to make the request idempotent.
+% But even if we retry, there is no guarantee that the retried messages will get through either.
+%
+% Waiting forever is not a good approach, so in practice we have to give up after some timeout.
+% As the client has not received a response, the RPC stub will not be able to return a value of the function's return type, but rather it will need to somehow indicate to the calling code that a timeout occurred, e.g.\ by throwing an exception.
+
+
+Object-oriented middleware.
+
+gRPC, Thrift, Java RMI, CORBA
+
+
+Service-oriented architecture/microservices
 
 \section{Models of distributed systems}
 
