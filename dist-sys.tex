@@ -1,8 +1,12 @@
+\newcommand{\coursepath}{/teaching/2021/ConcDisSys}
+\newcommand{\courseurl}{\url{https://www.cst.cam.ac.uk\coursepath}}
+\newcommand{\thisyear}{2020/21}
+
 \begin{document}
 \title{Distributed Systems}
-\subtitle{University of Cambridge\\Computer Science Tripos, Part IB\\Michaelmas term 2020/21\\\url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/}}
+\subtitle{University of Cambridge\\Computer Science Tripos, Part IB\\Michaelmas term \thisyear\\\courseurl}
         
-\author{Martin Kleppmann}
+\author{Dr.\ Martin Kleppmann\\mk428@cst.cam.ac.uk}
 \date{}
 \maketitle
 
@@ -13,11 +17,11 @@
     \begin{center}
         \textbf{\huge{\color{darkblue}{Distributed Systems}}} \\[2em]
         The second half of \emph{Concurrent and Distributed Systems}\\[0.5em]
-        \url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/}\\[2em]
-        Martin Kleppmann (mk428@cam) \\[0.5em]
+        \courseurl\\[2em]
+        Dr.\ Martin Kleppmann (mk428@cam) \\[0.5em]
         University of Cambridge \\[0.5em]
         Computer Science Tripos, Part IB \\[0.5em]
-        Michaelmas term 2020/21 \\[0.5em]
+        Michaelmas term \thisyear \\[0.5em]
     \end{center}
 \end{frame}
 
@@ -54,6 +58,8 @@ In this course we don't distinguish them: a node can be any type of communicatin
 \inlineslide{s:dist-sys-definition}\label{l:dist-sys-definition}
 % reference for Lamport quote: https://www.microsoft.com/en-us/research/publication/distribution/
 
+\subsection{About this course}
+
 These notes and the lecture recordings should be self-contained, but if you would like to read up on further detail, there are several suggested textbooks:
 \begin{itemize}
     \item Maarten van Steen and Andrew S.\ Tanenbaum. \emph{Distributed Systems}. ISBN 978-1543057386.
@@ -68,7 +74,7 @@ These notes and the lecture recordings should be self-contained, but if you woul
         Ebook download for Cambridge users: \url{https://link.springer.com/book/10.1007/978-3-642-15260-3} then click Log in $\rightarrow$ via Shibboleth $\rightarrow$ type \emph{University of Cambridge} $\rightarrow$ log in with Raven.
 
         This book is more advanced, going into depth on several important distributed algorithms, and proving their correctness.
-        Recommended if you want to go deeper into the theory than what is covered in this course.
+        Recommended if you want to go deeper into the theory than covered in this course.
 
     \item Martin Kleppmann. \emph{Designing Data-Intensive Applications}, O'Reilly, 2017. ISBN 978-1449373320.
 
@@ -93,6 +99,16 @@ These notes and the lecture recordings should be self-contained, but if you woul
 \end{frame}
 \inlineslide{s:reading}
 
+The syllabus, slides, and lecture notes for this course have been substantially revised for 2020/21.
+This means that new mistakes may have crept in.
+If you notice anything wrong, or if anything is unclear, please let the lecturer know by email (\url{mk428@cst.cam.ac.uk})!
+
+As for other courses, past exam questions are available at \url{https://www.cl.cam.ac.uk/teaching/exams/pastpapers/t-ConcurrentandDistributedSystems.html}.
+Because of syllabus changes, some of the past exam questions are no longer applicable.
+TODO: details on which questions are obsolete.
+
+This course is related to several other courses in the tripos, as shown on Slide~\ref{l:other-courses}.
+
 \begin{frame}
     \label{s:other-courses}
     \frametitle{Relationships with other courses}
@@ -113,7 +129,7 @@ These notes and the lecture recordings should be self-contained, but if you woul
             (distributed systems for processing large amounts of data)
     \end{itemize}
 \end{frame}
-\inlineslide{s:other-courses}
+\inlineslide{s:other-courses}\label{l:other-courses}
 
 
 \subsection{Pros and cons of distributed systems}
@@ -226,6 +242,98 @@ But from a distributed systems point of view, the method of delivering the messa
 The Computer Networking course in Lent term focusses on the network protocols that enable messages to get to their destination.
 The study of distributed systems builds upon that facility, and instead focusses on how several nodes should coordinate in order to achieve some shared task.
 The design of distributed algorithms is about deciding what messages to send, and how to process the messages when they are received.
+
+\subsection{Example: the web, a client-server distributed system}
+
+The web is an example of a distributed system that you use every day.
+
+\begin{frame}[plain]
+    \label{s:website}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node at (current page.center) {\includegraphics[height=\paperheight]{images/website.png}};
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:website}
+
+In the web there are two main types of nodes: \emph{servers} host websites, and \emph{clients} (web browsers) display them.
+When you load a web page, your web browser sends a \emph{HTTP request} message to the appropriate server.
+On receiving that request, the web server sends a \emph{response} message containing the page contents to the client that requested it.
+
+\begin{frame}
+    \label{s:client-server}
+    \frametitle{Client-server example: the web}
+    Time flows from top to bottom.
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (client) at (0,4) {client};
+            \node [rectangle,fill=red!10,draw] (server) at (8,4) {server www.cst.cam.ac.uk};
+            \draw (client) -- (0,0);
+            \draw (server) -- (8,0);
+            \draw<2-> [bigarrow,thick] (0,3) -- node [above,sloped] {GET \coursepath} (8,2);
+            \draw<3> [bigarrow,thick] (8,1.5) -- node [above,sloped] {\texttt{<!DOCTYPE html><html>...}} (0,0.5);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:client-server}
+
+\begin{frame}[plain]
+    \label{s:http-capture}
+    \begin{tikzpicture}
+        \node at (0,0) {\includegraphics[height=8cm]{images/http-capture.png}};
+        \node<2> (request) at (-2,-4.5) [red] {request message};
+        \node<2> (response) at (2,-4.5) [red] {response message};
+        \draw<2> [-Stealth,red,line width=4pt] (request) -- (-2,0.5);
+        \draw<2> [-Stealth,red,line width=4pt] (response) -- (2,-1.2);
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:http-capture}\label{l:http-capture}
+
+These messages are normally invisible, but we can capture and visualise the network traffic with a tool such as Charles (\url{https://www.charlesproxy.com/}), shown on Slide~\ref{l:http-capture}.
+
+% TODO live demo: launch Charles and then run
+% curl -kx localhost:8888 https://www.cst.cam.ac.uk/teaching/2021/ConcDisSys/
+% Also show how in Wireshark it breaks down into lots of small packets, with filter:
+% ip.addr == 128.232.132.21
+
+In a URL such as \courseurl, the part of the URL between the \verb|//| and the \verb|/| is the hostname of the server to which the client is going to send the request (\texttt{www.cst.cam.ac.uk}), and the rest (\texttt{\coursepath}) is the path that the client asks for in its request message.
+Besides the path, the request also contains some extra information, such as the version of the client software (the \emph{user-agent}), and a list of file formats that the client understands (the \emph{accept header}).
+The response message contains the file that was requested, and an indicator of its file format (the \emph{content-type}); in the case of a web page, this might be a HTML document, an image, a video, or any other type of file.
+
+Since the requests and responses can be larger than we can fit in a single network packet, the HTTP protocol runs on top of TCP, which breaks down a large chunk of data into a stream of small network packets (see Slide~\ref{l:wireshark}), and puts them back together again at the recipient.
+HTTP also allows multiple requests and multiple responses to be sent over a single TCP connection.
+However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
+This keeps things simple, and independent of the underlying networking technology.
+
+\begin{frame}<article:0>[plain]
+    \label{s:wireshark}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node at (current page.center) {\includegraphics[height=\paperheight]{images/wireshark.png}};
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:wireshark}\label{l:wireshark}
+
+\subsection{Example: remote procedure calls (RPC)}
+
+Another example of an everyday distributed system is when you buy something online using a credit/debit card.
+There are companies that specialise in processing card payments.
+When you enter your card number in some online shop, that shop will send a payment request (including your card number) over the Internet to the payments service.
+The payments service in turn communicates with a card network such as Visa or MasterCard, which communicates with the bank that issued your card in order to take the payment.
+
+\begin{frame}
+    \label{s:payment-example}
+    \frametitle{Client-server example: online payments}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (client) at (0,4) {online shop};
+            \node [rectangle,fill=red!10,draw] (server) at (8,4) {payments service};
+            \draw (client) -- (0,0);
+            \draw (server) -- (8,0);
+            \draw<2-> [bigarrow,thick] (0,3) -- node [above,sloped] {charge {\textsterling}3.99 to credit card 1234\dots} (8,2);
+            \draw<3> [bigarrow,thick] (8,1.5) -- node [above,sloped] {success} (0,0.5);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:payment-example}
 
 \section{Models of distributed systems}
 
