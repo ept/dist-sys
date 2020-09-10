@@ -1,5 +1,8 @@
 .SUFFIXES: .tex .bib .aux .bbl .dvi .ps .pdf .thy
 
+solutions.pdf: dist-sys-notes.pdf
+	pdflatex solutions
+
 dist-sys-notes.pdf:	dist-sys-slides.pdf dist-sys-handout.pdf dist-sys-notes.bbl
 	pdflatex dist-sys-notes
 

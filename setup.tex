@@ -5,12 +5,12 @@
 \usepackage[hyphens]{url}
 \usepackage{doi}
 \usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
 \usepackage{tikz}
 
 \usetikzlibrary{arrows.meta}
 \tikzstyle{bigarrow}=[thick,-{Classical TikZ Rightarrow[length=2mm]}]
-
-\usefonttheme[onlymath]{serif}
 
 \urlstyle{sf}
 \newcounter{inlineslides}
@@ -29,3 +29,7 @@
 }
 
 \definecolor{darkblue}{rgb}{0,0,0.7}
+
+% Exercises and solution notes. See also dist-sys-notes.tex
+\newtheorem{exercise}{Exercise}
+\newcommand\supervision[2]{\begin{exercise}#1\end{exercise}}
