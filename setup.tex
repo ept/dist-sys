@@ -9,6 +9,15 @@
 \usepackage{amsthm}
 \usepackage{tikz}
 
+% The minted package does source code syntax highlighting using Pygments: https://pygments.org/
+% Pygments must be installed on your system, e.g. using `pip3.8 install Pygments`.
+% pdflatex must be run with option -shell-escape so that it can run pygmentize.
+% To allow the document to be built on systems without Pygments, commit the files in the
+% _minted-*/ directories to git. Use option finalizecache=true to update the cached
+% syntax-highlighted listings, and use option frozencache=true to use that cache.
+% With frozencache=true, the -shell-escape option is no longer needed.
+\usepackage{minted}
+
 \usetikzlibrary{arrows.meta}
 \tikzstyle{bigarrow}=[thick,-{Classical TikZ Rightarrow[length=2mm]}]
 
