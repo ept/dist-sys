@@ -6,7 +6,7 @@
   \PYG{n+nx}{headers}\PYG{o}{:} \PYG{p}{\PYGZob{}}\PYG{l+s+s1}{\PYGZsq{}Content\PYGZhy{}Type\PYGZsq{}}\PYG{o}{:} \PYG{l+s+s1}{\PYGZsq{}application/json\PYGZsq{}}\PYG{p}{\PYGZcb{}}
 \PYG{p}{\PYGZcb{};}
 
-\PYG{n+nx}{fetch}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}/payments\PYGZsq{}}\PYG{p}{,} \PYG{n+nx}{request}\PYG{p}{)}
+\PYG{n+nx}{fetch}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}https://example.com/payments\PYGZsq{}}\PYG{p}{,} \PYG{n+nx}{request}\PYG{p}{)}
   \PYG{p}{.}\PYG{n+nx}{then}\PYG{p}{((}\PYG{n+nx}{response}\PYG{p}{)} \PYG{p}{=\PYGZgt{}} \PYG{p}{\PYGZob{}}
     \PYG{k}{if} \PYG{p}{(}\PYG{n+nx}{response}\PYG{p}{.}\PYG{n+nx}{ok}\PYG{p}{)} \PYG{n+nx}{success}\PYG{p}{(}\PYG{n+nx}{response}\PYG{p}{.}\PYG{n+nx}{json}\PYG{p}{());}
     \PYG{k}{else} \PYG{n+nx}{failure}\PYG{p}{(}\PYG{n+nx}{response}\PYG{p}{.}\PYG{n+nx}{status}\PYG{p}{);} \PYG{c+c1}{// server error}

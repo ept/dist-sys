@@ -275,8 +275,8 @@ On receiving that request, the web server sends a \emph{response} message contai
             \node [rectangle,fill=red!10,draw] (server) at (8,4) {server www.cst.cam.ac.uk};
             \draw (client) -- (0,0);
             \draw (server) -- (8,0);
-            \draw<2-> [bigarrow,thick] (0,3) -- node [above,sloped] {GET \coursepath} (8,2);
-            \draw<3> [bigarrow,thick] (8,1.5) -- node [above,sloped] {\texttt{<!DOCTYPE html><html>...}} (0,0.5);
+            \draw<2-> [bigarrow] (0,3) -- node [above,sloped] {GET \coursepath} (8,2);
+            \draw<3> [bigarrow] (8,1.5) -- node [above,sloped] {\texttt{<!DOCTYPE html><html>...}} (0,0.5);
         \end{tikzpicture}
     \end{center}
 \end{frame}
@@ -332,8 +332,8 @@ When you enter your card number in some online shop, that shop will send a payme
             \node [rectangle,fill=red!10,draw] (server) at (8,4) {payments service};
             \draw (client) -- (0,0);
             \draw (server) -- (8,0);
-            \draw<2-> [bigarrow,thick] (0,3) -- node [above,sloped] {charge {\textsterling}3.99 to credit card 1234\dots} (8,2);
-            \draw<3> [bigarrow,thick] (8,1.5) -- node [above,sloped] {success} (0,0.5);
+            \draw<2-> [bigarrow] (0,3) -- node [above,sloped] {charge {\textsterling}3.99 to credit card 1234\dots} (8,2);
+            \draw<3> [bigarrow] (8,1.5) -- node [above,sloped] {success} (0,0.5);
         \end{tikzpicture}
     \end{center}
 \end{frame}
@@ -522,8 +522,138 @@ RPC frameworks facilitate the communication between these services.
 
 \section{Models of distributed systems}
 
-Fundamental abstraction: nodes (or processes); sending a message from one node to another.
 A \emph{system model} captures our assumptions about how nodes and the network behave.
+It is an abstract description of their properties, which can be implemented by various technologies in practice.
+
+\subsection{The two generals problem}
+
+To illustrate common system models, we will start this section by looking at two classic thought experiments in distributed systems: the \emph{two generals problem} \citep{Gray:1978} and the \emph{Byzantine generals problem} \citep{Lamport:1982}.
+
+\begin{frame}
+    \label{s:two-generals}
+    \frametitle{The two generals problem}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (army1) at (0,0) {army 1};
+            \node [rectangle,fill=red!10,draw] (army2) at (8,0) {army 2};
+            \node [circle,fill=blue!10,draw] (city) at (4,2) {city};
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army1) -- node [left,yshift=0.2cm] {attack?} (city);
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army2) -- node [right,yshift=0.2cm] {attack?} (city);
+            \draw [doublebigarrow] (army1) -- node [below] {messengers} (army2);
+        \end{tikzpicture}\\[1.5em]\pause
+        \begin{tabular}{|c|c|c|}
+            \hline
+            army 1 & army 2 & outcome \\\hline
+            does not attack & does not attack & nothing happens \\
+            attacks & does not attack & army 1 defeated \\
+            does not attack & attacks & army 2 defeated \\
+            attacks & attacks & city captured \\\hline
+        \end{tabular}\\[1.5em]
+        \textbf{Desired:} army 1 attacks \emph{if and only if} army 2 attacks
+    \end{center}
+\end{frame}
+\inlineslide{s:two-generals}\label{l:two-generals}
+
+In the two generals problem, we imagine two generals, each leading an army, who want to capture a city.
+(Apologies for the militaristic analogy~-- I didn't come up with it!)
+The city's defences are strong, and if only one of the two armies attacks, the army will be defeated.
+However, if both armies attack at the same time, they will successfully capture the city.
+
+Thus, the two generals need to coordinate their attack plan.
+This is made difficult by the fact that the two armies are camped some distance apart, and they can only communicate by messenger.
+The messengers must pass through territory controlled by the city, and so they are sometimes captured.
+Thus, a message sent by one general may or may not be received by the other general, and the sender does not know whether their message got through, except by receiving an explicit reply from the other party.
+If a general does not receive any messages, it is impossible to tell whether this is because the other general didn't send any messages, or because all messengers were captured.
+
+\begin{frame}
+    \label{s:two-generals-comms}
+    \frametitle{The two generals problem}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (gen1) at (0,3) {general 1};
+            \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {general 2};
+            \draw (gen1) -- (0,0);
+            \draw (gen2) -- (8,0);
+            \draw<2-> [bigarrow] (0,2.2) -- node [above,sloped] {attack 10 Nov, okay?} (8,1.2);
+            \draw<3> [messageloss] (8,0.7) -- node [above,sloped] {10 Nov agreed!} (2,0);
+        \end{tikzpicture}\pause\\[1em]
+        From general 1's point of view, this is indistinguishable from:\\[1em]
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (gen1) at (0,3) {general 1};
+            \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {general 2};
+            \draw (gen1) -- (0,1);
+            \draw (gen2) -- (8,1);
+            \draw<2-> [messageloss] (0,2.2) -- node [above,sloped] {attack 10 Nov, okay?} (6,1.4);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:two-generals-comms}
+
+What protocol should the two generals use to agree on a plan?
+For each general there are two options: either the general promises to go ahead with the attack in any case (even if no response is received), or the general waits for an acknowledgement before committing to attack.
+In the first case, the general who promises to go ahead risks being alone in the attack.
+In the second case, the general who awaits acknowledgement shifts the problem to the other general, who must now decide whether to commit to attack (and risk being alone) or wait for an acknowledgement of the acknowledgement.
+
+\begin{frame}
+    \label{s:two-generals-proto}
+    \frametitle{How should the generals decide?}
+    \begin{enumerate}
+        \item General 1 always attacks, even if no response is received?
+            \begin{itemize}
+                \item Send lots of messengers to increase probability that one will get through
+                \item If all are captured, general 2 does not know about the attack, so general 1 loses\\[1em]\pause
+            \end{itemize}
+        \item General 1 only attacks if positive response from general 2 is received?
+            \begin{itemize}
+                \item Now general 1 is safe
+                \item But general 2 knows that general 1 will only attack if general 2's response gets through
+                \item Now general 2 is in the same situation as general 1 in option 1\\[0.5em]\pause
+            \end{itemize}
+    \end{enumerate}
+    \textbf{No common knowledge}: the only way of knowing something is to communicate it
+\end{frame}
+\inlineslide{s:two-generals-proto}
+
+The problem is that no matter how many messages are exchanged, neither general can ever be certain that the other army will also turn up at the same time.
+A repeated sequence of back-and-forth acknowledgements can build up gradually increasing confidence that the generals are in agreement, but it can be proved that they cannot reach certainty by exchanging any finite number of messages.
+
+%On a philosophical note, this thought experiment demonstrates that there is no \emph{common knowledge} in distributed systems: 
+
+As a practical example of the two generals problem, \autoref{l:two-generals-applied} adapts the model from \autoref{l:two-generals} to the application of paying for goods in an online shop.
+The shop and the credit card payment processing service communicate per RPC, and some of these messages may be lost.
+Nevertheless, the shop wants to ensure that it dispatches the goods only if they are paid for, and it only charges the customer card if the goods are dispatched.
+
+\begin{frame}
+    \label{s:two-generals-applied}
+    \frametitle{The two generals problem applied}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (army1) at (0,0) {online shop};
+            \node [rectangle,fill=red!10,draw] (army2) at (8,0) {payments service};
+            \node [circle,fill=blue!10,draw] (city) at (4,2) {customer};
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army1) -- node [left,yshift=0.2cm] {dispatch goods} (city);
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army2) -- node [right,yshift=0.2cm] {charge credit card} (city);
+            \draw [doublebigarrow] (army1) -- node [below] {RPC} (army2);
+        \end{tikzpicture}\\[1.5em]\pause
+        \begin{tabular}{|c|c|c|}
+            \hline
+            online shop & payments service & outcome \\\hline
+            does not dispatch & does not charge & nothing happens \\
+            dispatches & does not charge & shop loses money \\
+            does not dispatch & charges & customer complaint \\
+            dispatches & charges & everyone happy \\\hline
+        \end{tabular}\\[1.5em]
+        \textbf{Desired:} online shop dispatches \emph{if and only if} payment made
+    \end{center}
+\end{frame}
+\inlineslide{s:two-generals-applied}\label{l:two-generals-applied}
+
+In practice, systems such as online shops work around the two generals problem in various pragmatic ways: for example, by periodically reconciling transaction records with the payments service, checking the status of transactions that timed out due to a network problem, and by reimbursing any orders that could not be fulfilled.
+Just because the two generals problem cannot be solved, that does not mean the challenges it raises are insurmountable: it just means that we have to think carefully and creatively about the problem.
+
+\subsection{The Byzantine generals problem}
+
+
 
 Faults and failures; fault tolerance; single point of failure
 
@@ -533,19 +663,10 @@ SLA: eg. 99\% of requests receive a successful response in less than 500 ms
 
 ``reliability'' of TCP; screenshots of network error + request timeout
 
-Why distribute?
-- Inherently distributed: communication, collaboration (Facebook, google docs).
-- Scale, performance, fault tolerance
-
-It's easy if you can do it on one machine! Don't distribute unless you have to. 
-
 Distributed systems are fascinating because we have to work with partial knowledge and uncertain
 truths. We never have certainty about the state of the system, because by the time we hear about
 something, that state may already be outdated. In this way it resembles real life more than most of
 computing! In real life you need to often make decisions with incomplete information.
-
-Two generals problem, Byzantine generals problem
-% two generals: https://link.springer.com/chapter/10.1007/3-540-08755-9_9
 
 % network cable unplugged (image)
 % sharks bite submarine cables https://slate.com/technology/2014/08/shark-attacks-threaten-google-s-undersea-internet-cables-video.html
