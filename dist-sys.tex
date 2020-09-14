@@ -74,7 +74,7 @@ These notes and the lecture recordings should be self-contained, but if you woul
         Ebook download for Cambridge users: \url{https://link.springer.com/book/10.1007/978-3-642-15260-3} then click Log in $\rightarrow$ via Shibboleth $\rightarrow$ type \emph{University of Cambridge} $\rightarrow$ log in with Raven.
 
         This book is more advanced, going into depth on several important distributed algorithms, and proving their correctness.
-        Recommended if you want to go deeper into the theory than covered in this course.
+        Recommended if you want to explore the theory in greater depth than this course covers.
 
     \item Martin Kleppmann. \emph{Designing Data-Intensive Applications}, O'Reilly, 2017. ISBN 978-1449373320.
 
@@ -86,6 +86,9 @@ These notes and the lecture recordings should be self-contained, but if you woul
 
         This book provides a link to the \emph{concurrent systems} half of the course, and to operating systems topics.
 \end{itemize}
+
+Where appropriate, these lecture notes also contain references to research papers and other useful background reading (these are given in square brackets, and the details appear at the end of this document).
+However, only material covered in the lecture notes and videos is examinable.
 
 \begin{frame}
     \label{s:reading}
@@ -107,7 +110,10 @@ As for other courses, past exam questions are available at \url{https://www.cl.c
 Because of syllabus changes, some of the past exam questions are no longer applicable.
 TODO: details on which questions are obsolete.
 
-This course is related to several other courses in the tripos, as shown on Slide~\ref{l:other-courses}.
+These notes also contain exercises, which are suggested material for discussion in supervisions.
+Solution notes for supervisors are available from the course web page.
+
+This course is related to several other courses in the tripos, as shown on \autoref{l:other-courses}.
 
 \begin{frame}
     \label{s:other-courses}
@@ -139,7 +145,7 @@ Some applications are \emph{instrinsically distributed}: if you want to send a m
 
 Some distributed systems do things that in principle a single computer could do, but they do it \emph{more reliably}.
 A single computer can fail and might need to be rebooted from time to time, but if you are using multiple nodes, then one node can continue serving users while another node is rebooting.
-Thus, a distributed system has the potential to be more reliable than a single computer, at least if it is well-designed (somewhat contradicting Lamport's quote on Slide~\ref{l:dist-sys-definition})!
+Thus, a distributed system has the potential to be more reliable than a single computer, at least if it is well-designed (somewhat contradicting Lamport's quote on \autoref{l:dist-sys-definition})!
 
 Another reason for distribution is for better \emph{performance}: if a service has users all over the world, and they all have to access a single node, then either the users in the UK or the users in New Zealand are going to find it slow (or both).
 By placing nodes in multiple locations around the world, we can get around the slowness of the speed of light by routing each user to a nearby node.
@@ -288,18 +294,18 @@ On receiving that request, the web server sends a \emph{response} message contai
 \end{frame}
 \inlineslide{s:http-capture}\label{l:http-capture}
 
-These messages are normally invisible, but we can capture and visualise the network traffic with a tool such as Charles (\url{https://www.charlesproxy.com/}), shown on Slide~\ref{l:http-capture}.
+These messages are normally invisible, but we can capture and visualise the network traffic with a tool such as Charles (\url{https://www.charlesproxy.com/}), shown on \autoref{l:http-capture}.
 
 % TODO live demo: launch Charles and then run
 % curl -kx localhost:8888 https://www.cst.cam.ac.uk/teaching/2021/ConcDisSys/
 % Also show how in Wireshark it breaks down into lots of small packets, with filter:
 % ip.addr == 128.232.132.21
 
-In a URL such as \courseurl, the part of the URL between the \verb|//| and the following \verb|/| is the hostname of the server to which the client is going to send the request (\texttt{www.cst.cam.ac.uk}), and the rest (\texttt{\coursepath}) is the path that the client asks for in its request message.
-Besides the path, the request also contains some extra information, such as the version of the client software (the \emph{user-agent}), and a list of file formats that the client understands (the \emph{accept header}).
+In a URL, the part between the \verb|//| and the following \verb|/| is the hostname of the server to which the client is going to send the request (e.g.\ \texttt{www.cst.cam.ac.uk}), and the rest (e.g.\ \texttt{\coursepath}) is the path that the client asks for in its request message.
+Besides the path, the request also contains some extra information, such as the HTTP method (e.g.\ \texttt{GET} to load a page, or \texttt{POST} to submit a form), the version of the client software (the \emph{user-agent}), and a list of file formats that the client understands (the \emph{accept header}).
 The response message contains the file that was requested, and an indicator of its file format (the \emph{content-type}); in the case of a web page, this might be a HTML document, an image, a video, a PDF document, or any other type of file.
 
-Since the requests and responses can be larger than we can fit in a single network packet, the HTTP protocol runs on top of TCP, which breaks down a large chunk of data into a stream of small network packets (see Slide~\ref{l:wireshark}), and puts them back together again at the recipient.
+Since the requests and responses can be larger than we can fit in a single network packet, the HTTP protocol runs on top of TCP, which breaks down a large chunk of data into a stream of small network packets (see \autoref{l:wireshark}), and puts them back together again at the recipient.
 HTTP also allows multiple requests and multiple responses to be sent over a single TCP connection.
 However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
 This keeps things independent of the underlying networking technology.
@@ -335,7 +341,7 @@ When you enter your card number in some online shop, that shop will send a payme
 
 The payments service in turn communicates with a card network such as Visa or MasterCard, which communicates with the bank that issued your card in order to take the payment.
 
-For the programmers who are implementing the online shop, the code for processing the payment may look something like the code on Slide~\ref{l:payment-rpc}.
+For the programmers who are implementing the online shop, the code for processing the payment may look something like the code on \autoref{l:payment-rpc}.
 
 \begin{frame}
     \label{s:payment-rpc}
@@ -360,7 +366,7 @@ The software that implements RPC is called an \emph{RPC framework} or \emph{midd
 When an application wishes to call a function on another node, the RPC framework provides a \emph{stub} in its place.
 The stub has the same type signature as the real function, but instead of executing the real function, it encodes the function arguments in a message and sends that message to the remote node, asking for that function to be called.
 The process of encoding the function arguments is known as \emph{marshalling}.
-In the example on Slide~\ref{l:payment-json}, a JSON encoding is used for marshalling, but various other formats are also used in practice.
+In the example on \autoref{l:payment-json}, a JSON encoding is used for marshalling, but various other formats are also used in practice.
 
 \begin{frame}[plain]
     \label{s:payment-json}
@@ -385,7 +391,7 @@ In the example on Slide~\ref{l:payment-json}, a JSON encoding is used for marsha
         \draw<4-> [->] (send-res.west) -- node [above] {$m_2$} (recv-res.east);
         \node<5> [font=\scriptsize] (return) at (0,0.3) {function returns};
         \draw<5> [->] (recv-res.west) -- (return.north);
-        \draw [dotted] (invoke.south) -- (0,0.5);
+        \draw [dotted] (invoke.south) -- node [left,font=\scriptsize] {waiting} (0,0.5);
         \node at (0,0) {}; % so that messages below stay put as the slide builds
     \end{tikzpicture}
     \hspace*{-1cm}\mbox{
@@ -409,7 +415,7 @@ When the function returns, the same happens in reverse: the function's return va
 Thus, to the caller of the stub, it looks as if the function had executed locally.
 
 \begin{frame}
-    \label{s:rpc-discussion}
+    \label{s:rpc-problems}
     \frametitle{Remote Procedure Call (RPC)}
     Ideally, RPC makes a call to a remote function look the same as a local function call.\\[1em]
     \textbf{``Location transparency''}:\\ system hides where a resource is located.\\[1em]\pause
@@ -421,23 +427,91 @@ Thus, to the caller of the stub, it looks as if the function had executed locall
         \item if something goes wrong, is it safe to retry?
     \end{itemize}
 \end{frame}
-\inlineslide{s:rpc-discussion}
+\inlineslide{s:rpc-problems}
 
 \supervision{
     Networks and nodes might fail.
     What are the implications for code that calls another node through RPC?
     How is RPC different from a local function call?
+    Is location transparency achievable?
 }{
     \begin{itemize}
         \item RPCs may time out if the request or response message is lost.
             Even if we retry, there is no guarantee that the messages will get through.
             The application must handle this error condition, and the possibility of failure may need to be reflected in the type signature.
-            For example, JavaScript RPC clients often return a \emph{promise}, which can either succeed or fail.
+            For example, Java RPC libraries often throw a checked exception, and JavaScript RPC clients often return a \emph{promise}, which can either succeed or fail.
         \item If a timeout occurs, the RPC client doesn't know whether the server executed the function; local function calls don't have this uncertainty.
         \item RPC is often much slower than a local function call, due to network latency.
+            Moreover, network latency is often variable and unpredictable, while the execution speed of a local function is usually predictable.
         \item RPC clients and servers may need to take measures to make function invocation idempotent, to allow safe retries in case of message loss.
+        \item Perfect location transparency can only be achieved by making local function calls more like RPCs (e.g.\ allowing them to unpredictably fail).
+            This is undesirable in most cases, and therefore most systems do not attempt to completely hide the distinction between local and remote calls.
     \end{itemize}
 }
+
+Over the decades many variants of RPC have been developed, with the goal of making it easier to program distributed systems.
+This includes object-oriented middleware such as CORBA in the 1990s.
+However, the underlying distributed systems challenges have remained the same \citep{Waldo:1994wx}.
+
+\begin{frame}
+    \label{s:rpc-history}
+    \frametitle{RPC history}
+    \begin{itemize}
+        \item SunRPC/ONC RPC (1980s, basis for NFS)
+        \item CORBA: object-oriented middleware, hot in the 1990s
+        \item Microsoft's DCOM and Java RMI (similar to CORBA)
+        \item SOAP/XML-RPC: RPC using XML and HTTP (1998)
+        \item Thrift (Facebook, 2007)
+        \item gRPC (Google, 2015)
+        \item REST (often with JSON)
+        \item Ajax in web browsers
+    \end{itemize}
+\end{frame}
+\inlineslide{s:rpc-history}
+
+Today, the most common form of RPC is implemented using JSON data sent over HTTP.
+A popular set of design principles for such HTTP-based APIs is known as \emph{representational state transfer} or \emph{REST} \citep{Fielding:2000}, and APIs that adhere to these principles are called \emph{RESTful}.
+These principles include:
+\begin{itemize}
+    \item communication is stateless (each request is self-contained and independent from other requests),
+    \item resources (objects that can be inspected and manipulated) are represented by URLs, and
+    \item the state of a resource is updated by making a HTTP request with a standard method type, such as \texttt{POST} or \texttt{PUT}, to the appropriate URL.
+\end{itemize}
+The popularity of REST is due to the fact that JavaScript code running in a web browser can easily make this type of HTTP request, as shown in \autoref{l:javascript-rpc}.
+In modern websites it is very common to use JavaScript to make HTTP requests to a server without reloading the whole page.
+This technique is sometimes known as \emph{Ajax}.
+
+\begin{frame}
+    \label{s:javascript-rpc}
+    \frametitle{RPC/REST in JavaScript}
+    \inputminted{js}{code/payment-rpc.js}
+\end{frame}
+\inlineslide{s:javascript-rpc}\label{l:javascript-rpc}
+
+The code on \autoref{l:javascript-rpc} takes the arguments \verb|args|, marshals them to JSON using \verb|JSON.stringify()|, and then sends them to the URL \verb|https://example.com/payments| using a HTTP POST request.
+There are three possible outcomes: either the server returns a status code indicating success (in which case we unmarshal the response using \verb|response.json()|), or the server returns a status code indicating an error, or the request fails because no response was received from the server (most likely due to a network interruption).
+The code calls either the \verb|success()| or the \verb|failure()| function in each of these cases.
+
+Even though RESTful APIs and HTTP-based RPC originated on the web (where the client is JavaScript running in a web browser), they are now also commonly used with other types of client (e.g.\ mobile apps), or for server-to-server communication.
+
+\begin{frame}
+    \label{s:rpc-discussion}
+    \frametitle{RPC in enterprise systems}
+    \textbf{``Service-oriented architecture''} (SOA) / ``microservices'':\\[1em]
+    splitting a large software application into multiple services\\ (on multiple nodes) that communicate via RPC.\\[1.5em]\pause
+
+    Different services implemented in different languages:
+    \begin{itemize}
+        \item interoperability: datatype conversions
+        \item \textbf{Interface Definition Language} (IDL): language-independent API specification
+        \item challenges: e.g. if one service is unavailable, can other services continue working?
+    \end{itemize}
+\end{frame}
+\inlineslide{s:rpc-discussion}
+
+Such server-to-server RPC is especially common in large enterprises, whose software systems are too large and complex to run in a single process.
+To manage this complexity, the system is broken down into multiple services, which are developed and administered by different teams and which may even be implemented in different programming languages.
+RPC frameworks facilitate the communication between these services.
 
 % If the client sends the RPC request but receives no response, it doesn't know whether or not the server received and processed the request.
 % It could resend the request if it doesn't hear back for a while, but that might cause the request to be performed more than once (e.g.\ charging a credit card twice), unless we take care to make the request idempotent.
@@ -445,14 +519,6 @@ Thus, to the caller of the stub, it looks as if the function had executed locall
 %
 % Waiting forever is not a good approach, so in practice we have to give up after some timeout.
 % As the client has not received a response, the RPC stub will not be able to return a value of the function's return type, but rather it will need to somehow indicate to the calling code that a timeout occurred, e.g.\ by throwing an exception.
-
-
-Object-oriented middleware.
-
-gRPC, Thrift, Java RMI, CORBA
-
-
-Service-oriented architecture/microservices
 
 \section{Models of distributed systems}
 
@@ -584,6 +650,10 @@ An event: something happened. Not the same as a message.
 % MIT graduate dist-sys course https://pdos.csail.mit.edu/6.824/schedule.html
 % Raft animations: http://thesecretlivesofdata.com/raft/
 
-\bibliographystyle{plainurl}
+% Beamer documentation:
+% https://people.wou.edu/~beavers/LaTeX/beamer_guide.pdf
+% http://anorien.csc.warwick.ac.uk/mirrors/CTAN/macros/latex/contrib/beamer/doc/beameruserguide.pdf
+
+\bibliographystyle{plainnat}
 \bibliography{references}{}
 \end{document}

@@ -1,5 +1,5 @@
 \PassOptionsToPackage{hyphens}{url}
-\PassOptionsToPackage{hidelinks}{hyperref}
+\PassOptionsToPackage{colorlinks,linkcolor=darkblue,citecolor=darkblue,urlcolor=darkblue}{hyperref}
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
 \usepackage[hyphens]{url}
@@ -8,6 +8,7 @@
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{tikz}
+\usepackage{natbib}
 
 % The minted package does source code syntax highlighting using Pygments: https://pygments.org/
 % Pygments must be installed on your system, e.g. using `pip3.8 install Pygments`.
@@ -36,6 +37,7 @@
     }
     \hspace{1em}\textsf{Slide \theinlineslides} \par\vspace{1em}\pagebreak[2]
 }
+\def\inlineslidesautorefname{Slide}%
 
 \definecolor{darkblue}{rgb}{0,0,0.7}
 \definecolor{lightgrey}{rgb}{0.95,0.95,0.95}

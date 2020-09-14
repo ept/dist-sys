@@ -1,0 +1,17 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kd}{let} \PYG{n+nx}{args} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{n+nx}{amount}\PYG{o}{:} \PYG{l+m+mf}{3.99}\PYG{p}{,} \PYG{n+nx}{currency}\PYG{o}{:} \PYG{l+s+s1}{\PYGZsq{}GBP\PYGZsq{}}\PYG{p}{,} \PYG{c+cm}{/*...*/}\PYG{p}{\PYGZcb{};}
+\PYG{k+kd}{let} \PYG{n+nx}{request} \PYG{o}{=} \PYG{p}{\PYGZob{}}
+  \PYG{n+nx}{method}\PYG{o}{:}  \PYG{l+s+s1}{\PYGZsq{}POST\PYGZsq{}}\PYG{p}{,}
+  \PYG{n+nx}{body}\PYG{o}{:}    \PYG{n+nx}{JSON}\PYG{p}{.}\PYG{n+nx}{stringify}\PYG{p}{(}\PYG{n+nx}{args}\PYG{p}{),}
+  \PYG{n+nx}{headers}\PYG{o}{:} \PYG{p}{\PYGZob{}}\PYG{l+s+s1}{\PYGZsq{}Content\PYGZhy{}Type\PYGZsq{}}\PYG{o}{:} \PYG{l+s+s1}{\PYGZsq{}application/json\PYGZsq{}}\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{};}
+
+\PYG{n+nx}{fetch}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}https://example.com/payments\PYGZsq{}}\PYG{p}{,} \PYG{n+nx}{request}\PYG{p}{)}
+  \PYG{p}{.}\PYG{n+nx}{then}\PYG{p}{((}\PYG{n+nx}{response}\PYG{p}{)} \PYG{p}{=\PYGZgt{}} \PYG{p}{\PYGZob{}}
+    \PYG{k}{if} \PYG{p}{(}\PYG{n+nx}{response}\PYG{p}{.}\PYG{n+nx}{ok}\PYG{p}{)} \PYG{n+nx}{success}\PYG{p}{(}\PYG{n+nx}{response}\PYG{p}{.}\PYG{n+nx}{json}\PYG{p}{());}
+    \PYG{k}{else} \PYG{n+nx}{failure}\PYG{p}{(}\PYG{n+nx}{response}\PYG{p}{.}\PYG{n+nx}{status}\PYG{p}{);} \PYG{c+c1}{// server error}
+  \PYG{p}{\PYGZcb{})}
+  \PYG{p}{.}\PYG{k}{catch}\PYG{p}{((}\PYG{n+nx}{error}\PYG{p}{)} \PYG{p}{=\PYGZgt{}} \PYG{p}{\PYGZob{}}
+    \PYG{n+nx}{failure}\PYG{p}{(}\PYG{n+nx}{error}\PYG{p}{);} \PYG{c+c1}{// network error}
+  \PYG{p}{\PYGZcb{});}
+\end{Verbatim}
