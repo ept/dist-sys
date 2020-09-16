@@ -17,11 +17,10 @@
     \begin{center}
         \textbf{\huge{\color{darkblue}{Distributed Systems}}} \\[2em]
         The second half of \emph{Concurrent and Distributed Systems}\\[0.5em]
-        \courseurl\\[2em]
+        \url{https://www.cl.cam.ac.uk/teaching/current/ConcDisSys}\\[2em]
         Dr.\ Martin Kleppmann (mk428@cam) \\[0.5em]
         University of Cambridge \\[0.5em]
         Computer Science Tripos, Part IB \\[0.5em]
-        Michaelmas term \thisyear \\[0.5em]
     \end{center}
 \end{frame}
 
@@ -218,7 +217,7 @@ When studying distributed systems, we usually work with a high-level abstraction
             \node [circle,fill=red!10,draw] (j) at (6,0) {node $j$};
             \draw [bigarrow] (i) -- node [above] {message $m$} (j);
         \end{tikzpicture}
-    \end{center}
+    \end{center}\pause
 
     Reality is much more complex:
     \begin{itemize}
@@ -237,7 +236,8 @@ The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's
     \frametitle{Hard drives in a van?!}
     \begin{center}
         \includegraphics[height=5cm]{images/aws-snowball.png}\\[0.5em]
-        \footnotesize{\url{https://docs.aws.amazon.com/snowball/latest/ug/using-device.html}}
+        \scriptsize{\url{https://docs.aws.amazon.com/snowball/latest/ug/using-device.html}}\\[2em]
+        High latency, high bandwidth!
     \end{center}
 \end{frame}
 \inlineslide{s:snowball}
@@ -248,6 +248,25 @@ But from a distributed systems point of view, the method of delivering the messa
 The Computer Networking course in Lent term focusses on the network protocols that enable messages to get to their destination.
 The study of distributed systems builds upon that facility, and instead focusses on how several nodes should coordinate in order to achieve some shared task.
 The design of distributed algorithms is about deciding what messages to send, and how to process the messages when they are received.
+
+\begin{frame}
+    \label{s:latency-bandwidth}
+    \frametitle{Latency and bandwidth}
+    \textbf{Latency}: time until message arrives
+    \begin{itemize}
+        \item In the same building/datacenter: $\approx 1$ ms
+        \item One continent to another: $\approx 100$ ms
+        \item Hard drives in a van: $\approx 1$ day\\[2em]
+    \end{itemize}\pause
+    \textbf{Bandwidth}: data volume per unit time
+    \begin{itemize}
+        \item 3G cellular data: $\approx 1$ Mbit/s
+        \item Home broadband: $\approx 10$ Mbit/s
+        \item Hard drives in a van: 50~TB/box $\approx 1$ Gbit/s\\[1em]
+    \end{itemize}
+    (Very rough numbers, vary hugely in practice!)
+\end{frame}
+\inlineslide{s:latency-bandwidth}
 
 \subsection{Example: the web, a client-server distributed system}
 
@@ -260,10 +279,6 @@ The web is an example of a distributed system that you use every day.
     \end{tikzpicture}
 \end{frame}
 \inlineslide{s:website}
-
-In the web there are two main types of nodes: \emph{servers} host websites, and \emph{clients} (web browsers) display them.
-When you load a web page, your web browser sends a \emph{HTTP request} message to the appropriate server.
-On receiving that request, the web server sends a \emph{response} message containing the page contents to the client that requested it.
 
 \begin{frame}
     \label{s:client-server}
@@ -282,6 +297,11 @@ On receiving that request, the web server sends a \emph{response} message contai
 \end{frame}
 \inlineslide{s:client-server}
 
+In the web there are two main types of nodes: \emph{servers} host websites, and \emph{clients} (web browsers) display them.
+When you load a web page, your web browser sends a \emph{HTTP request} message to the appropriate server.
+On receiving that request, the web server sends a \emph{response} message containing the page contents to the client that requested it.
+These messages are normally invisible, but we can capture and visualise the network traffic with a tool such as Charles (\url{https://www.charlesproxy.com/}), shown on \autoref{l:http-capture}.
+
 \begin{frame}[plain]
     \label{s:http-capture}
     \begin{tikzpicture}
@@ -293,13 +313,6 @@ On receiving that request, the web server sends a \emph{response} message contai
     \end{tikzpicture}
 \end{frame}
 \inlineslide{s:http-capture}\label{l:http-capture}
-
-These messages are normally invisible, but we can capture and visualise the network traffic with a tool such as Charles (\url{https://www.charlesproxy.com/}), shown on \autoref{l:http-capture}.
-
-% TODO live demo: launch Charles and then run
-% curl -kx localhost:8888 https://www.cst.cam.ac.uk/teaching/2021/ConcDisSys/
-% Also show how in Wireshark it breaks down into lots of small packets, with filter:
-% ip.addr == 128.232.132.21
 
 In a URL, the part between the \verb|//| and the following \verb|/| is the hostname of the server to which the client is going to send the request (e.g.\ \texttt{www.cst.cam.ac.uk}), and the rest (e.g.\ \texttt{\coursepath}) is the path that the client asks for in its request message.
 Besides the path, the request also contains some extra information, such as the HTTP method (e.g.\ \texttt{GET} to load a page, or \texttt{POST} to submit a form), the version of the client software (the \emph{user-agent}), and a list of file formats that the client understands (the \emph{accept header}).
@@ -504,7 +517,6 @@ Even though RESTful APIs and HTTP-based RPC originated on the web (where the cli
     \begin{itemize}
         \item interoperability: datatype conversions
         \item \textbf{Interface Definition Language} (IDL): language-independent API specification
-        \item challenges: e.g. if one service is unavailable, can other services continue working?
     \end{itemize}
 \end{frame}
 \inlineslide{s:rpc-discussion}
@@ -512,6 +524,19 @@ Even though RESTful APIs and HTTP-based RPC originated on the web (where the cli
 Such server-to-server RPC is especially common in large enterprises, whose software systems are too large and complex to run in a single process.
 To manage this complexity, the system is broken down into multiple services, which are developed and administered by different teams and which may even be implemented in different programming languages.
 RPC frameworks facilitate the communication between these services.
+
+When different programming languages are used, the RPC framework needs to convert datatypes such that the caller's arguments are understood by the code being called, and likewise for the function's return value.
+A typical solution is to use an \emph{Interface Definition Language} (IDL) to provide a language-independent type signatures of the functions that are being made available over RPC.
+From the IDL, software developers can then automatically generate marshalling/unmarshalling code and RPC stubs for the respective programming languages of each service and its clients.
+\autoref{l:rpc-idl} shows an example of the IDL used by gRPC, called \emph{Protocol Buffers}.
+The details of this language are not important for this course.
+
+\begin{frame}
+    \label{s:rpc-idl}
+    \frametitle{gRPC IDL example}
+    \inputminted[fontsize=\scriptsize]{protobuf}{code/payment-rpc.proto}
+\end{frame}
+\inlineslide{s:rpc-idl}\label{l:rpc-idl}
 
 % If the client sends the RPC request but receives no response, it doesn't know whether or not the server received and processed the request.
 % It could resend the request if it doesn't hear back for a while, but that might cause the request to be performed more than once (e.g.\ charging a credit card twice), unless we take care to make the request idempotent.

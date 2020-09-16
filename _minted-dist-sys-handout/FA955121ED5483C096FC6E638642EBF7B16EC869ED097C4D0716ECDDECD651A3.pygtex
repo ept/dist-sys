@@ -1,0 +1,24 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kd}{message} \PYG{n+nc}{PaymentRequest} \PYG{p}{\PYGZob{}}
+  \PYG{k+kd}{message} \PYG{n+nc}{Card} \PYG{p}{\PYGZob{}}
+    \PYG{k}{required} \PYG{k+kt}{string} \PYG{n+na}{cardNumber}  \PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{;}
+    \PYG{k}{optional} \PYG{k+kt}{int32}  \PYG{n+na}{expiryMonth} \PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{;}
+    \PYG{k}{optional} \PYG{k+kt}{int32}  \PYG{n+na}{expiryYear}  \PYG{o}{=} \PYG{l+m+mi}{3}\PYG{p}{;}
+    \PYG{k}{optional} \PYG{k+kt}{int32}  \PYG{n+na}{CVC}         \PYG{o}{=} \PYG{l+m+mi}{4}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
+  \PYG{k+kd}{enum} \PYG{n}{Currency} \PYG{p}{\PYGZob{}} \PYG{n+na}{GBP} \PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{;} \PYG{n+na}{USD} \PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{;} \PYG{p}{\PYGZcb{}}
+
+  \PYG{k}{required} \PYG{n}{Card}     \PYG{n+na}{card}     \PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{;}
+  \PYG{k}{required} \PYG{k+kt}{int64}    \PYG{n+na}{amount}   \PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{;}
+  \PYG{k}{required} \PYG{n}{Currency} \PYG{n+na}{currency} \PYG{o}{=} \PYG{l+m+mi}{3}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kd}{message} \PYG{n+nc}{PaymentStatus} \PYG{p}{\PYGZob{}}
+  \PYG{k}{required} \PYG{k+kt}{bool}   \PYG{n+na}{success}      \PYG{o}{=} \PYG{l+m+mi}{1}\PYG{p}{;}
+  \PYG{k}{optional} \PYG{k+kt}{string} \PYG{n+na}{errorMessage} \PYG{o}{=} \PYG{l+m+mi}{2}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kd}{service} \PYG{n}{PaymentService} \PYG{p}{\PYGZob{}}
+  \PYG{k}{rpc} \PYG{n}{ProcessPayment}\PYG{p}{(}\PYG{n}{PaymentRequest}\PYG{p}{)} \PYG{k}{returns} \PYG{p}{(}\PYG{n}{PaymentStatus}\PYG{p}{)} \PYG{p}{\PYGZob{}\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}

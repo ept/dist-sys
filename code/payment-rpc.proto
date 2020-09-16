@@ -1,0 +1,22 @@
+message PaymentRequest {
+  message Card {
+    required string cardNumber  = 1;
+    optional int32  expiryMonth = 2;
+    optional int32  expiryYear  = 3;
+    optional int32  CVC         = 4;
+  }
+  enum Currency { GBP = 1; USD = 2; }
+
+  required Card     card     = 1;
+  required int64    amount   = 2;
+  required Currency currency = 3;
+}
+
+message PaymentStatus {
+  required bool   success      = 1;
+  optional string errorMessage = 2;
+}
+
+service PaymentService {
+  rpc ProcessPayment(PaymentRequest) returns (PaymentStatus) {}
+}
