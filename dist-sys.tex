@@ -121,7 +121,7 @@ However, only material covered in the lecture notes and videos is examinable.
 
 The syllabus, slides, and lecture notes for this course have been substantially revised for 2020/21.
 This means that new mistakes may have crept in.
-If you notice anything wrong, or if anything is unclear, please let the lecturer know by email (\url{mk428@cst.cam.ac.uk})!
+If you notice anything wrong, or if anything is unclear, please let me know by email (\url{mk428@cst.cam.ac.uk})!
 
 As for other courses, past exam questions are available at \url{https://www.cl.cam.ac.uk/teaching/exams/pastpapers/t-ConcurrentandDistributedSystems.html}.
 Because of syllabus changes, some of the past exam questions are no longer applicable.
@@ -341,7 +341,7 @@ HTTP also allows multiple requests and multiple responses to be sent over a sing
 However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
 This keeps things independent of the underlying networking technology.
 
-\begin{frame}<article:0>[plain]
+\begin{frame}[plain]
     \label{s:wireshark}
     \begin{tikzpicture}[remember picture,overlay]
         \node at (current page.center) {\includegraphics[height=\paperheight]{images/wireshark.png}};
@@ -539,15 +539,15 @@ Even though RESTful APIs and HTTP-based RPC originated on the web (where the cli
 \end{frame}
 \inlineslide{s:rpc-discussion}
 
-Such server-to-server RPC is especially common in large enterprises, whose software systems are too large and complex to run in a single process.
+Such server-to-server RPC is especially common in large enterprises, whose software systems are too large and complex to run in a single process on a single machine.
 To manage this complexity, the system is broken down into multiple services, which are developed and administered by different teams and which may even be implemented in different programming languages.
 RPC frameworks facilitate the communication between these services.
 
 When different programming languages are used, the RPC framework needs to convert datatypes such that the caller's arguments are understood by the code being called, and likewise for the function's return value.
-A typical solution is to use an \emph{Interface Definition Language} (IDL) to provide a language-independent type signatures of the functions that are being made available over RPC.
+A typical solution is to use an \emph{Interface Definition Language} (IDL) to provide language-independent type signatures of the functions that are being made available over RPC.
 From the IDL, software developers can then automatically generate marshalling/unmarshalling code and RPC stubs for the respective programming languages of each service and its clients.
 \autoref{l:rpc-idl} shows an example of the IDL used by gRPC, called \emph{Protocol Buffers}.
-The details of this language are not important for this course.
+The details of the language are not important for this course.
 
 \begin{frame}
     \label{s:rpc-idl}
@@ -567,10 +567,14 @@ The details of this language are not important for this course.
 
 A \emph{system model} captures our assumptions about how nodes and the network behave.
 It is an abstract description of their properties, which can be implemented by various technologies in practice.
+To illustrate common system models, we will start this section by looking at two classic thought experiments in distributed systems: the \emph{two generals problem} and the \emph{Byzantine generals problem}.
 
 \subsection{The two generals problem}
 
-To illustrate common system models, we will start this section by looking at two classic thought experiments in distributed systems: the \emph{two generals problem} \citep{Gray:1978} and the \emph{Byzantine generals problem} \citep{Lamport:1982}.
+In the two generals problem \citep{Gray:1978}, we imagine two generals, each leading an army, who want to capture a city.
+(Apologies for the militaristic analogy~-- I didn't come up with it!)
+The city's defences are strong, and if only one of the two armies attacks, the army will be defeated.
+However, if both armies attack at the same time, they will successfully capture the city.
 
 \begin{frame}
     \label{s:two-generals}
@@ -597,11 +601,6 @@ To illustrate common system models, we will start this section by looking at two
 \end{frame}
 \inlineslide{s:two-generals}\label{l:two-generals}
 
-In the two generals problem, we imagine two generals, each leading an army, who want to capture a city.
-(Apologies for the militaristic analogy~-- I didn't come up with it!)
-The city's defences are strong, and if only one of the two armies attacks, the army will be defeated.
-However, if both armies attack at the same time, they will successfully capture the city.
-
 Thus, the two generals need to coordinate their attack plan.
 This is made difficult by the fact that the two armies are camped some distance apart, and they can only communicate by messenger.
 The messengers must pass through territory controlled by the city, and so they are sometimes captured.
@@ -617,8 +616,8 @@ If a general does not receive any messages, it is impossible to tell whether thi
             \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {general 2};
             \draw (gen1) -- (0,0);
             \draw (gen2) -- (8,0);
-            \draw<2-> [bigarrow] (0,2.2) -- node [above,sloped] {attack 10 Nov, okay?} (8,1.2);
-            \draw<3> [messageloss] (8,0.7) -- node [above,sloped] {10 Nov agreed!} (2,0);
+            \draw [bigarrow] (0,2.2) -- node [above,sloped] {attack 10 Nov, okay?} (8,1.2);
+            \draw [messageloss] (8,0.7) -- node [above,sloped] {10 Nov agreed!} (2,0);
         \end{tikzpicture}\pause\\[1em]
         From general 1's point of view, this is indistinguishable from:\\[1em]
         \begin{tikzpicture}
@@ -626,7 +625,7 @@ If a general does not receive any messages, it is impossible to tell whether thi
             \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {general 2};
             \draw (gen1) -- (0,1);
             \draw (gen2) -- (8,1);
-            \draw<2-> [messageloss] (0,2.2) -- node [above,sloped] {attack 10 Nov, okay?} (6,1.4);
+            \draw [messageloss] (0,2.2) -- node [above,sloped] {attack 10 Nov, okay?} (6,1.4);
         \end{tikzpicture}
     \end{center}
 \end{frame}
@@ -660,7 +659,9 @@ In the second case, the general who awaits acknowledgement shifts the problem to
 The problem is that no matter how many messages are exchanged, neither general can ever be certain that the other army will also turn up at the same time.
 A repeated sequence of back-and-forth acknowledgements can build up gradually increasing confidence that the generals are in agreement, but it can be proved that they cannot reach certainty by exchanging any finite number of messages.
 
-%On a philosophical note, this thought experiment demonstrates that there is no \emph{common knowledge} in distributed systems: 
+This thought experiment demonstrates that in a distributed system, there is no way for one node to have certainty about the state of another node.
+The only way how a node can know something is by having that knowledge communicated in a message.
+On a philosophical note, this is perhaps similar to communication between humans: we have no telepathy, so the only way for someone else to know what you are thinking is by communicating it (through speech, writing, body language, etc).
 
 As a practical example of the two generals problem, \autoref{l:two-generals-applied} adapts the model from \autoref{l:two-generals} to the application of paying for goods in an online shop.
 The shop and the credit card payment processing service communicate per RPC, and some of these messages may be lost.
@@ -696,7 +697,147 @@ Just because the two generals problem cannot be solved, that does not mean the c
 
 \subsection{The Byzantine generals problem}
 
+The Byzantine generals problem \citep{Lamport:1982} has a similar setting to the two generals problem.
+Again we have armies wanting to capture a city, though in this case there can be three or more.
+Again generals communicate by messengers, although this time we assume that if a message is sent, it is always delivered correctly.
 
+\begin{frame}
+    \label{s:byzantine-generals}
+    \frametitle{The Byzantine generals problem}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (army1) at (0,0) {army 1};
+            \node [rectangle,fill=red!10,draw] (army2) at (8,0) {army 2};
+            \node [rectangle,fill=red!10,draw] (army3) at (4,5.5) {army 3};
+            \node [circle,fill=blue!10,draw] (city) at (4,2.5) {city};
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army1) -- node [right,yshift=-0.2cm] {attack?} (city);
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army2) -- node [left,yshift=-0.2cm] {attack?} (city);
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army3) -- node [left,yshift=-0.4cm] {attack?} (city);
+            \draw [doublebigarrow] (army1.east)  -- node [below] {messengers} (army2.west);
+            \draw [doublebigarrow] (army1.north) -- node [left]  {messengers} (army3.south west);
+            \draw [doublebigarrow] (army2.north) -- node [right] {messengers} (army3.south east);
+        \end{tikzpicture}\\[1.5em]
+        \textbf{Problem:} some of the generals might be traitors
+    \end{center}
+\end{frame}
+\inlineslide{s:byzantine-generals}\label{l:byzantine-generals}
+
+The challenge in the Byzantine setting is that some generals might be ``traitors'': that is, they might try to deliberately and maliciously mislead and confuse the other generals.
+One example of such malicious behaviour is shown on \autoref{l:byzantine-generals-comms}: here, general 3 receives two contradictory messages from generals 1 and 2.
+General 1 tells general 3 to attack, whereas general 2 claims that general 1 ordered a retreat.
+It is impossible for general 3 to determine whether general 2 is lying (the first case), or whether general 2 is honest while general 1 is issuing contradictory orders (the second case).
+
+\begin{frame}
+    \label{s:byzantine-generals-comms}
+    \frametitle{Generals that might lie}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (gen1) at (0,2.6) {general 1};
+            \node [rectangle,fill=red!10,draw] (gen2) at (4.5,2.6) {general 2};
+            \node [rectangle,fill=red!10,draw] (gen3) at (9,2.6) {general 3};
+            \draw (gen1) -- (0,0);
+            \draw (gen2) -- (4.5,0);
+            \draw (gen3) -- (9,0);
+            \draw [bigarrow] (0,2.0) -- node [above,sloped,pos=0.25] {attack!} (9,1.2);
+            \draw [bigarrow] (0,1.3) -- node [above,sloped] {attack!} (4.5,0.9);
+            \draw [bigarrow] (4.5,0.6) -- node [above,sloped] {general 1 said retreat!} (9,0.2);
+        \end{tikzpicture}\pause\\[1em]
+        From general 3's point of view, this is indistinguishable from:\\[1em]
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (gen1) at (0,2.6) {general 1};
+            \node [rectangle,fill=red!10,draw] (gen2) at (4.5,2.6) {general 2};
+            \node [rectangle,fill=red!10,draw] (gen3) at (9,2.6) {general 3};
+            \draw (gen1) -- (0,0);
+            \draw (gen2) -- (4.5,0);
+            \draw (gen3) -- (9,0);
+            \draw [bigarrow] (0,2.0) -- node [above,sloped,pos=0.25] {attack!} (9,1.2);
+            \draw [bigarrow] (0,1.3) -- node [above,sloped] {retreat!} (4.5,0.9);
+            \draw [bigarrow] (4.5,0.6) -- node [above,sloped] {general 1 said retreat!} (9,0.2);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:byzantine-generals-comms}\label{l:byzantine-generals-comms}
+
+The honest generals don't know who the malicious generals are, but the malicious generals may collude and secretly coordinate their actions.
+In this setting, the Byzantine generals problem is to ensure that all honest generals agree on the same plan (e.g.\ whether to attack or to retreat).
+It is impossible to specify what the malicious generals are going to do, so the best we can manage is to get the honest generals to agree.
+
+This is difficult: in fact, it can be proved that some variants of the problem can be solved only if strictly fewer than one third of the generals are malicious.
+That is, in a system with $3f+1$ generals, no more than $f$ may be malicious.
+For example, a system with 4 generals can tolerate $f=1$ malicious general, and a system with 7 generals can tolerate $f=2$.
+
+\begin{frame}
+    \label{s:byzantine-discussion}
+    \frametitle{The Byzantine generals problem}
+    \begin{itemize}
+        \item Up to $f$ generals might behave malicously\\[0.5em]
+        \item Honest generals don't know who the malicious ones are\\[0.5em]
+        \item The malicious generals may collude\\[0.5em]
+        \item Nevertheless, honest generals must agree on plan\\[2em]\pause
+        \item Theorem: need $3f+1$ generals in total to tolerate $f$ malicious generals (i.e.\ $< \frac{1}{3}$ may be malicious)\\[0.5em]
+        \item Cryptography (digital signatures) helps~-- but problem remains hard\\[0.5em]
+    \end{itemize}
+\end{frame}
+\inlineslide{s:byzantine-discussion}
+
+The problem is made somewhat easier if generals use cryptography (\emph{digital signatures}) to prove who said what: for example, this would allow general 2 to prove to general 3 what general 1's order was, and thus demonstrate general 2's honesty.
+We will not go into details of digital signatures in this course, as they are covered in the Security course (Part IB Easter term).
+However, even with signatures, the Byzantine generals problem remains challenging.
+
+Is the Byzantine generals problem of practical relevance?
+Real distributed systems do often involve complex trust relationships.
+For example, a customer needs to trust an online shop to actually deliver the goods they ordered, although they can dispute the payment via their bank if the goods never arrive or if they get charged too much.
+But if an online shop somehow allowed customers to order goods without paying for them, this weakness would no doubt be exploited by fraudsters, so the shop must assume that customers are potentially malicious.
+On the other hand, for RPC between services belonging to the shop, running in the same datacentre, one service can probably trust the other services run by the same company.
+The payments service doesn't fully trust the shop, since someone might set up a fraudulent shop or use stolen credit card numbers, but the shop probably does trust the payments service.
+And so on.
+And in the end, we want the customer, the online shop, and the payments service to agree on any order that is placed.
+The Byzantine generals problem is a simplification of such complex trust relationships, but it is a good starting point for studying systems in which some participants might behave maliciously.
+
+\begin{frame}
+    \label{s:byzantine-payment}
+    \frametitle{Trust relationships and malicious behaviour}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (army1) at (0,0) {online shop};
+            \node [rectangle,fill=red!10,draw] (army2) at (8,0) {payments service};
+            \node [rectangle,fill=red!10,draw] (army3) at (4,5.5) {customer};
+            \node [circle,fill=blue!10,draw] (city) at (4,2.5) {order};
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army1) -- node [right,yshift=-0.2cm] {agree?} (city);
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army2) -- node [left,yshift=-0.2cm] {agree?} (city);
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army3) -- node [left,yshift=-0.4cm] {agree?} (city);
+            \draw [doublebigarrow] (army1.east)  -- node [below] {RPC} (army2.west);
+            \draw [doublebigarrow] (army1.north) -- node [left]  {RPC} (army3.south west);
+            \draw [doublebigarrow] (army2.north) -- node [right] {RPC} (army3.south east);
+        \end{tikzpicture}\\[1.5em]
+        Who can trust whom?
+    \end{center}
+\end{frame}
+\inlineslide{s:byzantine-payment}\label{l:byzantine-payment}
+
+Before we move on, a brief digression about the origin of the word ``Byzantine''.
+The term comes from the Byzantine empire, named after its capital city Byzantium or Constantinople, which is now Istanbul in Turkey.
+There is no historical evidence that the generals of the Byzantine empire were any more prone to intrigue and conspiracy than those elsewhere.
+Rather, the word \emph{Byzantine} had been used in the sense of ``excessively complicated, bureaucratic, devious'' long before Leslie Lamport adopted the word to describe the Byzantine generals problem; the exact etymology is unclear.
+
+\pagebreak[3]
+\begin{frame}
+    \label{s:byzantine-empire}
+    \frametitle{The Byzantine empire (650 CE)}
+    \begin{tikzpicture}
+        \node at (0,0) {\includegraphics[height=5cm]{images/byzantium650.png}};
+        \node (byzantium) at (2.4,3) {Byzantium/Constantinople/Istanbul};
+        \draw<2> [-Stealth,line width=4pt] (byzantium) -- (1.9,1.2);
+    \end{tikzpicture}
+    {\scriptsize Source: \url{https://commons.wikimedia.org/wiki/File:Byzantiumby650AD.svg}}\\[1em]
+    \textbf{``Byzantine''} has long been used for ``excessively complicated, bureaucratic, devious'' (e.g.\ \emph{``the Byzantine tax law''})
+\end{frame}
+\inlineslide{s:byzantine-empire}\label{l:byzantine-empire}
+
+\subsection{Describing nodes and network behaviour}
+
+The Byzantine generals problem is about faulty nodes, while the two generals problem is about faulty networks.
+Unfortunately, in real systems, both nodes and networks might be faulty!
 
 Faults and failures; fault tolerance; single point of failure
 
