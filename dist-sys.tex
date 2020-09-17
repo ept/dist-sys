@@ -1,6 +1,8 @@
+% Stuff that may change from year to year; also check slide s:other-courses
 \newcommand{\coursepath}{/teaching/2021/ConcDisSys}
 \newcommand{\courseurl}{\url{https://www.cst.cam.ac.uk\coursepath}}
 \newcommand{\thisyear}{2020/21}
+\newcommand{\whenissecurity}{Part IB Easter term}
 
 \fancypagestyle{plain}{%
   \renewcommand{\headrulewidth}{0pt}%
@@ -23,7 +25,7 @@
 \def\subsectionautorefname{Section}%
 \def\subsubsectionautorefname{Section}%
 
-\section{Introduction}
+\section{Introduction}\label{sec:introduction}
 
 \begin{frame}
     \label{s:title}
@@ -79,7 +81,7 @@ In this course we don't distinguish them: a node can be any type of communicatin
 % reference for Lamport quote: https://www.microsoft.com/en-us/research/publication/distribution/
 % License for photo: https://commons.wikimedia.org/wiki/File:Leslie_Lamport.jpg
 
-\subsection{About this course}
+\subsection{About this course}\label{sec:about}
 
 These notes and the lecture recordings should be self-contained, but if you would like to read up on further detail, there are several suggested textbooks:
 \begin{itemize}
@@ -150,7 +152,7 @@ This course is related to several other courses in the tripos, as shown on \auto
             (distributed systems involve network communication)
         \item \textbf{Further Java} -- Part IB Michaelmas\\
             (distributed programming practical exercises)
-        \item \textbf{Security} -- Part IB Easter term\\
+        \item \textbf{Security} -- \whenissecurity\\
             (network protocols with encryption \& authentication)
         \item \textbf{Cloud Computing} -- Part II\\
             (distributed systems for processing large amounts of data)
@@ -159,7 +161,7 @@ This course is related to several other courses in the tripos, as shown on \auto
 \inlineslide{s:other-courses}\label{l:other-courses}
 
 
-\subsection{Pros and cons of distributed systems}
+\subsection{Pros and cons of distributed systems}\label{sec:pros-cons}
 
 There are a number of reasons for creating distributed systems.
 Some applications are \emph{instrinsically distributed}: if you want to send a message from your phone to your friend's phone, that operation inevitably requires those phones to communicate via some kind of network.
@@ -225,7 +227,7 @@ Though, in fairness to our colleagues in other areas of computer science, this i
 \inlineslide{s:why-not}
 
 
-\subsection{Distributed systems and computer networking}
+\subsection{Distributed systems and computer networking}\label{sec:networking}
 
 When studying distributed systems, we usually work with a high-level abstraction of the hardware.
 
@@ -567,13 +569,13 @@ The details of the language are not important for this course.
 % Waiting forever is not a good approach, so in practice we have to give up after some timeout.
 % As the client has not received a response, the RPC stub will not be able to return a value of the function's return type, but rather it will need to somehow indicate to the calling code that a timeout occurred, e.g.\ by throwing an exception.
 
-\section{Models of distributed systems}
+\section{Models of distributed systems}\label{sec:system-models}
 
 A \emph{system model} captures our assumptions about how nodes and the network behave.
 It is an abstract description of their properties, which can be implemented by various technologies in practice.
 To illustrate common system models, we will start this section by looking at two classic thought experiments in distributed systems: the \emph{two generals problem} and the \emph{Byzantine generals problem}.
 
-\subsection{The two generals problem}
+\subsection{The two generals problem}\label{sec:two-generals}
 
 In the two generals problem \citep{Gray:1978}, we imagine two generals, each leading an army, who want to capture a city.
 (Apologies for the militaristic analogy~-- I didn't come up with it!)
@@ -699,7 +701,7 @@ Nevertheless, the shop wants to ensure that it dispatches the goods only if they
 In practice, systems such as online shops work around the two generals problem in various pragmatic ways: for example, by periodically reconciling transaction records with the payments service, checking the status of transactions that timed out due to a network problem, and by reimbursing any orders that could not be fulfilled.
 Just because the two generals problem cannot be solved, that does not mean the challenges it raises are insurmountable: it just means that we have to think carefully and creatively about the problem.
 
-\subsection{The Byzantine generals problem}
+\subsection{The Byzantine generals problem}\label{sec:byzantine}
 
 The Byzantine generals problem \citep{Lamport:1982} has a similar setting to the two generals problem.
 Again we have armies wanting to capture a city, though in this case there can be three or more.
@@ -786,7 +788,7 @@ For example, a system with 4 generals can tolerate $f=1$ malicious general, and 
 \inlineslide{s:byzantine-discussion}
 
 The problem is made somewhat easier if generals use cryptography (\emph{digital signatures}) to prove who said what: for example, this would allow general 2 to prove to general 3 what general 1's order was, and thus demonstrate general 2's honesty.
-We will not go into details of digital signatures in this course, as they are covered in the Security course (Part IB Easter term).
+We will not go into details of digital signatures in this course, as they are covered in the Security course (\whenissecurity).
 However, even with signatures, the Byzantine generals problem remains challenging.
 
 Is the Byzantine generals problem of practical relevance?
@@ -839,7 +841,7 @@ Rather, the word \emph{Byzantine} had been used in the sense of ``excessively co
 \end{frame}
 \inlineslide{s:byzantine-empire}\label{l:byzantine-empire}
 
-\subsection{Describing nodes and network behaviour}
+\subsection{Describing nodes and network behaviour}\label{sec:system-behaviour}
 
 When designing a distributed algorithm, a \emph{system model} is how we specify our assumptions about what faults may occur.
 
@@ -930,7 +932,7 @@ To overcome network partitions that last for longer than this duration, a separa
 An arbitrary link is an accurate model for communication over the Internet: whenever your communication is routed through a network (be it a coffee shop wifi or an Internet backbone network), the operator of that network can potentially interfere with and manipulate your network packets in arbitrary ways.
 Someone who manipulates network traffic is also known as an \emph{active adversary}.
 Fortunately, it is \emph{almost} possible to turn an arbitrary link into a fair-loss link using cryptographic techniques.
-The \emph{Transport Layer security} (TLS) protocol, which provides the ``s'' for ``secure'' in \verb|https://|, prevents an active adversary from eavesdropping, modifying, spoofing, or replaying traffic (more on this in the Security course in Easter term).
+The \emph{Transport Layer Security} (TLS) protocol, which provides the ``s'' for ``secure'' in \verb|https://|, prevents an active adversary from eavesdropping, modifying, spoofing, or replaying traffic (more on this in the Security course, \whenissecurity).
 
 The only thing that TLS cannot prevent is the adversary dropping (blocking) communication.
 Thus, an arbitrary link can be converted into a fair-loss link only if we assume that the adversary does not block communication forever.
@@ -1068,13 +1070,20 @@ Most distributed algorithms need to be designed for the asynchronous or partiall
 \end{frame}
 \inlineslide{s:model-summary}\label{l:model-summary}
 
-\subsection{Fault tolerance}
+\subsection{Fault tolerance and high availability}\label{sec:fault-tolerance}
 
-Faults and failures; fault tolerance; single point of failure; failure detector
+As highlighted in \autoref{sec:pros-cons}, one reason for building distributed systems is to achieve higher reliability than is possible with a single computer.
+We will now explore this idea further in the light of the system models we have discussed.
 
-Reaching very high availability requires a highly focussed engineering effort, and often conservative design choices.
-For example, the old-fashioned wired telephone network is designed for five nines availability.
-Most Internet services do not even reach four nines because of diminishing returns: beyond some point, the additional cost of achieving higher availability exceeds the cost of occasional downtime, so it is economically rational to accept a certain amount of downtime.
+From a business point of view, what usually matters most is the \emph{availability} of a service, such as a website.
+For example, an online shop wants to be able to sell products at any time of day or night: any outage of the website means a lost opportunity to make money.
+For other services, there may even be contractual agreements with customers requiring the service to be available.
+If a service is unavailable, this can also damage the reputation of the service provider.
+
+The availability of a service is typically measured in terms of its ability to respond correctly to requests within a certain time.
+The definition of whether a service is ``available'' or ``unavailable'' can be somewhat arbitrary: for example, if it takes 5 seconds to load a page, do we still consider that website to be available?
+What if it takes 30 seconds?
+An hour?
 
 \begin{frame}
     \label{s:availability}
@@ -1087,13 +1096,98 @@ Most Internet services do not even reach four nines because of diminishing retur
         \item ``Three nines'' = 99.9\% up = down 8.8 hours/year
         \item ``Four nines'' = 99.99\% up = down 53 minutes/year
         \item ``Five nines'' = 99.999\% up = down 5.3 minutes/year\\[1.5em]
-    \end{itemize}
+    \end{itemize}\pause
     \textbf{Service-Level Objective} (SLO):\\ e.g. ``99.9\% of requests in a day get a response in 200~ms''\\[1em]
     \textbf{Service-Level Agreement} (SLA):\\ contract specifying some SLO, penalties for violation
 \end{frame}
-\inlineslide{s:availability}
+\inlineslide{s:availability}\label{l:availability}
 
-\section{Time, clocks, and ordering of events}
+Typically, the availability expectations of a service are formalised as a \emph{service-level objective} (SLO), which typically specifies the percentage of requests that need to return a correct response within a specified timeout, as measured by a certain client over a certain period of time.
+A \emph{service-level agreement} (SLA) is a contract that specifies some SLO, as well as the consequences if the SLO is not met (for example, the service provider may need to offer a refund to its customers).
+
+Faults (such as node crashes or network interruptions) are a common cause of unavailability.
+In order to increase availability, we can reduce the frequency of faults, or we can design systems to continue working despite some of its components being faulty; the latter approach is called \emph{fault tolerance}.
+Reducing the frequency of faults is possible through buying higher-quality hardware and introducing redundancy, but this approach can never reduce the probability of faults to zero.
+Instead, fault tolerance is the approach taken by many distributed systems.
+
+\begin{frame}
+    \label{s:fault-tolerance}
+    \frametitle{Achieving high availability: fault tolerance}
+    \textbf{Failure}: system as a whole isn't working\\[1em]
+    \textbf{Fault}: some part of the system isn't working
+    \begin{itemize}
+        \item Node fault: crash (crash-stop/crash-recovery),\\deviating from algorithm (Byzantine)
+        \item Network fault: dropping or significantly delaying messages\\[1em]
+    \end{itemize}
+    \textbf{Fault tolerance}:\\system as a whole continues working, despite faults\\
+    (some maximum number of faults assumed)\\[1em]
+    \textbf{Single point of failure} (SPOF):\\ node/network link whose fault leads to failure
+\end{frame}
+\inlineslide{s:fault-tolerance}\label{l:fault-tolerance}
+
+If all nodes crash and don't recover, then no algorithm will be able to get any work done, so it does not make sense to tolerate arbitrary numbers of faults.
+Rather, an algorithm is designed to tolerate some specified number of faults: for example, some distributed algorithms are able to make progress provided that fewer than half of the nodes have crashed.
+
+In fault-tolerant systems we want to avoid \emph{single points of failure} (SPOF), i.e.\ components that would cause an outage if they were to become faulty.
+For example, the Internet is designed to have no SPOF: there is no one server or router whose destruction would bring down the entire Internet (although the loss of some components, such as key intercontinental fibre links, does cause noticeable disruption).
+% Also BGP hijacking...
+
+The first step towards tolerating faults is to detect faults, which is often done with a \emph{failure detector}.
+(``Fault detector'' would be more logical, but ``failure detector'' is the conventional term.)
+A failure detector usually detects crash faults.
+Byzantine faults are not always detectable, although in some cases Byzantine behaviour does leave evidence that can be used to identify and exclude malicious nodes.
+
+\begin{frame}
+    \label{s:failure-detector}
+    \frametitle{Failure detectors}
+    \textbf{Failure detector}:\\algorithm that detects whether another node is faulty\\[1em]
+    \textbf{Perfect failure detector}:\\labels a node as faulty if and only if it has crashed\\[1em]\pause
+    \textbf{Typical implementation} for crash-stop/crash-recovery:\\
+    send message, await response, label node as crashed if no reply within some timeout\\[1em]\pause
+    \textbf{Problem}:\\cannot tell the difference between crashed node, temporarily
+    unresponsive node, lost message, and delayed message\\[1em]
+\end{frame}
+\inlineslide{s:failure-detector}\label{l:failure-detector}
+
+In most cases, a failure detector works by periodically sending messages to other nodes, and labelling a node as crashed if no response is received within the expected time.
+Ideally, we would like a timeout to occur only if the node really has crashed (this is called a \emph{perfect failure detector}).
+However, the two generals problem tells us that this is not a totally accurate way of detecting a crash, because the absence of a response could also be due to message loss or delay.
+
+Thus, in an asynchronous or partially synchronous system, a perfect failure detector does not exist, and the best we can hope for is an \emph{eventually perfect failure detector} \citep{Chandra:1996}.
+
+\begin{frame}
+    \label{s:eventual-detector}
+    \frametitle{Failure detection in partially synchronous systems}
+    Perfect timeout-based failure detector exists only in a synchronous crash-stop system with reliable links.\\[1em]
+    \textbf{Eventually perfect failure detector}:
+    \begin{itemize}
+        \item May \emph{temporarily} label a node as crashed,\\ even though it is correct
+        \item May \emph{temporarily} label a node as correct,\\ even though it has crashed
+        \item But \emph{eventually}, labels a node as crashed\\ if and only if it has crashed\\[1em]
+    \end{itemize}
+    Reflects fact that detection is not instantaneous, and we may have spurious timeouts
+\end{frame}
+\inlineslide{s:eventual-detector}\label{l:eventual-detector}
+
+We will see later how to use such a failure detector to design fault-tolerance mechanisms and to automatically recover from node crashes.
+Using such algorithms it is possible to build systems that are highly available.
+Tolerating crashes also makes day-to-day operations easier: for example, if a service can tolerate one out of three nodes being unavailable, then a software upgrade can be rolled out by installing it and restarting one node at a time, while the remaining two nodes continue running the service.
+Being able to roll out software upgrades in this way, without clients noticing any interruption, is important for many organisations that are continually working on their software.
+
+%\begin{frame}
+    %\label{s:availability-discuss}
+    %\frametitle{High availability costs and benefits}
+    % TODO: visualise a rolling software upgrade?
+%\end{frame}
+%\inlineslide{s:availability-discuss}\label{l:availability-discuss}
+
+However, it is not the case that higher availability is always better.
+Reaching extremely high availability requires a highly focussed engineering effort, and often conservative design choices.
+For example, the old-fashioned fixed-line telephone network is designed for ``five nines'' availability, but the downside of this focus on availability is that it has been very slow to evolve.
+Most Internet services do not even reach four nines because of diminishing returns: beyond some point, the additional cost of achieving higher availability exceeds the cost of occasional downtime, so it is economically rational to accept a certain amount of downtime.
+
+
+\section{Time, clocks, and ordering of events}\label{sec:time}
 
 Distributed systems are fascinating because we have to work with partial knowledge and uncertain
 truths. We never have certainty about the state of the system, because by the time we hear about
