@@ -2,6 +2,7 @@
 \newcommand{\coursepath}{/teaching/2021/ConcDisSys}
 \newcommand{\courseurl}{\url{https://www.cst.cam.ac.uk\coursepath}}
 \newcommand{\thisyear}{2020/21}
+\newcommand{\timestampexample}{2020-11-09T09:50:17+00:00}
 \newcommand{\whenissecurity}{Part IB Easter term}
 
 \fancypagestyle{plain}{%
@@ -1240,7 +1241,322 @@ Most Internet services do not even reach four nines because of diminishing retur
     If so, the information about such in-progress operations will also need to be written to non-volatile storage.
 }
 
+\newpage
 \section{Time, clocks, and ordering of events}\label{sec:time}
+
+\begin{frame}
+    \begin{center}
+        Lecture 3\\[2em]
+        \Large{\color{darkblue}{Time, clocks, and ordering of events}}
+    \end{center}
+\end{frame}
+
+Let's start with a riddle, which will be resolved later in this lecture.
+
+\begin{frame}
+    \label{s:mystery}
+    \frametitle{A detective story}
+    In the night from 30 June to 1 July 2012 (UK time), many online services and systems around the world crashed simultaneously.\\[1em]
+    Servers locked up and stopped responding.\\[1em]
+    Some airlines could not process any reservations or check-ins for several hours.\\[1em]
+    What happened?
+\end{frame}
+\inlineslide{s:mystery}\label{l:mystery}
+
+In this lecure we will look at the concept of time in distributed systems.
+We have already seen that our assumptions about timing form a key part of the system model that distributed algorithms rely on.
+For example, timeout-based failure detectors need to measure time to determine when a timeout has elapsed.
+Operating systems rely extensively on timers and time measurements in order to schedule tasks, keep track of CPU usage, and many other purposes.
+Applications often want to record the time and date at which events occurred: for example, when debugging an error in a distributed system, timestamps are helpful for debugging, since they allow us to reconstruct which things happened around the same time on different nodes.
+All of these require more or less accurate measurements of time.
+
+\begin{frame}
+    \label{s:clocks-intro}
+    \frametitle{Clocks and time in distributed systems}
+    Distributed systems often need to measure time, e.g.:
+    \begin{itemize}
+        \item Schedulers, timeouts, failure detectors, retry timers\pause
+        \item Performance measurements, statistics, profiling\pause
+        \item Log files \& databases: record when an event occurred\pause
+        \item Data with time-limited validity (e.g.\ cache entries)\pause
+        \item Determining order of events across several nodes\\[1em]\pause
+    \end{itemize}
+    We distinguish two types of clock:
+    \begin{itemize}
+        \item \textbf{physical clocks}: count number of seconds elapsed
+        \item \textbf{logical clocks}: count events, e.g.\ messages sent
+    \end{itemize}\pause
+    \textbf{NB.} Clock in digital electronics (oscillator)\\$\neq$ clock in distributed systems (source of \textbf{timestamps})
+\end{frame}
+\inlineslide{s:clocks-intro}\label{l:clocks-intro}
+
+% Demo: load www.cst.cam.ac.uk in browser, open developer tools and view certificate expiry date
+% Also run `dig www.cst.cam.ac.uk` in a terminal and see how the TTL counts down
+
+\subsection{Physical clocks}\label{sec:physical-clocks}
+
+We will start by discussing \emph{physical clocks}, which are the types of clocks you are familiar with from everyday usage.
+Physical clocks include analog/mechanical clocks based on pendulums or similar mechanisms, and digital clocks based e.g.\ on a vibrating quartz crystal.
+Quartz clocks are found in most wristwatches, in every computer and mobile phone, in microwave ovens that display the time, and many other everyday objects.
+
+\begin{frame}
+    \label{s:quartz-clocks}
+    \frametitle{Quartz clocks}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item Quartz crystal laser-trimmed to mechanically resonate at a specific frequency
+                \item Piezoelectric effect: mechanical force $\Leftrightarrow$ electric field
+                \item Oscillator circuit produces signal at resonant frequency
+                \item Count number of cycles to measure elapsed time
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \includegraphics[width=\textwidth]{images/quartz-crystal.jpg}\\[1em]
+            \includegraphics[width=\textwidth]{images/quartz-tuningfork.jpg}
+        \end{column}
+    \end{columns}
+\end{frame}
+\inlineslide{s:quartz-clocks}\label{l:quartz-clocks}
+% Crystal image: https://pixabay.com/photos/rock-crystal-clear-to-white-gem-top-1603480/ (no attribution required)
+% Tuning fork: https://commons.wikimedia.org/wiki/File:Inside_QuartzCrystal-Tuningfork.jpg (public domain)
+
+Quartz clocks are cheap, but they are not totally accurate.
+Due to manufacturing imperfections, some clocks run slightly faster than others.
+Moreover, the oscillation frequency varies with the temperature.
+Typical quartz clocks are tuned to be quite stable around room temperature, but significantly higher or lower temperatures slow down the clock.
+The rate by which a clock runs fast or slow is called \emph{drift}.
+
+\pagebreak[3]
+\begin{frame}
+    \label{s:quartz-drift}
+    \frametitle{Quartz clock error: drift}
+    \begin{itemize}
+        \item One clock runs slightly fast, another slightly slow
+        \item Drift measured in \textbf{parts per million} (ppm)
+        \item 1~ppm = 1~microsecond/second = 86~ms/day = 32~s/year
+        \item Most computer clocks correct within $\approx 50$~ppm\\[1em]
+        % 50 ppm is about half an hour of drift per year
+    \end{itemize}
+    \begin{columns}
+        \begin{column}{0.2\textwidth}
+            Temperature significantly affects drift
+        \end{column}
+        \begin{column}{0.75\textwidth}
+            \includegraphics[width=\textwidth]{images/quartz-drift.png}
+        \end{column}
+    \end{columns}
+\end{frame}
+\inlineslide{s:quartz-drift}\label{l:quartz-drift}
+
+\begin{frame}
+    \label{s:atomic-clocks}
+    \frametitle{Atomic clocks}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item Caesium-133 has a resonance (``hyperfine transition'') at $\approx 9$~GHz
+                \item Tune an electronic oscillator to that resonant frequency
+                \item 1 second = 9,192,631,770 periods of that signal
+                \item Accuracy $\approx 1 \text{ in } 10^{-14}$ (1 second in 3 million years)
+                \item Price $\approx$ {\textsterling}20,000 (?)\\ (can get cheaper rubidium clocks for $\approx$ {\textsterling}1,000)
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \includegraphics[width=\textwidth]{images/atomic-clock.jpg}\\[1em]
+            \scriptsize\url{https://www.microsemi.com/product-directory/cesium-frequency-references/4115-5071a-cesium-primary-frequency-standard}
+        \end{column}
+    \end{columns}
+\end{frame}
+\inlineslide{s:atomic-clocks}\label{l:atomic-clocks}
+
+When greater accuracy is required, atomic clocks are used.
+These clocks are based on quantum-mechanical properties of certain atoms, such as caesium or rubidium.
+In fact, the time unit of \emph{one second} in the International System of Units (SI) is defined to be exactly 9,192,631,770 periods of a particular resonant frequency of the caesium-133 atom.
+
+\begin{frame}
+    \label{s:gps-time}
+    \frametitle{GPS as time source}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item 31 satellites, each carrying an atomic clock
+                \item satellite broadcasts current time and location
+                \item calculate position from speed-of-light delay between satellite and receiver
+                \item corrections for atmospheric effects, relativity, etc.
+                \item in datacenters, need antenna on the roof
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \includegraphics[width=\textwidth]{images/gps-satellites.png}\\[1em]
+            \scriptsize\url{https://commons.wikimedia.org/wiki/File:Gps-atmospheric-efects.png}
+        \end{column}
+    \end{columns}
+\end{frame}
+\inlineslide{s:gps-time}\label{l:gps-time}
+
+Another high-accuracy method of obtaining the time is to rely on the GPS satellite positioning system, or similar systems such as Galileo or GLONASS.
+These systems work by having several satellites orbiting the Earth and broadcasting the current time at very high resolution.
+Receivers measure the time it took the signal from each satellite to reach them, and use this to compute their distance from each satellite, and hence their location.
+By connecting a GPS receiver to a computer, it is possible to obtain a clock that is accurate to within a fraction of a microsecond, provided that the receiver is able to get a clear signal from the satellites.
+In a datacenter, there is generally too much electromagnetic interference to get a good signal, so a GPS receiver requires an antenna on the roof of the datacenter building.
+
+We now have a problem: we have two different definitions of time~-- one based on quantum mechanics, the other based on astronomy~-- and those two definitions don't match up precisely.
+One rotation of planet Earth around its own axis does not take exactly $24 \times 60 \times 60 \times \text{9,192,631,770}$ periods of caesium-133's resonant frequency.
+In fact, the speed of rotation of the planet is not even constant: it fluctuates due to the effects of tides, earthquakes, glacier melting, and some unexplained factors.
+
+\begin{frame}
+    \label{s:utc}
+    \frametitle{Coordinated Universal Time (UTC)}
+    \begin{columns}
+        \begin{column}{0.7\textwidth}
+            \textbf{Greenwich Mean Time} (GMT, solar time): it's noon when the sun is in the south, as seen from the Greenwich meridian\\[1em]
+            \textbf{International Atomic Time} (TAI): 1 day is $24 \times 60 \times 60 \times \text{9,192,631,770}$ periods of caesium-133's resonant frequency\\[1em]
+            \textbf{Problem}: speed of Earth's rotation is not constant\\[1em]
+            \textbf{Compromise}: UTC is TAI with corrections to account for Earth rotation\\[1em]
+            \textbf{Time zones} and \textbf{daylight savings time} are offsets to UTC
+        \end{column}
+        \begin{column}{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/greenwich-meridian.jpg}
+        \end{column}
+    \end{columns}
+\end{frame}
+\inlineslide{s:utc}\label{l:utc}
+% Image source: https://commons.wikimedia.org/wiki/File:Britannica_Figure_of_the_Earth.jpg (public domain)
+
+The solution is \emph{Coordinated Universal Time} (UTC), which is based on atomic time, but includes corrections to account for variations in the Earth's rotation.
+In everyday life we use our local \emph{time zone}, which is specified as an offset to UTC.
+
+The UK's local time zone is called \emph{Greenwich Mean Time} (GMT) in winter, and \emph{British Summer Time} (BST) in summer, where GMT is defined to be equal to UTC, and BST is defined to be UTC~+~1~hour.
+Confusingly, the term \emph{Greenwich Mean Time} was originally used to refer to mean solar time on the Greenwich meridian, i.e.\ it used to be defined in terms of astronomy, while now it is defined in terms of atomic clocks.
+Today, the term \emph{UT1} is used to refer to mean solar time at 0{\textdegree} longitude.
+
+The difference between UTC and TAI is that UTC includes \emph{leap seconds}, which are added as needed to keep UTC roughly in sync with the rotation of the Earth.
+
+\begin{frame}
+    \label{s:leap-seconds}
+    \frametitle{Leap seconds}
+    Every year, on 30 June and 31 December at 23:59:59 UTC, one of three things happens:
+    \begin{itemize}
+        \item The clock immediately jumps forward to 00:00:00, skipping one second (\textbf{negative leap second})
+        \item The clock moves to 00:00:00 after one second, as usual
+        \item The clock moves to 23:59:60 after one second, and then moves to 00:00:00 after one further second\\
+            (\textbf{positive leap second})
+    \end{itemize}
+    This is announced several months beforehand.
+    \begin{center}
+        \includegraphics[width=8cm]{images/leap-second.jpg}
+        \scriptsize\url{http://leapsecond.com/notes/leap-watch.htm}
+    \end{center}
+\end{frame}
+\inlineslide{s:leap-seconds}\label{l:leap-seconds}
+
+Due to leap seconds, it is not true that an hour always as 3600 seconds, and a day always has 86,400 seconds.
+In the UTC timescale, a day can be 86,399 seconds, 86,400 seconds, or 86,401 seconds long due to a leap second.
+This complicates software that needs to work with dates and times.
+
+In computing, a \emph{timestamp} is a representation of a particular point in time.
+Two common representations of timestamps are used: Unix time and ISO~8601, as shown on \autoref{l:time-representation}.
+There are minor variations: for example, Java's \verb|System.currentTimeMillis()| is like Unix time, but uses milliseconds rather than seconds.
+
+\begin{frame}
+    \label{s:time-representation}
+    \frametitle{How computers represent timestamps}
+    Two most common representations:
+    \begin{itemize}
+        \item \textbf{Unix time}: number of seconds since 1 January 1970 00:00:00 UTC, \emph{not counting leap seconds} (!)
+        \item \textbf{ISO 8601}: year, month, day, hour, minute, second, and timezone offset relative to UTC\\
+            example: \texttt{\timestampexample}\\[1em]
+    \end{itemize}\pause
+    Conversion between the two requires:
+    \begin{itemize}
+        \item Gregorian calendar: 365 days in a year, except leap years\\
+            \texttt{(year \% 4 == 0 \&\& (year \% 100 != 0 ||}\\
+            \texttt{~~~~~~~~~~~~~~~~~~~year \% 400 == 0))}
+        \item Knowledge of past and future leap seconds\dots?!
+    \end{itemize}
+\end{frame}
+\inlineslide{s:time-representation}\label{l:time-representation}
+
+To be correct, software that works with timestamps needs to know about leap seconds.
+For example, if you want to calculate how many seconds elapsed between two timestamps, you need to know how many leap seconds were inserted between those two dates.
+For dates that are more than about six months into the future, this is impossible to know, because the Earth's rotation has not happened yet!
+
+The most common approach in software is to simply ignore leap seconds, pretend that they don't exist, and hope that the problem somehow goes away.
+This approach is taken by Unix timestamps, and by the POSIX standard.
+For software that only needs coarse-grained timings (e.g.\ rounded to the nearest day), this is fine, since the difference of a few seconds is not significant.
+
+However, operating systems and distributed systems often \emph{do} rely on high-resolution timestamps for accurate measurements of time, where a difference of one second is very noticeable.
+In such settings, ignoring leap seconds can be dangerous.
+For example, say you have a Java program that twice calls \verb|System.currentTimeMillis()|, 500~ms apart, within a positive leap second (i.e.\ while the clock is saying 23:59:60).
+What is the difference between those two timestamps going to be?
+It can't be 500, since the \verb|currentTimeMillis()| clock does not account for leap seconds.
+Does the clock stop, so the difference between the two timestamps is zero?
+Or could the difference even be negative, so the clock runs backwards for a brief moment?
+The documentation is silent about this question.
+(The best solution is probably to use a \emph{monotonic clock} instead, which we introduce in Section TODO.)
+
+Poor handling of the leap second on 30 June 2012 is what caused the simultaneous failures of many services on that day (\autoref{l:mystery}).
+Due to a bug in the Linux kernel, the leap second had a high probability of triggering a livelock condition when running a multithreaded process \citep{Allen:2013,Minar:2012}.
+Even a reboot did not fix the problem instead, but setting the system clock reset the bad state in the kernel.
+
+\begin{frame}
+    \label{s:leap-second-handling}
+    \frametitle{How most software deals with leap seconds}
+    \begin{columns}
+        \begin{column}{0.7\textwidth}
+            \textbf{By ignoring them!}\\[1em]
+            \uncover<2->{However, OS and DistSys often need timings with sub-second accuracy.\\[1em]}
+            \uncover<3->{30 June 2012: bug in Linux kernel caused livelock on leap second, causing many Internet services to go down\\[1em]}
+            \uncover<4->{Pragmatic solution: ``\textbf{smear}'' (spread out) the leap second over the course of a day}
+        \end{column}
+        \begin{column}{0.3\textwidth}
+            \includegraphics[width=\textwidth]{images/monkey.jpg}
+            \scriptsize\url{https://www.flickr.com/photos/ru_boff/37915499055/}
+        \end{column}
+    \end{columns}
+\end{frame}
+\inlineslide{s:leap-second-handling}\label{l:leap-second-handling}
+
+Today, some software handles leap seconds explicitly, while other programs continue to ignore them.
+A pragmatic solution that is widely used today is that when a positive leap second occurs, rather than inserting it between 23:59:59 and 00:00:00, the extra second is spread out over several hours before and after that time by deliberately slowing down the clocks during that time (or speeding up in the case of a negative leap second).
+This approach is called \emph{smearing} the leap second, and it is not without problems.
+However, it is a pragmatic alternative to making all software aware of and robust to leap seconds, which may well be infeasible.
+
+\supervision{
+    Describe some problems that may arise from leap second smearing.
+}{
+    Time measurements will be slightly wrong during the smearing period.
+    For example, if the extra second is spread over 24 hours (12 hours before and 12 hours after the leap second), this amounts to an error of about 12~ppm.
+    However, many systems can tolerate this level of inaccuracy.
+
+    A bigger problem is that if a timestamp from a smeared clock is compared with a non-smeared timestamp, there will be a spurious difference of up to half a second.
+    For example, this could arise if two nodes attempt to measure the network latency between them by sending one node's current timestamp as a message to the other node, and calculating the difference of timestamps when the message is received.
+
+    A similar problem arises (to a lesser degree) when comparing two timestamps from clocks that use different approaches to smearing.
+    For example, some implementations of smearing spread the extra second over different periods of time.
+    Also, different functions are used to interpolate across the leap second discontinuity: some systems use a linear functions, other use a cosine.
+
+    See \url{https://developers.google.com/time/smear} for some discussion.
+    Our department's Markus Kuhn tried to get smearing standardised in 2006: \url{https://www.cl.cam.ac.uk/~mgk25/time/utc-sls/}
+}
+
+\subsection{Physical clock synchronisation}\label{sec:clock-sync}
+
+\begin{frame}
+    \label{s:clock-sync}
+    \frametitle{Clock synchronisation}
+    Computers track physical time/UTC with a quartz clock (with battery, continues running when power is off).\\[1em]
+    Due to \textbf{clock drift}, local clock gradually becomes more and more wrong\\[1em]
+    \textbf{Clock skew}: difference between two clocks at a point in time\\[1em]
+    \textbf{Solution}: Periodically get the current time from a server using NTP or PTP
+\end{frame}
+\inlineslide{s:clock-sync}\label{l:clock-sync}
+
+% An atomic clock can tell you exactly when 20 seconds have elapsed, but (by itself) it cannot tell you whether it's Monday or Tuesday!
+
+% Google Spanner assumes maximum drift of 200 ppm
+
 
 Distributed systems are fascinating because we have to work with partial knowledge and uncertain
 truths. We never have certainty about the state of the system, because by the time we hear about
