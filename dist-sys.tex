@@ -480,7 +480,9 @@ Thus, to the caller of the stub, it looks as if the function had executed locall
         \item If a timeout occurs, the RPC client doesn't know whether the server executed the function; local function calls don't have this uncertainty.
         \item RPC is often much slower than a local function call, due to network latency.
             Moreover, network latency is often variable and unpredictable, while the execution speed of a local function is usually predictable.
-        \item RPC clients and servers may need to take measures to make function invocation idempotent, to allow safe retries in case of message loss.
+        \item RPC clients and servers may need to take measures to make function invocation \emph{idempotent} (this concept is introduced in a later lecture), to allow safe retries in case of message loss.
+        \item Another difference is that if an object reference is passed as an argument, a local function call can potentially mutate the object (unless it is immutable).
+            This is not possible with RPC, since the remote function cannot access the caller's memory; the only way how the remote function can pass information back to the caller is through the return value, or through another RPC.
         \item Perfect location transparency can only be achieved by making local function calls more like RPCs (e.g.\ allowing them to unpredictably fail).
             This is undesirable in most cases, and therefore most systems do not attempt to completely hide the distinction between local and remote calls.
     \end{itemize}
@@ -570,6 +572,13 @@ The details of the language are not important for this course.
 % As the client has not received a response, the RPC stub will not be able to return a value of the function's return type, but rather it will need to somehow indicate to the calling code that a timeout occurred, e.g.\ by throwing an exception.
 
 \section{Models of distributed systems}\label{sec:system-models}
+
+\begin{frame}
+    \begin{center}
+        Lecture 2\\[2em]
+        \Large{\color{darkblue}{Models of distributed systems}}
+    \end{center}
+\end{frame}
 
 A \emph{system model} captures our assumptions about how nodes and the network behave.
 It is an abstract description of their properties, which can be implemented by various technologies in practice.
@@ -698,8 +707,9 @@ Nevertheless, the shop wants to ensure that it dispatches the goods only if they
 \end{frame}
 \inlineslide{s:two-generals-applied}\label{l:two-generals-applied}
 
-In practice, systems such as online shops work around the two generals problem in various pragmatic ways: for example, by periodically reconciling transaction records with the payments service, checking the status of transactions that timed out due to a network problem, and by reimbursing any orders that could not be fulfilled.
-Just because the two generals problem cannot be solved, that does not mean the challenges it raises are insurmountable: it just means that we have to think carefully and creatively about the problem.
+In practice, the online shopping example does not exactly match the two generals problem: in this scenario, it is safe for the payments service to always go ahead with a payment, because if the shop ends up not being able to dispatch the goods, it can refund the payment.
+The fact that a payment is something that can be undone (unlike an army being defeated) makes the problem solveable.
+If the communication between shop and payment service is interrupted, the shop can wait until the connection is restored, and then query the payments service to find out the status of any transactions whose outcome was unknown.
 
 \subsection{The Byzantine generals problem}\label{sec:byzantine}
 
@@ -834,7 +844,7 @@ Rather, the word \emph{Byzantine} had been used in the sense of ``excessively co
     \begin{tikzpicture}
         \node at (0,0) {\includegraphics[height=5cm]{images/byzantium650.png}};
         \node (byzantium) at (2.4,3) {Byzantium/Constantinople/Istanbul};
-        \draw<2> [-Stealth,line width=4pt] (byzantium) -- (1.9,1.2);
+        \draw [-Stealth,line width=4pt] (byzantium) -- (1.9,1.2);
     \end{tikzpicture}
     {\scriptsize Source: \url{https://commons.wikimedia.org/wiki/File:Byzantiumby650AD.svg}}\\[1em]
     \textbf{``Byzantine''} has long been used for ``excessively complicated, bureaucratic, devious'' (e.g.\ \emph{``the Byzantine tax law''})
@@ -1150,10 +1160,12 @@ Byzantine faults are not always detectable, although in some cases Byzantine beh
 \inlineslide{s:failure-detector}\label{l:failure-detector}
 
 In most cases, a failure detector works by periodically sending messages to other nodes, and labelling a node as crashed if no response is received within the expected time.
-Ideally, we would like a timeout to occur only if the node really has crashed (this is called a \emph{perfect failure detector}).
+Ideally, we would like a timeout to occur if and only if the node really has crashed (this is called a \emph{perfect failure detector}).
 However, the two generals problem tells us that this is not a totally accurate way of detecting a crash, because the absence of a response could also be due to message loss or delay.
 
-Thus, in an asynchronous or partially synchronous system, a perfect failure detector does not exist, and the best we can hope for is an \emph{eventually perfect failure detector} \citep{Chandra:1996}.
+A perfect timeout-based failure detector exists only in a synchronous crash-stop system with reliable links; in a partially synchronous system, a perfect failure detector does not exist.
+Moreover, in an asynchronous system, no timeout-based failure exists, since timeouts are meaningless in the asynchronous model.
+However, there is a useful failure detector that exists in partially synchronous systems: the \emph{eventually perfect failure detector} \citep{Chandra:1996}.
 
 \begin{frame}
     \label{s:eventual-detector}
@@ -1181,11 +1193,52 @@ Being able to roll out software upgrades in this way, without clients noticing a
 %\end{frame}
 %\inlineslide{s:availability-discuss}\label{l:availability-discuss}
 
+For safety-critical applications, such as air-traffic control systems, it is undoubtedly important to invest in good fault-tolerance mechanisms.
 However, it is not the case that higher availability is always better.
 Reaching extremely high availability requires a highly focussed engineering effort, and often conservative design choices.
 For example, the old-fashioned fixed-line telephone network is designed for ``five nines'' availability, but the downside of this focus on availability is that it has been very slow to evolve.
 Most Internet services do not even reach four nines because of diminishing returns: beyond some point, the additional cost of achieving higher availability exceeds the cost of occasional downtime, so it is economically rational to accept a certain amount of downtime.
 
+\supervision{\label{q:fifo-links}
+    Reliable network links allow messages to be reordered.
+    Give pseudocode for an algorithm that strengthens the properties of a reliable point-to-point link such that messages are received in the order they were sent (this is called a FIFO link), assuming an asynchronous crash-stop system model.
+}{
+    The sender attaches a sequence number to each message, and increments that number for each message sent.
+    The recipient delivers messages in increasing order by sequence number.
+    This may require buffering a message on the recipient side until messages with prior sequence numbers have arrived.
+
+    \begin{algorithmic}
+        \On{initialisation}
+            \State [We have a separate copy of the following variables for each network link.]
+            \State $\mathit{lastSent} := 0;\; \mathit{nextReceived} := 1;\; \mathit{buffer} := \{\}$
+        \EndOn
+        \State
+        \On{request to send message $m$ over FIFO link}
+            \State \textit{lastSent}++
+            \State send $(m, \mathit{lastSent})$ via the underlying network link
+        \EndOn
+        \State
+        \On{receiving $(m, n)$ via the underlying network link}
+            \State $\mathit{buffer} := \mathit{buffer} \cup \{(m,n)\}$
+            \While{$\exists m'.\; (m', \mathit{nextReceived}) \in \mathit{buffer}$}
+                \State deliver $m'$ to the application
+                \State \textit{nextReceived}++
+            \EndWhile
+        \EndOn
+    \end{algorithmic}
+}
+
+\supervision{
+    How do we need to change the algorithm from \autoref{q:fifo-links} if we assume a crash-recovery model instead of a crash-stop model?
+}{
+    When a node crashes and recovers, all of its in-memory state is lost.
+    The sequence number algorithm maintains state in the form of the variables \textit{lastSent}, \textit{nextReceived}, and \textit{buffer}.
+    This information needs to be preserved across crashes, so it must be maintained in non-volatile storage (e.g.\ on disk).
+
+    Another issue is that a node may crash while in the process of sending or delivering a message.
+    In that case, we will need to decide: does that message get sent/delivered after recovering from the crash?
+    If so, the information about such in-progress operations will also need to be written to non-volatile storage.
+}
 
 \section{Time, clocks, and ordering of events}\label{sec:time}
 

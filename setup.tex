@@ -9,7 +9,10 @@
 \usepackage{amsthm}
 \usepackage{tikz}
 \usepackage{natbib}
-\usepackage{fancyhdr}
+\usepackage{fancyhdr} % license footer on first page
+\usepackage{textcomp} % \textdegree
+\usepackage{algorithm}
+\usepackage{algpseudocode} % for pseudocode
 
 % The minted package does source code syntax highlighting using Pygments: https://pygments.org/
 % Pygments must be installed on your system, e.g. using `pip3.8 install Pygments`.
@@ -47,4 +50,7 @@
 
 % Exercises and solution notes. See also dist-sys-notes.tex
 \newtheorem{exercise}{Exercise}
+\def\exerciseautorefname{Exercise}%
 \newcommand\supervision[2]{\begin{exercise}#1\end{exercise}}
+
+\algblockdefx{On}{EndOn}[1]{\textbf{on} #1 \textbf{do}}{\textbf{end on}}
