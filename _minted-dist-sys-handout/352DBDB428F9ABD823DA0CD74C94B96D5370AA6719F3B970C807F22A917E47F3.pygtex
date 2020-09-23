@@ -1,0 +1,8 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{// GOOD:}
+\PYG{k+kt}{long} \PYG{n}{startTime} \PYG{o}{=} \PYG{n}{System}\PYG{p}{.}\PYG{n+na}{nanoTime}\PYG{p}{();}
+\PYG{n}{doSomething}\PYG{p}{();}
+\PYG{k+kt}{long} \PYG{n}{endTime} \PYG{o}{=} \PYG{n}{System}\PYG{p}{.}\PYG{n+na}{nanoTime}\PYG{p}{();}
+\PYG{k+kt}{long} \PYG{n}{elapsedNanos} \PYG{o}{=} \PYG{n}{endTime} \PYG{o}{\PYGZhy{}} \PYG{n}{startTime}\PYG{p}{;}
+\PYG{c+c1}{// elapsedNanos is always \PYGZgt{}= 0}
+\end{Verbatim}

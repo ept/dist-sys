@@ -5,6 +5,17 @@
 \newcommand{\timestampexample}{2020-11-09T09:50:17+00:00}
 \newcommand{\whenissecurity}{Part IB Easter term}
 
+% Lecture dates for 2020:
+% 2020-11-05
+% 2020-11-10
+% 2020-11-12
+% 2020-11-17
+% 2020-11-19
+% 2020-11-24
+% 2020-11-26
+% 2020-12-01
+% Instructions for editing course web page: https://www.cl.cam.ac.uk/teaching/2021/instructions.html
+
 \fancypagestyle{plain}{%
   \renewcommand{\headrulewidth}{0pt}%
   \fancyhf{}%
@@ -1456,7 +1467,8 @@ In the UTC timescale, a day can be 86,399 seconds, 86,400 seconds, or 86,401 sec
 This complicates software that needs to work with dates and times.
 
 In computing, a \emph{timestamp} is a representation of a particular point in time.
-Two common representations of timestamps are used: Unix time and ISO~8601, as shown on \autoref{l:time-representation}.
+Two representations of timestamps are commonly used: Unix time and ISO~8601.
+For Unix time, zero corresponds to the arbitrarily chosen date of 1 January 1970, known as the \emph{epoch}.
 There are minor variations: for example, Java's \verb|System.currentTimeMillis()| is like Unix time, but uses milliseconds rather than seconds.
 
 \begin{frame}
@@ -1464,7 +1476,7 @@ There are minor variations: for example, Java's \verb|System.currentTimeMillis()
     \frametitle{How computers represent timestamps}
     Two most common representations:
     \begin{itemize}
-        \item \textbf{Unix time}: number of seconds since 1 January 1970 00:00:00 UTC, \emph{not counting leap seconds} (!)
+        \item \textbf{Unix time}: number of seconds since 1 January 1970 00:00:00 UTC (the ``epoch''), \emph{not counting leap seconds}
         \item \textbf{ISO 8601}: year, month, day, hour, minute, second, and timezone offset relative to UTC\\
             example: \texttt{\timestampexample}\\[1em]
     \end{itemize}\pause
@@ -1494,7 +1506,7 @@ It can't be 500, since the \verb|currentTimeMillis()| clock does not account for
 Does the clock stop, so the difference between the two timestamps is zero?
 Or could the difference even be negative, so the clock runs backwards for a brief moment?
 The documentation is silent about this question.
-(The best solution is probably to use a \emph{monotonic clock} instead, which we introduce in Section TODO.)
+(The best solution is probably to use a \emph{monotonic clock} instead, which we introduce on \autoref{l:monotonic-clock}.)
 
 Poor handling of the leap second on 30 June 2012 is what caused the simultaneous failures of many services on that day (\autoref{l:mystery}).
 Due to a bug in the Linux kernel, the leap second had a high probability of triggering a livelock condition when running a multithreaded process \citep{Allen:2013,Minar:2012}.
@@ -1526,37 +1538,211 @@ However, it is a pragmatic alternative to making all software aware of and robus
 \supervision{
     Describe some problems that may arise from leap second smearing.
 }{
-    Time measurements will be slightly wrong during the smearing period.
-    For example, if the extra second is spread over 24 hours (12 hours before and 12 hours after the leap second), this amounts to an error of about 12~ppm.
+    Measurements of time durations will be slightly wrong during the smearing period.
+    For example, if the extra second is spread over 24 hours (12 hours before and 12 hours after the leap second), this amounts to an error of about 12~ppm in the rate at which clocks are running.
     However, many systems can tolerate this level of inaccuracy.
 
     A bigger problem is that if a timestamp from a smeared clock is compared with a non-smeared timestamp, there will be a spurious difference of up to half a second.
-    For example, this could arise if two nodes attempt to measure the network latency between them by sending one node's current timestamp as a message to the other node, and calculating the difference of timestamps when the message is received.
+    For example, this could arise if two nodes with different smearing policies attempt to measure the network latency between them by sending one node's current timestamp as a message to the other node, and calculating the difference of timestamps when the message is received.
+    The measured latency could even be negative.
 
     A similar problem arises (to a lesser degree) when comparing two timestamps from clocks that use different approaches to smearing.
     For example, some implementations of smearing spread the extra second over different periods of time.
     Also, different functions are used to interpolate across the leap second discontinuity: some systems use a linear functions, other use a cosine.
+    There is no standardised approach to smearing.
 
     See \url{https://developers.google.com/time/smear} for some discussion.
-    Our department's Markus Kuhn tried to get smearing standardised in 2006: \url{https://www.cl.cam.ac.uk/~mgk25/time/utc-sls/}
+    Our department's Markus Kuhn tried to get this standardised in 2006: \url{https://www.cl.cam.ac.uk/~mgk25/time/utc-sls/}
 }
 
-\subsection{Physical clock synchronisation}\label{sec:clock-sync}
+\subsection{Clock synchronisation and NTP}\label{sec:clock-sync}
 
 \begin{frame}
     \label{s:clock-sync}
     \frametitle{Clock synchronisation}
-    Computers track physical time/UTC with a quartz clock (with battery, continues running when power is off).\\[1em]
-    Due to \textbf{clock drift}, local clock gradually becomes more and more wrong\\[1em]
+    Computers track physical time/UTC with a quartz clock\\
+    (with battery, continues running when power is off)\\[1em]
+    Due to \textbf{clock drift}, clock error gradually increases\\[1em]
     \textbf{Clock skew}: difference between two clocks at a point in time\\[1em]
-    \textbf{Solution}: Periodically get the current time from a server using NTP or PTP
+    \textbf{Solution}: Periodically get the current time from a server that has a more
+    accurate time source (atomic clock or GPS receiver)\\[1em]
+    Protocols: Network Time Protocol (\textbf{NTP}),\\ Precision Time Protocol (\textbf{PTP})
 \end{frame}
 \inlineslide{s:clock-sync}\label{l:clock-sync}
 
-% An atomic clock can tell you exactly when 20 seconds have elapsed, but (by itself) it cannot tell you whether it's Monday or Tuesday!
+Atomic clocks are too expensive and bulky to build into every computer and phone, so quartz clocks are used.
+As discussed on \autoref{l:quartz-drift}, these clocks drift, and need adjustment from time to time.
+The most common approach is to use the \emph{Network Time Protocol} (NTP).
+All mainstream operating systems have NTP clients built in; for example, \autoref{l:ntp-config} shows the NTP settings dialog in macOS.
 
-% Google Spanner assumes maximum drift of 200 ppm
+\begin{frame}
+    \label{s:ntp-config}
+    \includegraphics[height=\paperheight]{images/ntp-config.png}
+\end{frame}
+\inlineslide{s:ntp-config}\label{l:ntp-config}
 
+\begin{frame}
+    \label{s:ntp}
+    \frametitle{Network Time Protocol (NTP)}
+    Hierarchy of clock servers arranged into \textbf{strata}:
+    \begin{itemize}
+        \item Stratum 0: atomic clock or GPS receiver
+        \item Stratum 1: synced directly with stratum 0 device
+        \item Stratum 2: servers that sync with stratum 1, etc.\\[1em]
+    \end{itemize}
+    Many operating system vendors run NTP servers and configure devices to use them by default\\[1em]
+    May contact multiple servers, discard outliers, average rest\\[1em]
+    Makes multiple requests to the same server, use statistics to reduce random error due to variations in network latency
+\end{frame}
+\inlineslide{s:ntp}\label{l:ntp}
+
+Time synchronisation over a network is made difficult by unpredictable latency.
+As discussed on \autoref{l:timing-violations}, both network latency and nodes' processing speed can vary considerably.
+To reduce the effects of random variations, NTP takes several samples of time measurements and applies statistical filters to eliminate outliers.
+
+\autoref{l:ntp-calculation} shows how NTP estimates the clock skew between the client and the server.
+When the client sends a request message, it includes the current timestamp $t_1$ according to the client's clock.
+When the server receives the request, and before processing it, the server records the current timestamp $t_2$ according to the server's clock.
+When the server sends its response, it echoes the value $t_1$ from the request, and also includes the server's receipt timestamp $t_2$ and the server's response timestamp $t_3$ in the reply.
+Finally, when the client receives the response, it records the current timestamp $t_4$ according to the client's clock.
+
+We can determine the time that the messages spent travelling across the network by calculating the round-trip time from the client's point of view ($t_4 - t_1$) and subtracting the processing time on the server ($t_3 - t_2$).
+We then estimate the one-way network latency as being half of the total network delay.
+Thus, by the time the response reaches the client, we can estimate that the server's clock will have moved on to $t_3$ plus the one-way network latency.
+We then subtract the client's current time $t_4$ from the estimated server time to obtain the estimated skew between the two clocks.
+
+This estimation depends on the assumption that the network latency is approximately the same in both directions.
+This assumption is probably true if latency is dominated by geographic distance between client and server.
+However, if queueing time in the network is a significant factor in the latency (e.g.\ if one node's network link is heavily loaded while the other node's link has plenty of spare capacity), then there could be a large difference between request and response latency.
+The estimated skew $\theta$ could therefore be too high or too low by up to $\delta/2$.
+Unfortunately, most networks do not give nodes any indication of the actual latency that a particular packet has experienced.
+
+\begin{frame}
+    \label{s:ntp-calculation}
+    \frametitle{Estimating time over a network}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (client) at (0,3) {NTP client};
+            \node [rectangle,fill=red!10,draw] (server) at (8,3) {NTP server};
+            \draw (client) -- (0,0);
+            \draw (server) -- (8,0);
+            \draw<2-> [bigarrow] (0,2) --
+                node [at start,left] {$t_1$}
+                node [above,sloped] {request: $t_1$}
+                node [at end,right] {$t_2$} (8,1.5);
+            \draw<3-> [bigarrow] (8,1) --
+                node [at start,right] {$t_3$}
+                node [above,sloped] {response: $(t_1, t_2, t_3)$}
+                node [at end,left] {$t_4$} (0,0.5);
+        \end{tikzpicture}
+    \end{center}
+    \uncover<4->{ \[ \text{Round-trip network delay: } \delta = (t_4 - t_1) - (t_3 - t_2)\] }
+    \uncover<5->{ \[ \text{Estimated server time when client receives response: } t_3 + \frac{\delta}{2} \] }
+    \uncover<6->{ \[ \text{Estimated clock skew: }\theta = t_3 + \frac{\delta}{2} - t_4 = \frac{t_2 - t_1 + t_3 - t_4}{2} \] }
+\end{frame}
+\inlineslide{s:ntp-calculation}\label{l:ntp-calculation}
+
+Once NTP has estimated the clock skew between client and server, the next step is to adjust the client's clock to bring it in line with the server.
+The method used for this depends on the amount of skew.
+The client corrects small differences gently by adjusting the clock speed to run slightly faster or slower as needed, which gradually reduces the skew over the course of a few minutes.
+This process is called \emph{slewing} the clock.
+
+\autoref{l:ntp-graph} shows an example of slewing, in which the client's clock frequency converges to the same rate as the server, keeping the two in sync to within a few milliseconds.
+Of course, the exact accuracy achieved in a particular system depends on the timing properties of the network between client and server.
+
+However, if the skew is larger, slewing would take too long, so the NTP client instead forcibly sets its clock to the estimated correct time based on the server timestamp.
+This is called \emph{stepping} the clock.
+Any applications that are watching the clock on the client will see time suddenly jump forwards or backwards.
+
+And finally, if the skew is very large (by default, more than about 15 minutes), the NTP client may decide that something must be wrong, and refuse to adjust the clock, leaving the problem for a user or operator to correct.
+For this reason, any system that depends on clock synchronisation needs to be carefully monitored for clock skew: just because a node is running NTP, that does not guarantee that its clock will be correct, since it could get stuck in a panic state in which it refuses to adjust the clock.
+
+\begin{frame}
+    \label{s:ntp-slew}
+    \frametitle{Correcting clock skew}
+    Once the client has estimated the clock skew $\theta$, it needs to apply that correction to its clock.\\
+    \begin{itemize}
+        \item If $\theta < 125$~ms, \textbf{slew} the clock:\\
+            slightly speed it up or slow it down by up to 500~ppm\\
+            (brings clocks in sync within $\approx$ 5 minutes)\\[1em]\pause
+        \item If $125\text{ ms} \le \theta < \text{1,000 s}$, \textbf{step} the clock:\\
+            suddenly reset client clock to estimated server timestamp\\[1em]\pause
+        \item If $\theta \ge \text{1,000 s}$, \textbf{panic} and do nothing\\
+            (leave the problem for a human operator to resolve)\\[1em]
+    \end{itemize}
+    Systems that rely on clock sync need to monitor clock skew!
+\end{frame}
+\inlineslide{s:ntp-slew}\label{l:ntp-slew}
+
+\begin{frame}
+    \label{s:ntp-graph}
+    \begin{center}
+        \includegraphics[height=8cm]{images/ntp-graph.png}
+        \scriptsize\url{http://www.ntp.org/ntpfaq/NTP-s-algo.htm}
+    \end{center}
+\end{frame}
+\inlineslide{s:ntp-graph}\label{l:ntp-graph}
+
+The fact that clocks may be stepped by NTP, i.e.\ suddenly moved forwards or backwards, has an important implication for any software that needs to measure elapsed time.
+\autoref{l:monotonic-clock} shows an example in Java, in which we want to measure the running time of a function \verb|doSomething()|.
+Java has two core functions for getting the current timestamp from the operating system's local clock: \verb|currentTimeMillis()| and \verb|nanoTime()|.
+Besides the different resolution (milliseconds versus nanoseconds), they key difference between the two is how they behave in the face of clock adjustments from NTP or other sources.
+
+\verb|currentTimeMillis()| is a \emph{time-of-day} clock (also known as \emph{real-time} clock) that returns the time elapsed since a fixed reference point (in this case, the Unix epoch of 1 January 1970).
+When the NTP client steps the local clock, a time-of-day clock may jump.
+Thus, if you use such a clock to measure elapsed time, the resulting difference between end timestamp and start timestamp may be much greater than the actual elapsed time (if the clock was stepped forwards), or it may even be negative (if the clock was stepped backwards).
+This type of clock is therefore not suitable for measuring elapsed time.
+
+On the other hand, \verb|nanoTime()| is a \emph{monotonic} clock, which is not affected by NTP stepping: it still counts seconds elapsed, but it always moves forward.
+Only the rate at which it moves forward may be adjusted by NTP slewing.
+This makes a monotonic clock much more robust for measuring elapsed time.
+The downside is that a timestamp from a monotonic clock is meaningless by itself: it measures the time since some arbitrary reference point, such as the time since this computer was started up.
+When using a monotonic clock, only the difference between two timestamps from the same node is meaningful.
+It does not make sense to compare monotonic clock timestamps across different nodes.
+
+\begin{frame}
+    \label{s:monotonic-clock}
+    \frametitle{Monotonic and time-of-day clocks}
+    \inputminted{java}{code/nonmonotonic.java}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node (dosomething) [xshift=-2.2cm,yshift=1.8cm] at (current page.center) {};
+        \node<2-> (stepping) [xshift=2.5cm,yshift=-0.5cm,red] at (current page.center) {NTP client steps the clock during this};
+        \draw<2-> [-Stealth,red,line width=4pt] (stepping) .. controls +(0,2) and +(2,0) .. (dosomething);
+    \end{tikzpicture}
+    \uncover<3->{\inputminted{java}{code/monotonic.java}}
+\end{frame}
+\inlineslide{s:monotonic-clock}\label{l:monotonic-clock}
+
+Most operating systems and programming languages provide both a time-of-day clock and a monotonic clock, since both are useful for different purposes.
+
+\begin{frame}
+    \label{s:monotonic-comparison}
+    \frametitle{Monotonic and time-of-day clocks}
+    \textbf{Time-of-day clock:}
+    \begin{itemize}
+        \item Time since a fixed date (e.g.\ 1 January 1970 epoch)
+        \item May suddenly move forwards or backwards
+        \item Timestamps can be compared across nodes (if synced)
+        \item Java: \texttt{System.currentTimeMillis()}
+        \item Linux: \texttt{clock\_gettime(CLOCK\_REALTIME)}\\[1em]
+    \end{itemize}
+    \textbf{Monotonic clock:}
+    \begin{itemize}
+        \item Time since arbitrary point (e.g.\ when machine booted up)
+        \item Always moves forwards at near-constant rate
+        \item Good for measuring elapsed time on a single node
+        \item Java: \texttt{System.nanoTime()}
+        \item Linux: \texttt{clock\_gettime(CLOCK\_MONOTONIC)}
+    \end{itemize}
+\end{frame}
+\inlineslide{s:monotonic-comparison}\label{l:monotonic-comparison}
+
+
+
+\subsection{Logical time}
+
+% Causality: m1: "The moon is made of cheese" --> m2: "Oh no it isn't"
+% m3: "Pigs can fly"
 
 Distributed systems are fascinating because we have to work with partial knowledge and uncertain
 truths. We never have certainty about the state of the system, because by the time we hear about
