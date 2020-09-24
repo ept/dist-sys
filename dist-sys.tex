@@ -1686,7 +1686,7 @@ For this reason, any system that depends on clock synchronisation needs to be ca
 The fact that clocks may be stepped by NTP, i.e.\ suddenly moved forwards or backwards, has an important implication for any software that needs to measure elapsed time.
 \autoref{l:monotonic-clock} shows an example in Java, in which we want to measure the running time of a function \verb|doSomething()|.
 Java has two core functions for getting the current timestamp from the operating system's local clock: \verb|currentTimeMillis()| and \verb|nanoTime()|.
-Besides the different resolution (milliseconds versus nanoseconds), they key difference between the two is how they behave in the face of clock adjustments from NTP or other sources.
+Besides the different resolution (milliseconds versus nanoseconds), the key difference between the two is how they behave in the face of clock adjustments from NTP or other sources.
 
 \verb|currentTimeMillis()| is a \emph{time-of-day} clock (also known as \emph{real-time} clock) that returns the time elapsed since a fixed reference point (in this case, the Unix epoch of 1 January 1970).
 When the NTP client steps the local clock, a time-of-day clock may jump.
@@ -1737,9 +1737,192 @@ Most operating systems and programming languages provide both a time-of-day cloc
 \end{frame}
 \inlineslide{s:monotonic-comparison}\label{l:monotonic-comparison}
 
+\subsection{Logical time}\label{sec:logical-time}
 
+We will now move on to the problem of ordering events in a distributed system, which is closely related to the concept of time.
+Consider the scenario on \autoref{l:moon-cheese}, in which user A makes a statement $m_1$ and sends it as a message to the other two users, B and C.
+On receiving $m_1$, user B reacts by sending a reply $m_2$ to the other two users, A and C.
+However, even if we assume the network links are reliable, they allow reordering (\autoref{l:model-network}), so C might receive $m_2$ before $m_1$ if $m_1$ is slightly delayed in the network.
 
-\subsection{Logical time}
+From C's point of view, the result is confusing: C first sees the reply, and then the message it is replying to.
+It almost looks as though B was able to see into the future and anticipate A's statement before A even said it.
+In real life this sort of reordering of spoken words does not happen, and so we intuitively don't expect it to happen in computer systems either.
+
+As a more technical example, consider $m_1$ to be an instruction that creates an object in a database, and $m_2$ to be an instruction that updates this same object.
+If a node processes $m_2$ before $m_1$ it would first attempt to update a nonexistent object, and then create an object which would not subsequently be updated.
+The database instructions only make sense if $m_1$ is processed before $m_2$.
+
+\begin{frame}
+    \label{s:moon-cheese}
+    \frametitle{Ordering of messages}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (user1) at (0,3.7) {user A};
+            \node [rectangle,fill=red!10,draw] (user2) at (4,3.7) {user B};
+            \node [rectangle,fill=red!10,draw] (user3) at (8,3.7) {user C};
+            \draw (user1) -- (0,0.2);
+            \draw (user2) -- (4,0.2);
+            \draw (user3) -- (8,0.2);
+            \draw<1-> [bigarrow] (0,3.0)
+                .. node [above,sloped] {$m_1$} controls (2,2.75) .. (4,2.5)
+                .. controls (5,2.375) and (5,0.875) .. (6,0.75) -- (8,0.5);
+            \draw<1-> [bigarrow] (0,2.9)
+                .. controls (1,2.775) and (1,2.3) .. (2,2.05)
+                -- node [above,sloped] {$m_1$} (4,1.8);
+            \draw<2-> [bigarrow] (4,1.5) -- node [above,sloped] {$m_2$} (8,1.0);
+            \draw<2-> [bigarrow] (4,1.4) -- node [above,sloped] {$m_2$} (0,0.9);
+        \end{tikzpicture}
+    \end{center}
+    \uncover<1->{$m_1 = $ ``A says: The moon is made of cheese!''}\\
+    \uncover<2->{$m_2 = $ ``B says: Oh no it isn't!''}\\[1em]
+    \uncover<3->{C sees $m_2$ first, $m_1$ second,\\even though logically $m_1$ \textbf{happened before} $m_2$.}
+\end{frame}
+\inlineslide{s:moon-cheese}\label{l:moon-cheese}
+
+How can C determine the correct order in which it should put the messages?
+A monotonic clock won't work since its timestamps are not comparable across nodes.
+A first attempt might be to get a timestamp from a time-of-day clock whenever a user wants to send a message, and to attach that timestamp to the message.
+In this scenario, we might reasonably expect $m_2$ to have a later timestamp than $m_1$, since $m_2$ is a response to $m_1$ and so $m_2$ must have happened after $m_1$.
+
+Unfortunately, in a partially synchronous system model, this does not work reliably.
+The clock synchronisation performed by NTP and similar protocols always leaves some residual uncertainty about the exact skew between two clocks, especially if the network latency in the two directions is asymmetric.
+We therefore cannot rule out the following scenario: A sends $m_1$ with timestamp $t_1$ according to A's clock.
+When B receives $m_1$, the timestamp according to B's clock is $t_2$, where $t_2 < t_1$, because A's clock is slightly ahead of B's clock.
+Thus, if we order messages based on their timestamps from time-of-day clocks, we might again end up with the wrong order.
+
+\begin{frame}
+    \label{s:physical-order}
+    \frametitle{Ordering of messages using timestamps?}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (user1) at (0,3.7) {user A};
+            \node [rectangle,fill=red!10,draw] (user2) at (4,3.7) {user B};
+            \node [rectangle,fill=red!10,draw] (user3) at (8,3.7) {user C};
+            \draw (user1) -- (0,0.2);
+            \draw (user2) -- (4,0.2);
+            \draw (user3) -- (8,0.2);
+            \draw [bigarrow] (0,3.0)
+                .. node [above,sloped] {$m_1$} node [at start,left,fill=yellow!50] {$t_1$} controls (2,2.75) .. (4,2.5)
+                .. controls (5,2.375) and (5,0.875) .. (6,0.75) -- (8,0.5);
+            \draw [bigarrow] (0,2.9)
+                .. controls (1,2.775) and (1,2.3) .. (2,2.05)
+                -- node [above,sloped] {$m_1$} node [at end,right,fill=yellow!50] {$t_2$} (4,1.8);
+            \draw [bigarrow] (4,1.5) -- node [above,sloped] {$m_2$} (8,1.0);
+            \draw [bigarrow] (4,1.4) -- node [above,sloped] {$m_2$} (0,0.9);
+        \end{tikzpicture}
+    \end{center}
+    $m_1 = (t_1, \text{``A says: The moon is made of cheese!''})$\\
+    $m_2 = (t_2, \text{``B says: Oh no it isn't!''})$\\[1em]
+    \uncover<2->{\textbf{Problem}: even with synced clocks, $t_2 < t_1$ is possible.\\
+    Timestamp order is inconsistent with expected order!}
+\end{frame}
+\inlineslide{s:physical-order}\label{l:physical-order}
+
+To formalise what we mean with the ``correct'' order in this type of scenario, we use the \emph{happens-before relation} as defined on \autoref{l:happens-before}.
+This definition assumes that each node has only a single thread of execution, so for any two execution steps of a node, it is clear which one happened first.
+More formally, we assume that there is a \emph{strict total order} on the events that occur at the same node.
+(A multithreaded process can be modelled by using a separate node to represent each thread.)
+
+We then extend this order across nodes by defining that a message is sent before that same message is received (in other words, we rule out time travel: it is not possible to receive a message that has not yet been sent).
+For convenience, we assume that every sent message is unique, so when a message is received, we always know unambiguously where and when that message was sent.
+In practice, duplicate messages may exist, but we can make them unique for example by including the ID of the sender node and a sequence number in each message.
+
+Finally, we take the transitive closure, and the result is the happens-before relation.
+This is a \emph{partial order}, which means that for some events $a$ and $b$, it is neither the case that $a$ happened before $b$, nor that $b$ happened before $a$.
+In that case, we call $a$ and $b$ \emph{concurrent}.
+Note that here, ``concurrent'' does not mean literally ``at the same time'', but rather that $a$ and $b$ are independent in the sense that there is no sequence of messages leading from one to the other.
+
+\begin{frame}
+    \label{s:happens-before}
+    \frametitle{The happens-before relation}
+    An \textbf{event} is something happening at one node (sending or receiving a message, or a local execution step).\\[1em]
+    We say event $a$ \textbf{happens before} event $b$ (written $a \rightarrow b$) iff:\pause
+    \begin{itemize}
+        \item $a$ and $b$ occurred at the same node, and $a$ occurred before $b$ in that node's local execution order; or\pause
+        \item event $a$ is the sending of some message $m$, and event $b$ is the receipt of that same message $m$ (assuming sent messages are unique); or\pause
+        \item there exists an event $c$ such that $a \rightarrow c$ and $c \rightarrow b$.\\[1em]\pause
+    \end{itemize}
+    The happens-before relation is a partial order:
+    it is possible that neither $a \rightarrow b$ nor $b \rightarrow a$.
+    In that case, $a$ and $b$ are \textbf{concurrent} (written $a \parallel b$).
+\end{frame}
+\inlineslide{s:happens-before}\label{l:happens-before}
+
+\begin{frame}
+    \label{s:hb-example}
+    \frametitle{Happens-before relation example}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (A) at (0,3.7) {A};
+            \node [rectangle,fill=red!10,draw] (B) at (4,3.7) {B};
+            \node [rectangle,fill=red!10,draw] (C) at (8,3.7) {C};
+            \draw (A) -- (0,0.5);
+            \draw (B) -- (4,0.5);
+            \draw (C) -- (8,0.5);
+            \tikzstyle{event}=[circle,fill=black,inner sep=2pt]
+            \node (a) [event] at (0,3.0) {}; \draw (a) node [left,xshift=-0.1cm] {$a$};
+            \node (b) [event] at (0,2.5) {}; \draw (b) node [left,xshift=-0.1cm] {$b$};
+            \node (c) [event] at (4,2.0) {}; \draw (c) node [right,xshift=0.1cm] {$c$};
+            \node (d) [event] at (4,1.5) {}; \draw (d) node [left,xshift=-0.1cm] {$d$};
+            \node (e) [event] at (8,2.8) {}; \draw (e) node [right,xshift=0.1cm] {$e$};
+            \node (f) [event] at (8,1.0) {}; \draw (f) node [right,xshift=0.1cm] {$f$};
+            \draw [bigarrow] (b) -- node[above] {$m_1$} (c);
+            \draw [bigarrow] (d) -- node[above] {$m_2$} (f);
+        \end{tikzpicture}
+    \end{center}
+    \begin{itemize}
+        \item $a \rightarrow b$, $c \rightarrow d$, and $e \rightarrow f$ due to process order
+        \item $b \rightarrow c$ and $d \rightarrow f$ due to messages $m_1$ and $m_2$
+        \item $a \rightarrow c$, $a \rightarrow d$, $a \rightarrow f$, $b \rightarrow d$, $b \rightarrow f$, and $c \rightarrow f$ due to transitivity
+        \item $a \parallel e$, $b \parallel e$, $c \parallel e$, and $d \parallel e$
+    \end{itemize}
+\end{frame}
+\inlineslide{s:hb-example}\label{l:hb-example}
+
+\supervision{\label{q:strict-partial-order}
+    A relation R is a \emph{strict partial order} if it is irreflexive ($\nexists a.\; (a,a) \in R$) and transitive ($\forall a,b,c.\; (a,b) \in R \wedge (b,c) \in R \Longrightarrow (a,c) \in R$).
+    Prove that the happens-before relation is a strict partial order.
+    You may assume that any two nodes are a nonzero distance apart, as well as the physical principle that information cannot travel faster than the speed of light.
+}{
+    The fact that happens-before is transitive follows directly from the third bullet point of its definition.
+
+    To prove that it is irreflexive, we use proof by contradiction.
+    Assume to the contrary that there exists $a$ such that $a \rightarrow a$.
+    This implies at least one of the following:
+    \begin{enumerate}
+        \item $a$ occurred before $a$ in some node's local execution order.
+            However, this contradicts our assumption that every node's local execution forms a strict total order, which is irreflexive.
+        \item $a$ is the sending of some message $m$, and $a$ is the receipt of that same message $m$.
+            This is impossible because sending and receiving a message are two different events.
+        \item There exists an event $b$ such that $a \rightarrow b$ and $b \rightarrow a$.
+            Let $N_a$ be the node at which $a$ occurs, and $N_b$ the node at which $b$ occurs.
+            Then either $N_a = N_b$ or $N_a \neq N_b$.
+            If $N_a = N_b$ then $a \rightarrow b$ and $b \rightarrow a$ contradict our assumption that every node's local execution forms a strict total order, so we have $N_a \neq N_b$.
+
+            Let $t_a$ be the time at which $a$ occurs and let $t_b$ be the time at which $b$ occurs, both according to $N_a$'s clock.
+            Let $d$ be the distance in space between $N_a$ and $N_b$.
+            $a \rightarrow b$ implies the existence of a message, or a sequence of messages (possibly via other nodes), through which information can travel from $a$ to $b$.
+            Since this information cannot travel faster than the speed of light, we have $t_b \ge t_a + \frac{d}{c}$, where $c$ is the speed of light.
+            By similar argument, $b \rightarrow a$ implies that $t_a \ge t_b + \frac{d}{c}$.
+
+            Since we are assuming $d > 0$ and the speed of light is finite, $\frac{d}{c} > 0$.
+            Therefore we have $t_b > t_a$ and $t_a > t_b$, a contradiction.
+    \end{enumerate}
+}
+
+\supervision{
+    Show that for any two events $a$ and $b$, exactly one of the three following statements must be true: either $a \rightarrow b$, or $b \rightarrow a$, or $a \parallel b$.
+}{
+    The statement $a \rightarrow b$ must be either true or false.
+    If it is true, then it is not the case that $a \parallel b$ by definition.
+    Moreover, since the happens-before relation is a strict partial order (\autoref{q:strict-partial-order}), $a \rightarrow b$ implies $b \not\rightarrow a$.
+
+    If $a \not\rightarrow b$, consider the statement $b \rightarrow a$, which must be either true or false.
+    If it is true, then it is not the case that $a \parallel b$ by definition.
+    If it is false, then $a \parallel b$ by definition.
+
+    In all cases examined, exactly one of the three statements $\{a \rightarrow b,\; b \rightarrow a,\; a \parallel b\}$ is true.
+}
 
 % Causality: m1: "The moon is made of cheese" --> m2: "Oh no it isn't"
 % m3: "Pigs can fly"
@@ -1778,10 +1961,6 @@ In definition of happens-before, make the simplifying assumption that every sent
 However, when a and b happened independently (no message sent after a arrived before b, and no message sent after b arrived before a), we know that a \emph{cannot have caused} b and vice versa.
 
 Hybrid Logical Clocks - Kulkarni et al, Logical physical clocks (OPODIS 2014) \url{https://doi.org/10.1007/978-3-319-14472-6_2}
-
-Exercise. A relation R is a strict partial order if it is transitive ($\forall a,b,c.\; (a,b) \in R \wedge (b,c) \in R \Longrightarrow (a,c) \in R$) and irreflexive ($\nexists a.\; (a,a) \in R$). Show that the happens-before relation is a strict partial order.
-
-Exercise. Show that for any two events $a$ and $b$, exactly one of the three following statements must be true: either $a \rightarrow b$, or $b \rightarrow a$, or $a \parallel b$.
 
 Exercise. Show how to implement total order broadcast using Lamport timestamps [2020P5Q8]. Comment on its fault-tolerance properties.
 
