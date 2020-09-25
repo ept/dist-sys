@@ -1295,7 +1295,7 @@ All of these require more or less accurate measurements of time.
     We distinguish two types of clock:
     \begin{itemize}
         \item \textbf{physical clocks}: count number of seconds elapsed
-        \item \textbf{logical clocks}: count events, e.g.\ messages sent
+        \item \textbf{logical clocks}: count events, e.g.\ messages sent\\[1em]
     \end{itemize}\pause
     \textbf{NB.} Clock in digital electronics (oscillator)\\$\neq$ clock in distributed systems (source of \textbf{timestamps})
 \end{frame}
@@ -1422,10 +1422,11 @@ In fact, the speed of rotation of the planet is not even constant: it fluctuates
     \begin{columns}
         \begin{column}{0.7\textwidth}
             \textbf{Greenwich Mean Time} (GMT, solar time): it's noon when the sun is in the south, as seen from the Greenwich meridian\\[1em]
-            \textbf{International Atomic Time} (TAI): 1 day is $24 \times 60 \times 60 \times \text{9,192,631,770}$ periods of caesium-133's resonant frequency\\[1em]
-            \textbf{Problem}: speed of Earth's rotation is not constant\\[1em]
-            \textbf{Compromise}: UTC is TAI with corrections to account for Earth rotation\\[1em]
-            \textbf{Time zones} and \textbf{daylight savings time} are offsets to UTC
+            \uncover<2->{\textbf{International Atomic Time} (TAI): 1 day is
+            $24 \times 60 \times 60 \times \text{9,192,631,770}$ periods of caesium-133's resonant frequency\\[1em]}
+            \uncover<3->{\textbf{Problem}: speed of Earth's rotation is not constant\\[1em]}
+            \uncover<4->{\textbf{Compromise}: UTC is TAI with corrections to account for Earth rotation\\[1em]}
+            \uncover<5->{\textbf{Time zones} and \textbf{daylight savings time} are offsets to UTC}
         \end{column}
         \begin{column}{0.3\textwidth}
             \includegraphics[width=\textwidth]{images/greenwich-meridian.jpg}
@@ -1555,15 +1556,15 @@ However, it is a pragmatic alternative to making all software aware of and robus
     Our department's Markus Kuhn tried to get this standardised in 2006: \url{https://www.cl.cam.ac.uk/~mgk25/time/utc-sls/}
 }
 
-\subsection{Clock synchronisation and NTP}\label{sec:clock-sync}
+\subsection{Clock synchronisation and monotonic clocks}\label{sec:clock-sync}
 
 \begin{frame}
     \label{s:clock-sync}
     \frametitle{Clock synchronisation}
     Computers track physical time/UTC with a quartz clock\\
     (with battery, continues running when power is off)\\[1em]
-    Due to \textbf{clock drift}, clock error gradually increases\\[1em]
-    \textbf{Clock skew}: difference between two clocks at a point in time\\[1em]
+    Due to \textbf{clock drift}, clock error gradually increases\\[1em]\pause
+    \textbf{Clock skew}: difference between two clocks at a point in time\\[1em]\pause
     \textbf{Solution}: Periodically get the current time from a server that has a more
     accurate time source (atomic clock or GPS receiver)\\[1em]
     Protocols: Network Time Protocol (\textbf{NTP}),\\ Precision Time Protocol (\textbf{PTP})
@@ -1584,15 +1585,16 @@ All mainstream operating systems have NTP clients built in; for example, \autore
 \begin{frame}
     \label{s:ntp}
     \frametitle{Network Time Protocol (NTP)}
+    Many operating system vendors run NTP servers,\\configure OS to use them by default\\[1em]\pause
     Hierarchy of clock servers arranged into \textbf{strata}:
     \begin{itemize}
         \item Stratum 0: atomic clock or GPS receiver
         \item Stratum 1: synced directly with stratum 0 device
         \item Stratum 2: servers that sync with stratum 1, etc.\\[1em]
-    \end{itemize}
-    Many operating system vendors run NTP servers and configure devices to use them by default\\[1em]
+    \end{itemize}\pause
     May contact multiple servers, discard outliers, average rest\\[1em]
-    Makes multiple requests to the same server, use statistics to reduce random error due to variations in network latency
+    Makes multiple requests to the same server, use statistics to reduce random error due to variations in network latency\\[1em]
+    Reduces clock skew to a few milliseconds in good network conditions, but can be much worse!
 \end{frame}
 \inlineslide{s:ntp}\label{l:ntp}
 
@@ -1614,7 +1616,6 @@ We then subtract the client's current time $t_4$ from the estimated server time 
 This estimation depends on the assumption that the network latency is approximately the same in both directions.
 This assumption is probably true if latency is dominated by geographic distance between client and server.
 However, if queueing time in the network is a significant factor in the latency (e.g.\ if one node's network link is heavily loaded while the other node's link has plenty of spare capacity), then there could be a large difference between request and response latency.
-The estimated skew $\theta$ could therefore be too high or too low by up to $\delta/2$.
 Unfortunately, most networks do not give nodes any indication of the actual latency that a particular packet has experienced.
 
 \begin{frame}
@@ -1642,6 +1643,14 @@ Unfortunately, most networks do not give nodes any indication of the actual late
 \end{frame}
 \inlineslide{s:ntp-calculation}\label{l:ntp-calculation}
 
+\supervision{
+    What is the maximum possible error in the NTP client's estimate of skew with regard to one particular server, assuming that both nodes correctly follow the protocol?
+}{
+    The maximum possible error in $\theta$ is $\delta/2$.
+    This occurs either in the extreme case where request latency is 0 and response latency is $\delta$, or in the other extreme case where request latency is $\delta$ and response latency is 0.
+    Whenever latency is nonzero, the error will be less than $\delta/2$.
+}
+
 Once NTP has estimated the clock skew between client and server, the next step is to adjust the client's clock to bring it in line with the server.
 The method used for this depends on the amount of skew.
 The client corrects small differences gently by adjusting the clock speed to run slightly faster or slower as needed, which gradually reduces the skew over the course of a few minutes.
@@ -1662,12 +1671,12 @@ For this reason, any system that depends on clock synchronisation needs to be ca
     \frametitle{Correcting clock skew}
     Once the client has estimated the clock skew $\theta$, it needs to apply that correction to its clock.\\
     \begin{itemize}
-        \item If $\theta < 125$~ms, \textbf{slew} the clock:\\
+        \item If $|\theta| < 125$~ms, \textbf{slew} the clock:\\
             slightly speed it up or slow it down by up to 500~ppm\\
             (brings clocks in sync within $\approx$ 5 minutes)\\[1em]\pause
-        \item If $125\text{ ms} \le \theta < \text{1,000 s}$, \textbf{step} the clock:\\
+        \item If $125\text{ ms} \le |\theta| < \text{1,000 s}$, \textbf{step} the clock:\\
             suddenly reset client clock to estimated server timestamp\\[1em]\pause
-        \item If $\theta \ge \text{1,000 s}$, \textbf{panic} and do nothing\\
+        \item If $|\theta| \ge \text{1,000 s}$, \textbf{panic} and do nothing\\
             (leave the problem for a human operator to resolve)\\[1em]
     \end{itemize}
     Systems that rely on clock sync need to monitor clock skew!
@@ -1720,24 +1729,24 @@ Most operating systems and programming languages provide both a time-of-day cloc
     \frametitle{Monotonic and time-of-day clocks}
     \textbf{Time-of-day clock:}
     \begin{itemize}
-        \item Time since a fixed date (e.g.\ 1 January 1970 epoch)
-        \item May suddenly move forwards or backwards
-        \item Timestamps can be compared across nodes (if synced)
-        \item Java: \texttt{System.currentTimeMillis()}
-        \item Linux: \texttt{clock\_gettime(CLOCK\_REALTIME)}\\[1em]
+        \item<1-> Time since a fixed date (e.g.\ 1 January 1970 epoch)
+        \item<2-> May suddenly move forwards or backwards (NTP stepping), subject to leap second adjustments
+        \item<3-> Timestamps can be compared across nodes (if synced)
+        \item<4-> Java: \texttt{System.currentTimeMillis()}
+        \item<4-> Linux: \texttt{clock\char`_gettime(CLOCK\char`_REALTIME)}\\[1em]
     \end{itemize}
     \textbf{Monotonic clock:}
     \begin{itemize}
-        \item Time since arbitrary point (e.g.\ when machine booted up)
-        \item Always moves forwards at near-constant rate
-        \item Good for measuring elapsed time on a single node
-        \item Java: \texttt{System.nanoTime()}
-        \item Linux: \texttt{clock\_gettime(CLOCK\_MONOTONIC)}
+        \item<1-> Time since arbitrary point (e.g.\ when machine booted up)
+        \item<2-> Always moves forwards at near-constant rate
+        \item<3-> Good for measuring elapsed time on a single node
+        \item<4-> Java: \texttt{System.nanoTime()}
+        \item<4-> Linux: \texttt{clock\char`_gettime(CLOCK\char`_MONOTONIC)}
     \end{itemize}
 \end{frame}
 \inlineslide{s:monotonic-comparison}\label{l:monotonic-comparison}
 
-\subsection{Logical time}\label{sec:logical-time}
+\subsection{Causality and happens-before}\label{sec:causality}
 
 We will now move on to the problem of ordering events in a distributed system, which is closely related to the concept of time.
 Consider the scenario on \autoref{l:moon-cheese}, in which user A makes a statement $m_1$ and sends it as a message to the other two users, B and C.
@@ -1821,14 +1830,14 @@ Thus, if we order messages based on their timestamps from time-of-day clocks, we
 To formalise what we mean with the ``correct'' order in this type of scenario, we use the \emph{happens-before relation} as defined on \autoref{l:happens-before}.
 This definition assumes that each node has only a single thread of execution, so for any two execution steps of a node, it is clear which one happened first.
 More formally, we assume that there is a \emph{strict total order} on the events that occur at the same node.
-(A multithreaded process can be modelled by using a separate node to represent each thread.)
+A multithreaded process can be modelled by using a separate node to represent each thread.
 
 We then extend this order across nodes by defining that a message is sent before that same message is received (in other words, we rule out time travel: it is not possible to receive a message that has not yet been sent).
 For convenience, we assume that every sent message is unique, so when a message is received, we always know unambiguously where and when that message was sent.
-In practice, duplicate messages may exist, but we can make them unique for example by including the ID of the sender node and a sequence number in each message.
+In practice, duplicate messages may exist, but we can make them unique, for example by including the ID of the sender node and a sequence number in each message.
 
 Finally, we take the transitive closure, and the result is the happens-before relation.
-This is a \emph{partial order}, which means that for some events $a$ and $b$, it is neither the case that $a$ happened before $b$, nor that $b$ happened before $a$.
+This is a \emph{partial order}, which means that it is possible that for some events $a$ and $b$, neither $a$ happened before $b$, nor $b$ happened before $a$.
 In that case, we call $a$ and $b$ \emph{concurrent}.
 Note that here, ``concurrent'' does not mean literally ``at the same time'', but rather that $a$ and $b$ are independent in the sense that there is no sequence of messages leading from one to the other.
 
@@ -1869,11 +1878,12 @@ Note that here, ``concurrent'' does not mean literally ``at the same time'', but
             \draw [bigarrow] (b) -- node[above] {$m_1$} (c);
             \draw [bigarrow] (d) -- node[above] {$m_2$} (f);
         \end{tikzpicture}
-    \end{center}
+    \end{center}\pause
     \begin{itemize}
-        \item $a \rightarrow b$, $c \rightarrow d$, and $e \rightarrow f$ due to process order
-        \item $b \rightarrow c$ and $d \rightarrow f$ due to messages $m_1$ and $m_2$
-        \item $a \rightarrow c$, $a \rightarrow d$, $a \rightarrow f$, $b \rightarrow d$, $b \rightarrow f$, and $c \rightarrow f$ due to transitivity
+        \item $a \rightarrow b$, $c \rightarrow d$, and $e \rightarrow f$ due to node execution order\pause
+        \item $b \rightarrow c$ and $d \rightarrow f$ due to messages $m_1$ and $m_2$\pause
+        \item $a \rightarrow c$, $a \rightarrow d$, $a \rightarrow f$, $b \rightarrow d$, $b \rightarrow f$,
+            and $c \rightarrow f$ due to transitivity\pause
         \item $a \parallel e$, $b \parallel e$, $c \parallel e$, and $d \parallel e$
     \end{itemize}
 \end{frame}
@@ -1924,8 +1934,62 @@ Note that here, ``concurrent'' does not mean literally ``at the same time'', but
     In all cases examined, exactly one of the three statements $\{a \rightarrow b,\; b \rightarrow a,\; a \parallel b\}$ is true.
 }
 
-% Causality: m1: "The moon is made of cheese" --> m2: "Oh no it isn't"
-% m3: "Pigs can fly"
+The happens-before relation is a way of reasoning about \emph{causality} in distributed systems.
+Causality considers whether information could have flowed from one event to another, and thus whether one event may have influenced another.
+In the example of \autoref{l:moon-cheese}, $m_2$ (``Oh no it isn't!'') is a reply to $m_1$ (``The moon is made of cheese!''), and so $m_1$ influenced $m_2$.
+Whether one event truly ``caused'' another is a philosophical question that we don't need to answer now; what matters for our purposes is that the sender of $m_2$ had already received $m_1$ at the time of sending $m_2$.
+
+\begin{frame}
+    \label{s:causality}
+    \frametitle{Causality}
+    Taken from physics (relativity).
+    \begin{itemize}
+        \item When $a \rightarrow b$, then $a$ \textbf{might have caused} $b$.
+        \item When $a \parallel b$, we know that $a$ \textbf{cannot have caused} $b$.
+    \end{itemize}
+    Happens-before relation encodes \textbf{potential causality}.\pause
+    \begin{center}
+        \begin{tikzpicture}
+            \fill<3-> [yellow,nearly transparent] (0,2) -- (3,0) -- (-3,0) -- cycle;
+            \fill<4-> [yellow,nearly transparent] (4,2) -- (7,0) -- (1,0) -- cycle;
+            \node<2-> (a) [circle,draw] at (0,2) {$a$};
+            \node<2-> (b) [circle,draw] at (4,2) {$b$};
+            \node<5-> (c) [circle,draw] at (2,0.3) {$c$};
+            \draw<2-> [<->,dotted] (a) -- node [above] {distance in space} (b);
+            \draw<3-> [orange,dotted] (a) -- (-3,0);
+            \draw<3-> [orange,dotted] (a) -- (3,0);
+            \draw<4-> [orange,dotted] (b) -- (1,0);
+            \draw<4-> [orange,dotted] (b) -- (7,0);
+            \node<3-> at (0,0.6) {light from $a$};
+            \node<4-> at (4,0.6) {light from $b$};
+            \draw<2-> [->] (7.2,2) -- node [at start,left] {time} (7.2,0);
+            \node at (-3,0) {}; \node at (7.2,2.2) {}; % placeholder so that slide 1 doesn't jump
+        \end{tikzpicture}
+    \end{center}
+    \uncover<6->{Let $\prec$ be a strict total order on events.\\
+    If $(a \rightarrow b) \Longrightarrow (a \prec b)$ then $\prec$ is a \textbf{causal order}\\
+    (or: $\prec$ is ``consistent with causality'').\\
+    NB. ``causal'' $\neq$ ``casual''!}
+\end{frame}
+\inlineslide{s:causality}\label{l:causality}
+
+The notion of causality is borrowed from physics, where it is generally believed that it is not possible for information to travel faster than the speed of light.
+Thus, if you have two events $a$ and $b$ that occur sufficiently far apart in space, but close together in time, then it is impossible for a signal sent from $a$ to arrive at $b$'s location before event $b$, and vice versa.
+Therefore, $a$ and $b$ must be \emph{causally unrelated}.
+
+An event $c$ that is sufficiently close in space to $a$, and sufficiently long after $a$ in time, will be within $a$'s \emph{light cone}: that is, it is possible for a signal from $a$ to reach $c$, and therefore $a$ might influence $c$.
+In distributed systems, we usually work with messages on a network rather than beams of light, but the principle is very similar.
+
+% "causality is reachability in spacetime"
+% https://twitter.com/palvaro/status/1233208997257170944
+
+
+\section{Work in progress from here onwards}
+
+Hybrid Logical Clocks - Kulkarni et al, Logical physical clocks (OPODIS 2014) \url{https://doi.org/10.1007/978-3-319-14472-6_2}
+
+In a crash-recovery model, Lamport timestamp needs to be in stable storage.
+
 
 Distributed systems are fascinating because we have to work with partial knowledge and uncertain
 truths. We never have certainty about the state of the system, because by the time we hear about
@@ -1943,32 +2007,11 @@ Replication example: two clients A and B, four servers. Server 1 receives only A
 server 2 receives A then B, server 3 receives B then A, and server 4 receives only B.
 How do we ensure replicas become consistent with each other?
 
-Use this as motivation for introducing causality and happens-before.
-Show that physical timestamp ordering may  be inconsistent with causality.
-Distinguish between A and B being concurrent, and A happening before B
-(determining which one should overwrite the other).
-
 ABD algorithm. Last writer wins. Linearizability. Even shared memory on one machine is not linearisable!
 
 CAP: consistent or available in the presence of a partition
 
-notion of causality: taken from physics (relativity).
-When a happened before b, that doesn't mean that a necessarily caused b; it just means that a \emph{might have} caused b.
-For this reason, we sometimes say that the happens-before relationship encodes \emph{potential causality}.
-
-In definition of happens-before, make the simplifying assumption that every sent message is unique.
-
-However, when a and b happened independently (no message sent after a arrived before b, and no message sent after b arrived before a), we know that a \emph{cannot have caused} b and vice versa.
-
-Hybrid Logical Clocks - Kulkarni et al, Logical physical clocks (OPODIS 2014) \url{https://doi.org/10.1007/978-3-319-14472-6_2}
-
 Exercise. Show how to implement total order broadcast using Lamport timestamps [2020P5Q8]. Comment on its fault-tolerance properties.
-
-In a crash-recovery model, Lamport timestamp needs to be in stable storage.
-
-An event: something happened. Not the same as a message.
-
-% http://book.mixu.net/distsys/
 
 % 1. Network communication basics: JSON, TCP, HTTP/REST, UDP. Hands-on: using things like tcpdump?
 % 2. Faults and failures; failure detection; split brain
@@ -1983,9 +2026,6 @@ An event: something happened. Not the same as a message.
 % Live demo of RESTful API with Dropwizard, curl, browser access
 
 % State machine replication
-
-% "causality is reachability in spacetime"
-% https://twitter.com/palvaro/status/1233208997257170944
 
 % Define total order broadcast as:
 % 1. If a correct process delivers message m, then m was broadcast by a process in the system.
