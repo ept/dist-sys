@@ -28,7 +28,7 @@
 \begin{document}
 \title{Distributed Systems}
 \subtitle{University of Cambridge\\Computer Science Tripos, Part IB\\Michaelmas term \thisyear\\\courseurl}
-        
+
 \author{Dr.\ Martin Kleppmann\\mk428@cst.cam.ac.uk}
 \date{}
 \maketitle
@@ -910,7 +910,7 @@ Any of these can cause messages to be lost.
 In a system model, we take a more abstract view, which saves us from the details of worrying about sharks and cows.
 Most distributed algorithms assume that the network provides bidirectional message-passing between a pair of nodes, also known as \emph{point-to-point} or \emph{unicast} communication.
 Real networks do sometimes allow \emph{broadcast} or \emph{multicast} communication (sending a packet to many recipients at the same time, which is used e.g.\ for discovering a printer on a local network), but broadly speaking, assuming unicast-only is a good model of the Internet today.
-Later, in section TODO, we will show how to implement broadcast on top of unicast communication.
+Later, in \autoref{sec:broadcast}, we will show how to implement broadcast on top of unicast communication.
 
 We can then choose how reliable we want to assume these links to be.
 Most algorithms assume one of the three choices listed on \autoref{l:model-network}.
@@ -1783,7 +1783,7 @@ The database instructions only make sense if $m_1$ is processed before $m_2$.
         \end{tikzpicture}
     \end{center}
     \uncover<1->{$m_1 = $ ``A says: The moon is made of cheese!''}\\
-    \uncover<2->{$m_2 = $ ``B says: Oh no it isn't!''}\\[1em]
+    \uncover<2->{$m_2 = $ ``B says: Oh no it isn't!''}\\[1em]%
     \uncover<3->{C sees $m_2$ first, $m_1$ second,\\even though logically $m_1$ \textbf{happened before} $m_2$.}
 \end{frame}
 \inlineslide{s:moon-cheese}\label{l:moon-cheese}
@@ -1799,9 +1799,10 @@ We therefore cannot rule out the following scenario: A sends $m_1$ with timestam
 When B receives $m_1$, the timestamp according to B's clock is $t_2$, where $t_2 < t_1$, because A's clock is slightly ahead of B's clock.
 Thus, if we order messages based on their timestamps from time-of-day clocks, we might again end up with the wrong order.
 
-\begin{frame}
+\begin{frame}<1-2>[label=physical-order]
     \label{s:physical-order}
-    \frametitle{Ordering of messages using timestamps?}
+    \frametitle<1-2>{Ordering of messages using timestamps?}
+    \frametitle<3>{Physical timestamps inconsistent with causality}
     \begin{center}
         \begin{tikzpicture}
             \node [rectangle,fill=red!10,draw] (user1) at (0,3.7) {user A};
@@ -1821,7 +1822,7 @@ Thus, if we order messages based on their timestamps from time-of-day clocks, we
         \end{tikzpicture}
     \end{center}
     $m_1 = (t_1, \text{``A says: The moon is made of cheese!''})$\\
-    $m_2 = (t_2, \text{``B says: Oh no it isn't!''})$\\[1em]
+    $m_2 = (t_2, \text{``B says: Oh no it isn't!''})$\\[1em]%
     \uncover<2->{\textbf{Problem}: even with synced clocks, $t_2 < t_1$ is possible.\\
     Timestamp order is inconsistent with expected order!}
 \end{frame}
@@ -1890,7 +1891,7 @@ Note that here, ``concurrent'' does not mean literally ``at the same time'', but
 \inlineslide{s:hb-example}\label{l:hb-example}
 
 \supervision{\label{q:strict-partial-order}
-    A relation R is a \emph{strict partial order} if it is irreflexive ($\nexists a.\; (a,a) \in R$) and transitive ($\forall a,b,c.\; (a,b) \in R \wedge (b,c) \in R \Longrightarrow (a,c) \in R$).
+    A relation $R$ is a \emph{strict partial order} if it is irreflexive ($\nexists a.\; (a,a) \in R$) and transitive ($\forall a,b,c.\; (a,b) \in R \wedge (b,c) \in R \Longrightarrow (a,c) \in R$).
     Prove that the happens-before relation is a strict partial order.
     You may assume that any two nodes are a nonzero distance apart, as well as the physical principle that information cannot travel faster than the speed of light.
 }{
@@ -1984,11 +1985,439 @@ In distributed systems, we usually work with messages on a network rather than b
 % https://twitter.com/palvaro/status/1233208997257170944
 
 
+\section{Broadcast protocols and logical time}\label{sec:broadcast}
+
+\begin{frame}
+    \begin{center}
+        Lecture 4\\[2em]
+        \Large{\color{darkblue}{Broadcast protocols and logical time}}
+    \end{center}
+\end{frame}
+
+In this lecture we will examine \emph{broadcast protocols} (also known as \emph{multicast protocols}), that is, algorithms for delivering one message to multiple recipients.
+These are a useful building blocks for higher-level distributed algorithms, as we will see in \autoref{sec:replication}.
+
+Several different broadcast protocols are used in practice, and their main difference is the \emph{order} in which they deliver messages.
+As we saw in the last lecture, the concept of ordering is closely related to clocks and time.
+Hence we will start this lecture by examining more closely how clocks can help us keep track of ordering within a distributed system.
+
+\subsection{Logical time}\label{sec:logical-time}
+
+\againframe<3>{physical-order}
+
+Physical clocks, which we discussed in \autoref{sec:physical-clocks}, measure the number of seconds elapsed.
+However, recall that on \autoref{l:physical-order}, we saw that timestamps from physical clocks can be inconsistent with causality, even if those clocks are synchronised using something like NTP.
+That is, if $\mathsf{send}(m)$ is the event of sending message $m$, and if the happens-before relation indicates that $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$, then it could nevertheless be the case that the the physical timestamp of $\mathsf{send}(m_1)$ (according to the clock of $m_1$'s sender) is less than the physical timestamp of $\mathsf{send}(m_2)$ (according to the clock of $m_2$'s sender).
+
+In contrast, \emph{logical clocks} focus on correctly capturing the order of events in a distributed system.
+
+\begin{frame}
+    \label{s:logical-clocks}
+    \frametitle{Logical vs. physical clocks}
+    \begin{itemize}
+        \item Physical clock: count number of \textbf{seconds elapsed}
+        \item Logical clock: count number of \textbf{events occurred}\\[1em]
+    \end{itemize}
+    Physical timestamps: useful for many things, but may be \textbf{inconsistent with causality}.\\[1em]\pause
+    Logical clocks designed to \textbf{capture causal dependencies}.
+    \[ (e_1 \rightarrow e_2) \Longrightarrow (T(e_1) < T(e_2)) \]\pause
+    We will look at two types of logical clocks:
+    \begin{itemize}
+        \item Lamport clocks
+        \item Vector clocks
+    \end{itemize}
+\end{frame}
+\inlineslide{s:logical-clocks}\label{l:logical-clocks}
+
+The first type of logical clock we will examine is the Lamport clock, introduced by \citet{Lamport:1978} in one of the seminal papers of distributed computing.
+
+\begin{frame}
+    \label{s:lamport-definition}
+    \frametitle{Lamport clocks}
+    \begin{algorithmic}
+        \On{initialisation}
+            \State $t := 0$ \Comment{each node has its own local variable $t$}
+        \EndOn
+        \State
+        \On{any event occurring at the local node}
+            \State $t := t + 1$
+        \EndOn
+        \State
+        \On{request to send message $m$}
+            \State $t := t + 1$; send $(t, m)$ via the underlying network link
+        \EndOn
+        \State
+        \On{receiving $(t', m)$ via the underlying network link}
+            \State $t := \mathrm{max}(t, t') + 1$
+            \State deliver $m$ to the application
+        \EndOn
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:lamport-definition}\label{l:lamport-definition}
+
+\begin{frame}
+    \label{s:lamport-description}
+    \frametitle{Lamport clocks in words}
+    \begin{itemize}
+        \item Each node maintains a counter $t$,\\incremented on every local event $e$
+        \item Let $L(e)$ be the value of $t$ after that increment
+        \item Attach current $t$ to messages sent over network
+        \item Recipient moves its clock forward to timestamp in the message (if greater than local counter), then increments\\[1em]
+    \end{itemize}\pause
+    Properties of this scheme:
+    \begin{itemize}
+        \item If $a \rightarrow b$ then $L(a) < L(b)$\pause
+        \item However, $L(a) < L(b)$ does not imply $a \rightarrow b$\pause
+        \item Possible that $L(a) = L(b)$ for $a \neq b$
+    \end{itemize}
+\end{frame}
+\inlineslide{s:lamport-description}\label{l:lamport-description}
+
+A Lamport timestamp is essentially an integer that counts the number of events that have occurred.
+As such, it has no direct relationship to physical time.
+On each node, time increases because the integer is incremented on every event.
+The algorithm assumes a crash-stop model (or a crash-recovery model if the timestamp is maintained in stable storage, i.e.\ on disk).
+
+When a message is sent over the network, the sender attaches its current Lamport timestamp to that message.
+In the example on \autoref{l:lamport-example}, $t=2$ is attached to $m_1$ and $t=4$ is attached to $m_2$.
+When the recipient receives a message, it moves its local Lamport clock forward to the timestamp in the message plus one; if the recipient's clock is already ahead of the timestamp in the message, it is only incremented.
+
+Lamport timestamps have the property that if $a$ happened before $b$, then $b$ always has a greater timestamp than $a$; in other words, the timestamps are consistent with causality.
+However, the converse is not true: in general, if $b$ has a greater timestamp than $a$, we know that $b \not\rightarrow a$, but we do not know whether it is the case that $a \rightarrow b$ or that $a \parallel b$.
+
+It is also possible for two different events to have the same timestamp.
+In the example on \autoref{l:lamport-example}, the first event on node $A$ and the first event on node $C$ both have a timestamp of 1.
+If we need a unique timestamp for every event, each timestamp can be extended with the name or identifier of the node on which that event occurred.
+Within the scope of a single node, each event is assigned a unique timestamp; thus, assuming each node has a unique name, the combination of timestamp and node name is globally unique (across all nodes).
+
+\begin{frame}
+    \label{s:lamport-example}
+    \frametitle{Lamport clocks example}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (A) at (0,3.7) {A};
+            \node [rectangle,fill=red!10,draw] (B) at (4,3.7) {B};
+            \node [rectangle,fill=red!10,draw] (C) at (8,3.7) {C};
+            \draw (A) -- (0,0.5);
+            \draw (B) -- (4,0.5);
+            \draw (C) -- (8,0.5);
+            \tikzstyle{event}=[circle,fill=black,inner sep=2pt]
+            \node (a) [event] at (0,3.0) {};
+            \node (b) [event] at (0,2.5) {};
+            \node (c) [event] at (4,2.0) {};
+            \node (d) [event] at (4,1.5) {};
+            \node (e) [event] at (8,2.8) {};
+            \node (f) [event] at (8,1.0) {};
+            \draw<1-2| handout:0> (a) node [left,xshift=-0.1cm] {1};
+            \draw<1-2| handout:0> (b) node [left,xshift=-0.1cm] {2};
+            \draw<1-2| handout:0> (c) node [right,xshift=0.1cm] {3};
+            \draw<1-2| handout:0> (d) node [left,xshift=-0.1cm] {4};
+            \draw<1-2| handout:0> (e) node [right,xshift=0.1cm] {1};
+            \draw<1-2| handout:0> (f) node [right,xshift=0.1cm] {5};
+            \draw<3-> (a) node [left,xshift=-0.1cm] {$(1, A)$};
+            \draw<3-> (b) node [left,xshift=-0.1cm] {$(2, A)$};
+            \draw<3-> (c) node [right,xshift=0.1cm] {$(3, B)$};
+            \draw<3-> (d) node [left,xshift=-0.1cm] {$(4, B)$};
+            \draw<3-> (e) node [right,xshift=0.1cm] {$(1, C)$};
+            \draw<3-> (f) node [right,xshift=0.1cm] {$(5, C)$};
+            \draw [bigarrow] (b) -- node[above] {$(2, m_1)$} (c);
+            \draw [bigarrow] (d) -- node[below] {$(4, m_2)$} (f);
+        \end{tikzpicture}
+    \end{center}
+    \uncover<2->{Let $N(e)$ be the node at which event $e$ occurred.\\
+    Then the pair $(L(e), N(e))$ \textbf{uniquely identifies} event $e$.}\\[1em]%
+    \uncover<4->{Define a \textbf{total order} $\prec$ using Lamport timestamps:
+    \[ (a \prec b) \Longleftrightarrow (L(a) < L(b) \;\vee\; (L(a) = L(b) \;\wedge\; N(a) < N(b))) \]
+    This order is \textbf{causal}: $(a \rightarrow b) \Longrightarrow (a \prec b)$}
+\end{frame}
+\inlineslide{s:lamport-example}\label{l:lamport-example}
+
+Recall that the happens-before relation is a partial order (\autoref{l:happens-before}).
+Using Lamport timestamps we can extend this partial order into a \emph{total order}.
+We use the lexicographic order over (timestamp, node name) pairs: that is, we first compare the timestamps, and if they are the same, we break ties by comparing the node names.
+
+This relation $\prec$ puts all events into a linear order: for any two events $a \neq b$ we have either $a \prec b$ or $b \prec a$.
+It is a causal order: that is, whenever $a \rightarrow b$ we have $a \prec b$.
+In other words, $\prec$ is a \emph{linear extension} of the partial order $\rightarrow$.
+However, if $a \parallel b$ we could have either $a \prec b$ or $b \prec a$, so the order of the two elements is determined arbitrarily by the algorithm.
+
+\supervision{\label{q:lamport-example}
+    Given the sequence of messages in the following execution, show the Lamport timestamps at each send or receive event.
+
+    \begin{center}
+    \begin{tikzpicture}
+        \node [rectangle,fill=red!10,draw] (A) at (0,7) {A};
+        \node [rectangle,fill=red!10,draw] (B) at (3,7) {B};
+        \node [rectangle,fill=red!10,draw] (C) at (6,7) {C};
+        \node [rectangle,fill=red!10,draw] (D) at (9,7) {D};
+        \draw (A) -- (0,0.7);
+        \draw (B) -- (3,0.7);
+        \draw (C) -- (6,0.7);
+        \draw (D) -- (9,0.7);
+        \tikzstyle{event}=[circle,fill=black,inner sep=2pt]
+        \node (s1) [event] at (0,6.5) {};
+        \node (r1) [event] at (3,6.2) {};
+        \node (s2) [event] at (0,6.0) {};
+        \node (r2) [event] at (6,5.4) {};
+        \node (s3) [event] at (0,5.5) {};
+        \node (r3) [event] at (9,4.6) {};
+        \node (s4) [event] at (3,4.7) {};
+        \node (r4) [event] at (9,4.1) {};
+        \node (s5) [event] at (3,4.2) {};
+        \node (r5) [event] at (6,3.9) {};
+        \node (s6) [event] at (6,3.4) {};
+        \node (r6) [event] at (9,3.1) {};
+        \node (s7) [event] at (6,2.9) {};
+        \node (r7) [event] at (0,2.3) {};
+        \node (s8) [event] at (0,1.8) {};
+        \node (r8) [event] at (3,1.5) {};
+        \node (s9) [event] at (6,1.3) {};
+        \node (r9) [event] at (3,1.0) {};
+        \draw [bigarrow] (s1) -- node[above] {$m_1$} (r1);
+        \draw [bigarrow] (s2) -- node[above,pos=0.25] {$m_2$} (r2);
+        \draw [bigarrow] (s3) -- node[above,pos=0.17] {$m_3$} (r3);
+        \draw [bigarrow] (s4) -- node[above,pos=0.25] {$m_4$} (r4);
+        \draw [bigarrow] (s5) -- node[above] {$m_5$} (r5);
+        \draw [bigarrow] (s6) -- node[above] {$m_6$} (r6);
+        \draw [bigarrow] (s7) -- node[above,pos=0.25] {$m_7$} (r7);
+        \draw [bigarrow] (s8) -- node[above] {$m_8$} (r8);
+        \draw [bigarrow] (s9) -- node[above] {$m_9$} (r9);
+    \end{tikzpicture}
+    \end{center}
+}{
+    The following table shows both the Lamport timestamps from this exercise and the vector timestamps from \autoref{q:vector-example}.
+
+    % Based on Steven Hand & Robert Watson's problem sheet
+    \begin{center}
+    \begin{tabular}{|c|cccc|cccc|}
+    \hline
+    Message & \multicolumn{4}{c|}{Lamport} & \multicolumn{4}{c|}{Vector} \\
+            &  A &  B &  C &  D            & A & B & C & D \\
+    \hline
+    initial &  0 & 0  &  0 &  0            & $\langle 0, 0, 0, 0 \rangle$
+                                           & $\langle 0, 0, 0, 0 \rangle$
+                                           & $\langle 0, 0, 0, 0 \rangle$
+                                           & $\langle 0, 0, 0, 0 \rangle$ \\
+    \hline
+    $m_1$   &  1 &  2 & -- & --            & $\langle 1, 0, 0, 0 \rangle$
+                                           & $\langle 1, 1, 0, 0 \rangle$
+                                           & --
+                                           & -- \\
+    $m_2$   &  2 & -- &  3 & --            & $\langle 2, 0, 0, 0 \rangle$
+                                           & --
+                                           & $\langle 2, 0, 1, 0 \rangle$
+                                           & -- \\
+    $m_3$   &  3 & -- & -- &  4            & $\langle 3, 0, 0, 0 \rangle$
+                                           & --
+                                           & --
+                                           & $\langle 3, 0, 0, 1 \rangle$ \\
+    $m_4$   & -- &  3 & -- &  5            & --
+                                           & $\langle 1, 2, 0, 0 \rangle$
+                                           & --
+                                           & $\langle 3, 2, 0, 2 \rangle$ \\
+    $m_5$   & -- &  4 &  5 & --            & --
+                                           & $\langle 1, 3, 0, 0 \rangle$
+                                           & $\langle 2, 3, 2, 0 \rangle$
+                                           & -- \\
+    $m_6$   & -- & -- &  6 &  7            & --
+                                           & --
+                                           & $\langle 2, 3, 3, 0 \rangle$
+                                           & $\langle 3, 3, 3, 3 \rangle$ \\
+    $m_7$   &  8 & -- &  7 & --            & $\langle 4, 3, 4, 0 \rangle$
+                                           & --
+                                           & $\langle 2, 3, 4, 0 \rangle$
+                                           & -- \\
+    $m_8$   &  9 & 10 & -- & --            & $\langle 5, 3, 4, 0 \rangle$
+                                           & $\langle 5, 4, 4, 0 \rangle$
+                                           & --
+                                           & -- \\
+    $m_9$   & -- & 11 &  8 & --            & --
+                                           & $\langle 5, 5, 5, 0 \rangle$
+                                           & $\langle 2, 3, 5, 0 \rangle$
+                                           & -- \\
+    \hline
+    final   &  9 & 11 &  8 & 7             & $\langle 5, 3, 4, 0 \rangle$
+                                           & $\langle 5, 5, 5, 0 \rangle$
+                                           & $\langle 2, 3, 5, 0 \rangle$
+                                           & $\langle 3, 3, 3, 3 \rangle$ \\
+    \hline
+    \end{tabular}
+    \end{center}
+}
+
+\supervision{
+    Prove that the total order $\prec$ using Lamport timestamps is a causal order.
+}{
+    We assume $a \rightarrow b$ for some events $a$ and $b$.
+    Because the happens-before relation is a strict partial order (\autoref{q:strict-partial-order}) we have $a \neq b$.
+    To show that $a \prec b$ we use induction over the recursive structure of the definition of the happens-before relation.
+    That is, we consider three cases:
+    \begin{enumerate}
+        \item First base case: $a \rightarrow b$ because $a$ and $b$ occurred at the same node, and $a$ occurred before $b$ in that node's local execution order.
+            Then $L(a) < L(b)$ because the algorithm for Lamport timestamps only ever increases a node's local clock, and every local event increases the clock, so an event that occurs later in a node's local execution must have a greater timestamp.
+            Hence $a \prec b$.
+        \item Second base case: $a \rightarrow b$ because $a = \mathsf{send}(m)$ and $b = \mathsf{receive}(m)$ for some message $m$.
+            Then $L(a)$ is included in the message $m$, and so $L(b) = \mathrm{max}(t, L(a)) + 1 > L(a)$ by the definition of the Lamport timestamp algorithm.
+            Therefore $L(a) < L(b)$ and hence $a \prec b$.
+        \item Inductive step: $a \rightarrow b$ because there exists an event $c$ such that $a \rightarrow c$ and $c \rightarrow b$.
+            Then $a \prec c$ and $c \prec b$ by the inductive hypothesis.
+            Since $\prec$ is a total order, it is transitive, and therefore $a \prec b$.
+    \end{enumerate}
+}
+
+Given the Lamport timestamps of two events, it is in general not possible to tell whether those events are concurrent or whether one happened before the other.
+If we do want to detect when events are concurrent, we need a different type of logical time: a \emph{vector clock}.
+
+While Lamport timestamps are just a single integer (possibly with a node name attached), vector timestamps are a list of integers, one for each node in the system.
+By convention, if we put the $n$ nodes into a vector $\langle N_1, N_2, \dots, N_n \rangle$, then a vector timestamp is a similar vector $\langle t_1, t_2, \dots, t_n \rangle$ where $t_i$ is the entry corresponding to node $N_i$.
+Concretely, $t_i$ is the number of events known to have occurred at node $N_i$.
+
+In a vector $T = \langle t_1, t_2, \dots, t_n \rangle$ we refer to element $t_i$ as $T[i]$, like an index into an array.
+
+\begin{frame}
+    \label{s:vector-clocks}
+    \frametitle{Vector clocks}
+    Given Lamport timestamps $L(a)$ and $L(b)$ with $L(a) < L(b)$\\we can't tell whether $a \rightarrow b$ or $a \parallel b$.\\[1em]
+    If we want to detect which events are concurrent, we need \textbf{vector clocks}:\pause
+    \begin{itemize}
+        \item Assume $n$ nodes in the system, $N = \langle N_1, N_2, \dots, N_n \rangle$\pause
+        \item Vector timestamp of event $a$ is $V(a) = \langle t_1, t_2, \dots, t_n\rangle$
+        \item $v_i$ is number of events observed by node $N_i$\pause
+        \item Each node has a current vector timestamp $T$
+        \item On event at node $N_i$, increment vector element $T[i]$\pause
+        \item Attach current vector timestamp to each message
+        \item Recipient merges message vector into its local vector
+    \end{itemize}
+\end{frame}
+\inlineslide{s:vector-clocks}\label{l:vector-clocks}
+
+Apart from the difference between a scalar and a vector, the vector clock algorithm is very similar to a Lamport clock (compare \autoref{l:lamport-definition} and \autoref{l:vector-definition}).
+A node initialises its vector clock to contain a zero for each node in the system.
+Whenever an event occurs at node $N_i$, it increments the $i$th entry (its own entry) in its vector clock.
+When a message is sent over the network, the sender's current vector timestamp is attached to the message.
+Finally, when a message is received, the recipient merges the vector timestamp in the message with its local timestamp by taking the element-wise maximum of the two vectors, and then the recipient increments its own entry.
+
+\begin{frame}
+    \label{s:vector-definition}
+    \frametitle{Vector clocks}
+    \begin{algorithmic}
+        \On{initialisation at node $N_i$}
+            \State $T := \langle 0, 0, \dots, 0 \rangle$ \Comment{local variable at node $N_i$}
+        \EndOn
+        \State
+        \On{any event occurring at node $N_i$}
+            \State $T[i] := T[i] + 1$
+        \EndOn
+        \State
+        \On{request to send message $m$ at node $N_i$}
+            \State $T[i] := T[i] + 1$; send $(T, m)$ via network
+        \EndOn
+        \State
+        \On{receiving $(T', m)$ at node $N_i$ via the network}
+            \State $T[j] := \mathrm{max}(T[j], T'[j])$ for every $j \in \{1, \dots, n\}$
+            \State $T[i] := T[i] + 1$; deliver $m$ to the application
+        \EndOn
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:vector-definition}\label{l:vector-definition}
+
+\autoref{l:vector-example} shows an example of this algorithm in action.
+Note that when $C$ receives message $m_2$ from $B$, the vector entry for $A$ is also updated to 2 because this event has an indirect causal dependency on the two events that happened at $A$.
+In this way, the vector timestamps mirror the transitivity of the happens-before relation.
+
+\begin{frame}
+    \label{s:vector-example}
+    \frametitle{Vector clocks example}
+    Assuming the vector of nodes is $N = \langle A, B, C \rangle$:
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (A) at (0,3.7) {A};
+            \node [rectangle,fill=red!10,draw] (B) at (4,3.7) {B};
+            \node [rectangle,fill=red!10,draw] (C) at (8,3.7) {C};
+            \draw (A) -- (0,0.5);
+            \draw (B) -- (4,0.5);
+            \draw (C) -- (8,0.5);
+            \tikzstyle{event}=[circle,fill=black,inner sep=2pt]
+            \node (a) [event] at (0,3.0) {};
+            \node (b) [event] at (0,2.5) {};
+            \node (c) [event] at (4,2.0) {};
+            \node (d) [event] at (4,1.5) {};
+            \node (e) [event] at (8,2.8) {};
+            \node (f) [event] at (8,1.0) {};
+            \draw (a) node [left,xshift=-0.1cm] {$\langle 1, 0, 0 \rangle$};
+            \draw (b) node [left,xshift=-0.1cm] {$\langle 2, 0, 0 \rangle$};
+            \draw (c) node [right,xshift=0.1cm] {$\langle 2, 1, 0 \rangle$};
+            \draw (d) node [left,xshift=-0.1cm] {$\langle 2, 2, 0 \rangle$};
+            \draw (e) node [right,xshift=0.1cm] {$\langle 0, 0, 1 \rangle$};
+            \draw (f) node [right,xshift=0.1cm] {$\langle 2, 2, 2 \rangle$};
+            \draw [bigarrow] (b) -- node[above,sloped] {$(\langle 2, 0, 0 \rangle, m_1)$} (c);
+            \draw [bigarrow] (d) -- node[below,sloped] {$(\langle 2, 2, 0 \rangle, m_2)$} (f);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:vector-example}\label{l:vector-example}
+
+\begin{frame}
+    \label{s:vector-ordering}
+    \frametitle{Vector clocks ordering}
+    Define the following order on vector timestamps\\(in a system with $n$ nodes):
+    \begin{itemize}
+        \item $T = T'$ iff $T[i] = T'[i]$ for all $i \in \{1, \dots, n\}$
+        \item $T \le T'$ iff $T[i] \le T'[i]$ for all $i \in \{1, \dots, n\}$
+        \item $T < T'$ iff $T \le T'$ and $T \ne T'$
+        \item $T \parallel T'$ iff $T \not\le T'$ and $T' \not\le T$\\[1em]
+    \end{itemize}
+    Intuition: $V(a) \le V(b)$ if $\{a \text{ and its causal dependencies}\} \subseteq \{b \text{ and its causal dependencies}\}$\\[1em]
+    Properties of this order:
+    \begin{itemize}
+        \item $(V(a) < V(b)) \Longleftrightarrow (a \rightarrow b)$
+        \item $(V(a) = V(b)) \Longleftrightarrow (a = b)$
+        \item $(V(a) \parallel V(b)) \Longleftrightarrow (a \parallel b)$
+    \end{itemize}
+\end{frame}
+\inlineslide{s:vector-ordering}\label{l:vector-ordering}
+
+\supervision{\label{q:vector-example}
+    Given the same sequence of messages as in \autoref{q:lamport-example}, show the vector clocks at each send or receive event.
+}{
+    See solution notes for \autoref{q:lamport-example}.
+}
+
+\supervision{\label{q:vector-happens-before}
+    Using the Lamport and vector timestamps calculated in \autoref{q:lamport-example} and \ref{q:vector-example}, state whether or not the following events can be determined to have a happens-before relationship.
+
+    \begin{center}
+    \begin{tabular}{|c|c|c|c|}
+    \hline
+    \multicolumn{2}{|c|}{Events}                & Lamport & Vector \\
+    \hline
+    $\mathsf{send}(m_2)$ & $\mathsf{send}(m_3)$ &         &        \\
+    $\mathsf{send}(m_3)$ & $\mathsf{send}(m_5)$ &         &        \\
+    $\mathsf{send}(m_5)$ & $\mathsf{send}(m_9)$ &         &        \\
+    \hline
+    \end{tabular}
+    \end{center}
+}{
+    Note that although Lamport clocks cannot determine \emph{happens-before} between nodes, they actually are sufficient to do so within a single node, as a higher local logical time will always reflect a later event.
+
+    \begin{center}
+    \begin{tabular}{|c|c|c|c|}
+    \hline
+    \multicolumn{2}{|c|}{Events}                & Lamport     & Vector \\
+    \hline
+    $\mathsf{send}(m_2)$ & $\mathsf{send}(m_3)$ & $2 < 3$     & $\langle 2, 0, 0, 0 \rangle <         \langle 3, 0, 0, 0 \rangle$ \\
+    $\mathsf{send}(m_3)$ & $\mathsf{send}(m_5)$ & cannot tell & $\langle 3, 0, 0, 0 \rangle \parallel \langle 1, 3, 0, 0 \rangle$ \\
+    $\mathsf{send}(m_5)$ & $\mathsf{send}(m_9)$ & cannot tell & $\langle 1, 3, 0, 0 \rangle <         \langle 2, 3, 5, 0 \rangle$ \\
+    \hline
+    \end{tabular}
+    \end{center}
+}
+
+\section{Replication}\label{sec:replication}
+
 \section{Work in progress from here onwards}
 
 Hybrid Logical Clocks - Kulkarni et al, Logical physical clocks (OPODIS 2014) \url{https://doi.org/10.1007/978-3-319-14472-6_2}
-
-In a crash-recovery model, Lamport timestamp needs to be in stable storage.
 
 
 Distributed systems are fascinating because we have to work with partial knowledge and uncertain
