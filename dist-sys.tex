@@ -2019,7 +2019,7 @@ In contrast, \emph{logical clocks} focus on correctly capturing the order of eve
         \item Logical clock: count number of \textbf{events occurred}\\[1em]
     \end{itemize}
     Physical timestamps: useful for many things, but may be \textbf{inconsistent with causality}.\\[1em]\pause
-    Logical clocks designed to \textbf{capture causal dependencies}.
+    Logical clocks: designed to \textbf{capture causal dependencies}.
     \[ (e_1 \rightarrow e_2) \Longrightarrow (T(e_1) < T(e_2)) \]\pause
     We will look at two types of logical clocks:
     \begin{itemize}
@@ -2033,7 +2033,7 @@ The first type of logical clock we will examine is the Lamport clock, introduced
 
 \begin{frame}
     \label{s:lamport-definition}
-    \frametitle{Lamport clocks}
+    \frametitle{Lamport clocks algorithm}
     \begin{algorithmic}
         \On{initialisation}
             \State $t := 0$ \Comment{each node has its own local variable $t$}
@@ -2086,7 +2086,7 @@ Lamport timestamps have the property that if $a$ happened before $b$, then $b$ a
 However, the converse is not true: in general, if $b$ has a greater timestamp than $a$, we know that $b \not\rightarrow a$, but we do not know whether it is the case that $a \rightarrow b$ or that $a \parallel b$.
 
 It is also possible for two different events to have the same timestamp.
-In the example on \autoref{l:lamport-example}, the first event on node $A$ and the first event on node $C$ both have a timestamp of 1.
+In the example on \autoref{l:lamport-example}, the third event on node $A$ and the first event on node $B$ both have a timestamp of 3.
 If we need a unique timestamp for every event, each timestamp can be extended with the name or identifier of the node on which that event occurred.
 Within the scope of a single node, each event is assigned a unique timestamp; thus, assuming each node has a unique name, the combination of timestamp and node name is globally unique (across all nodes).
 
@@ -2108,18 +2108,21 @@ Within the scope of a single node, each event is assigned a unique timestamp; th
             \node (d) [event] at (4,1.5) {};
             \node (e) [event] at (8,2.8) {};
             \node (f) [event] at (8,1.0) {};
+            \node (g) [event] at (0,1.5) {};
             \draw<1-2| handout:0> (a) node [left,xshift=-0.1cm] {1};
             \draw<1-2| handout:0> (b) node [left,xshift=-0.1cm] {2};
             \draw<1-2| handout:0> (c) node [right,xshift=0.1cm] {3};
             \draw<1-2| handout:0> (d) node [left,xshift=-0.1cm] {4};
             \draw<1-2| handout:0> (e) node [right,xshift=0.1cm] {1};
             \draw<1-2| handout:0> (f) node [right,xshift=0.1cm] {5};
+            \draw<1-2| handout:0> (g) node [left,xshift=-0.1cm] {3};
             \draw<3-> (a) node [left,xshift=-0.1cm] {$(1, A)$};
             \draw<3-> (b) node [left,xshift=-0.1cm] {$(2, A)$};
             \draw<3-> (c) node [right,xshift=0.1cm] {$(3, B)$};
             \draw<3-> (d) node [left,xshift=-0.1cm] {$(4, B)$};
             \draw<3-> (e) node [right,xshift=0.1cm] {$(1, C)$};
             \draw<3-> (f) node [right,xshift=0.1cm] {$(5, C)$};
+            \draw<3-> (g) node [left,xshift=-0.1cm] {$(3, A)$};
             \draw [bigarrow] (b) -- node[above] {$(2, m_1)$} (c);
             \draw [bigarrow] (d) -- node[below] {$(4, m_2)$} (f);
         \end{tikzpicture}
@@ -2139,7 +2142,7 @@ We use the lexicographic order over (timestamp, node name) pairs: that is, we fi
 This relation $\prec$ puts all events into a linear order: for any two events $a \neq b$ we have either $a \prec b$ or $b \prec a$.
 It is a causal order: that is, whenever $a \rightarrow b$ we have $a \prec b$.
 In other words, $\prec$ is a \emph{linear extension} of the partial order $\rightarrow$.
-However, if $a \parallel b$ we could have either $a \prec b$ or $b \prec a$, so the order of the two elements is determined arbitrarily by the algorithm.
+However, if $a \parallel b$ we could have either $a \prec b$ or $b \prec a$, so the order of the two events is determined arbitrarily by the algorithm.
 
 \supervision{\label{q:lamport-example}
     Given the sequence of messages in the following execution, show the Lamport timestamps at each send or receive event.
@@ -2299,7 +2302,7 @@ Finally, when a message is received, the recipient merges the vector timestamp i
 
 \begin{frame}
     \label{s:vector-definition}
-    \frametitle{Vector clocks}
+    \frametitle{Vector clocks algorithm}
     \begin{algorithmic}
         \On{initialisation at node $N_i$}
             \State $T := \langle 0, 0, \dots, 0 \rangle$ \Comment{local variable at node $N_i$}
@@ -2344,16 +2347,21 @@ In this way, the vector timestamps mirror the transitivity of the happens-before
             \node (d) [event] at (4,1.5) {};
             \node (e) [event] at (8,2.8) {};
             \node (f) [event] at (8,1.0) {};
+            \node (g) [event] at (0,1.5) {};
             \draw (a) node [left,xshift=-0.1cm] {$\langle 1, 0, 0 \rangle$};
             \draw (b) node [left,xshift=-0.1cm] {$\langle 2, 0, 0 \rangle$};
             \draw (c) node [right,xshift=0.1cm] {$\langle 2, 1, 0 \rangle$};
             \draw (d) node [left,xshift=-0.1cm] {$\langle 2, 2, 0 \rangle$};
             \draw (e) node [right,xshift=0.1cm] {$\langle 0, 0, 1 \rangle$};
             \draw (f) node [right,xshift=0.1cm] {$\langle 2, 2, 2 \rangle$};
+            \draw (g) node [left,xshift=-0.1cm] {$\langle 3, 0, 0 \rangle$};
             \draw [bigarrow] (b) -- node[above,sloped] {$(\langle 2, 0, 0 \rangle, m_1)$} (c);
             \draw [bigarrow] (d) -- node[below,sloped] {$(\langle 2, 2, 0 \rangle, m_2)$} (f);
         \end{tikzpicture}
-    \end{center}
+    \end{center}\pause
+    The vector timestamp of an event $e$ represents a set of events, $e$ and its causal dependencies:
+    $ \{e\} \cup \{a \mid a \rightarrow e\} $\\[1em]
+    For example, $\langle 2, 2, 0\rangle$ represents the first two events from A, the first two events from B, and no events from C.
 \end{frame}
 \inlineslide{s:vector-example}\label{l:vector-example}
 
@@ -2366,8 +2374,8 @@ In this way, the vector timestamps mirror the transitivity of the happens-before
         \item $T \le T'$ iff $T[i] \le T'[i]$ for all $i \in \{1, \dots, n\}$
         \item $T < T'$ iff $T \le T'$ and $T \ne T'$
         \item $T \parallel T'$ iff $T \not\le T'$ and $T' \not\le T$\\[1em]
-    \end{itemize}
-    Intuition: $V(a) \le V(b)$ if $\{a \text{ and its causal dependencies}\} \subseteq \{b \text{ and its causal dependencies}\}$\\[1em]
+    \end{itemize}\pause
+    $V(a) \le V(b)$ iff $(\{a\} \cup \{e \mid e \rightarrow a\}) \subseteq (\{b\} \cup \{e \mid e \rightarrow b\})$\\[1em]\pause
     Properties of this order:
     \begin{itemize}
         \item $(V(a) < V(b)) \Longleftrightarrow (a \rightarrow b)$
@@ -2376,6 +2384,15 @@ In this way, the vector timestamps mirror the transitivity of the happens-before
     \end{itemize}
 \end{frame}
 \inlineslide{s:vector-ordering}\label{l:vector-ordering}
+
+We then define a partial order over vector timestamps as shown on \autoref{l:vector-ordering}.
+We say that one vector is less than or equal to another vector if every element of the first vector is less than or equal to the corresponding element of the second vector.
+One vector is strictly less than another vector if they are less than or equal, and if they differ in at least one element.
+However, two vectors are incomparable if one vector has a greater value in one element, and the other has a greater value in a different element.
+For example, $T = \langle 2, 2, 0\rangle$ and $T' = \langle 0, 0, 1\rangle$ are incomparable because $T[1] > T'[1]$ but $T[3] < T'[3]$.
+
+The partial order over vector timestamps corresponds exactly to the partial order defined by the happens-before relation.
+Thus, the vector clock algorithm provides us with a mechanism for computing the happens-before relation in practice.
 
 \supervision{\label{q:vector-example}
     Given the same sequence of messages as in \autoref{q:lamport-example}, show the vector clocks at each send or receive event.
@@ -2413,11 +2430,228 @@ In this way, the vector timestamps mirror the transitivity of the happens-before
     \end{center}
 }
 
+% TODO include this exercise? it's a bit hard though.
+%\supervision{
+%    Prove that the partial order over vector clocks is equivalent to the happens-before relation when vector clocks are computed according to the algorithm above.
+%}{
+%    We show that $(V(a) < V(b)) \Longleftrightarrow (a \rightarrow b)$ by proving the implication in both directions.
+%
+%    First, assume that $V(a) < V(b)$, i.e.\ $\forall i.\; V(a)[i] \le V(b)[i]$ and $\exists i.\; V(a)[i] < V(b)[i]$.
+%    To prove that $a \rightarrow b$, note that in the vector clock algorithm, the only time when a node updates a vector entry other than its own %is on receiving a vector timestamp over the network.
+%}
+
+% Adapted from Robert Watson and Steven Hand's exercise sheet
+\supervision{
+    We have seen several types of physical clocks (time-of-day clocks with NTP, monotonic clocks) and logical clocks.
+    For each of the following uses of time, explain which type of clock is the most appropriate: process scheduling; I/O; distributed filesystem consistency; cryptographic certificate validity; concurrent database updates.
+}{
+    \begin{description}
+        \item [Process scheduling:]
+            If we are talking about the operating system scheduler on a single machine, we only need to measure elapsed time (e.g.\ how many milliseconds a particular thread has been running), so a monotonic clock is the most appropriate.
+            However, if we are talking about tasks scheduled to run on a particular date at a particular time (e.g.\ using the Unix service \texttt{cron}), a synchronised time-of-day clock is required.
+        \item [I/O:]
+            Timeouts and retry timers only need to measure elapsed time, so a monotonic clock is fine.
+        \item [Distributed filesystem consistency:]
+            When tracking file changes, we need to ensure that changes are consistent with causality, which requires a logical clock.
+            Probably a vector clock is most appropriate, because it would allow detecting when two different users concurrently modify the same file.
+
+            However, some software also relies on physical last-modification timestamps in a filesystem: for example, \texttt{make(1)} determines whether a file needs to be recompiled based on whether the source file's last-modification-time is earlier or later than that of the compilation output file.
+            If the source file is written on one node but the compilation is performed on another node, this requires modification timestamps to be consistent with causality.
+            It is also possible that a source file edit happens concurrently with a compilation, which could only be detected using vector clocks.
+            However, last-modification timestamps are conventionally taken from a time-of-day clock, and changing these to be vector clocks would introduce compatibility problems.
+        \item [Cryptographic certificate validity:]
+            A certificate includes a start date (when it becomes valid) and end date (when it ceases to be valid).
+            If a node wants to check whether it is within that period, a synchronised time-of-day clock is required.
+        \item [Concurrent database updates:]
+            Say two clients concurrently read the same object, modify it, and then write back the modified object to the database.
+            The database will want to distinguish this from the situation where first client $A$ reads and writes the object, and then client $B$ reads and writes the object (where the version read by $B$ includes $A$'s changes).
+            In the first case, the two updates are concurrent, while in the second case, B's update happened after A's update, so B's update should overwrite A's update.
+            Distinguishing these two cases requires vector clocks.
+
+            An alterative approach is that the database does not detect whether updates are concurrent, but simply always lets an update with a greater timestamp overwrite an update with a lesser timestamp.
+            In this case, Lamport clocks are best, since they provide a total order that is consistent with causality.
+    \end{description}
+}
+
+This completes our discussion of logical time.
+We have seen two key algorithms: Lamport clocks and vector clocks, one providing a total order and the other capturing the partial order of happens-before.
+Various other constructions have been proposed: for example, there are hybrid clocks that combine some of the properties of logical and physical clocks \citep{Kulkarni:2014}.
+
+\subsection{Broadcast protocols}
+
+Many networks provide point-to-point (unicast) messaging, in which a message has one specified recipient.
+We will now look at \emph{broadcast protocols}, which generalise networking such that a message is sent to \emph{all} nodes in some group.
+The group membership may be fixed, or the system may provide mechanisms for nodes to join and leave the group.
+
+Some local-area networks provide multicast or broadcast at the hardware level (for example, \emph{IP multicast}), but communication over the Internet typically only allows unicast.
+Moreover, hardware-level multicast is typically provided on a \emph{best-effort} basis, which allows messages to be dropped; making it reliable requires retransmission protocols similar to those discussed here.
+
+The system model assumptions about node behaviour (\autoref{l:model-nodes}) and synchrony (\autoref{l:model-synchrony}) carry over directly to broadcast groups.
+
+\begin{frame}
+    \label{s:broadcast-intro}
+    \frametitle{Broadcast protocols}
+    Broadcast (multicast) is \textbf{group communication}:
+    \begin{itemize}
+        \item One node sends message, all nodes in group deliver it\pause
+        \item Set of group members may be fixed (static) or dynamic\pause
+        \item If one node is faulty, remaining group members carry on\pause
+        \item Note: concept is more general than IP multicast\\
+            (we build upon point-to-point messaging)\\[1em]\pause
+    \end{itemize}
+    Build upon system models from lecture 2:
+    \begin{itemize}
+        \item Can be \textbf{best-effort} (may drop messages) or \\
+            \textbf{reliable} (non-faulty nodes deliver every message,\\
+            by retransmitting dropped messages)\pause
+        \item Asynchronous/partially synchronous timing model\\
+            $\Longrightarrow$ \textbf{no upper bound} on message latency
+    \end{itemize}
+\end{frame}
+\inlineslide{s:broadcast-intro}\label{l:broadcast-intro}
+
+Before we go into the details, we should clarify some terminology.
+When an application wants to send a message to all nodes in the group, it uses an algorithm to \emph{broadcast} it.
+To make this happen, the broadcast algorithm then \emph{sends} some messages to other nodes over point-to-point links, and another node \emph{receives} such a message when it arrives over the point-to-point link.
+Finally, the broadcast algorithm may \emph{deliver} the message to the application.
+As we shall see shortly, there is sometimes a delay between the time when a message is received and when it is delivered.
+
+\begin{frame}
+    \label{s:receive-deliver}
+    \frametitle{Receiving versus delivering}
+    \begin{tikzpicture}[every node/.style={font=\footnotesize,align=center}]
+        \node at (0,4.4) {Node $A$:};
+        \node at (6,4.4) {Node $B$:};
+        \node [rectangle,draw,text width=4cm] (app1) at (0,3.6) {Application};
+        \node [rectangle,draw,text width=4cm] (app2) at (6,3.6) {Application};
+        \node [rectangle,draw,text width=4cm] (mid1) at (0,1.8) {Broadcast algorithm\\(middleware)};
+        \node [rectangle,draw,text width=4cm] (mid2) at (6,1.8) {Broadcast algorithm\\(middleware)};
+        \node [rectangle,draw,text width=10cm] (net) at (3,0) {Network};
+        \draw<2-> [bigarrow] (app1)       -- node [right,orange] {\textbf{broadcast}} (mid1);
+        \draw<3-> [bigarrow] (mid1.south) -- node [right,red]    {\textbf{send}}      (0,0.25);
+        \draw<3-> [bigarrow] (6,0.25)     -- node [right,violet] {\textbf{receive}}   (mid2.south);
+        \draw<4-> [bigarrow] (mid2)       -- node [right,blue]   {\textbf{deliver}}   (app2);
+    \end{tikzpicture}\\[1em]%
+    \uncover<3->{Assume network provides point-to-point \textbf{\color{red}send}/\textbf{\color{violet}receive}}\\[1em]%
+    \uncover<4->{After broadcast algorithm \textbf{\color{violet}receives} message from network,
+    it may buffer/queue it before \textbf{\color{blue}delivering} to the application}
+\end{frame}
+\inlineslide{s:receive-deliver}\label{l:receive-deliver}
+
+We will examine three different forms of broadcast.
+All of these are \emph{reliable}: every message is eventually delivered to every non-faulty node, with no timing guarantees.
+However, they differ in terms of the order in which messages may be delivered at each node.
+It turns out that this difference in ordering has very fundamental consequences for the algorithms that implement the broadcast.
+
+\begin{frame}
+    \label{s:broadcast-order}
+    \frametitle{Three forms of reliable broadcast}
+    \textbf{FIFO broadcast}:\\
+    If $m_1$ and $m_2$ are sent by the same node, and $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$, then $m_1$ must be delivered before $m_2$\\[2em]\pause
+    \textbf{Causal order broadcast}:\\
+    If $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$ then $m_1$ must be delivered before $m_2$\\[2em]\pause
+    \textbf{Total order broadcast}:\\
+    If $m_1$ is delivered before $m_2$ on one node, then\\ $m_1$ must be delivered before $m_2$ on all nodes
+\end{frame}
+\inlineslide{s:broadcast-order}\label{l:broadcast-order}
+
+The weakest type of broadcast is called \emph{FIFO broadcast}, which is closely related to FIFO links (see \autoref{q:fifo-links}).
+In this model, messages sent by the same node are delivered in the order they were sent.
+For example, on \autoref{l:fifo-broadcast}, $m_1$ must be delivered before $m_3$, since they were both sent by $A$.
+However, $m_2$ can be delivered at any time before, between, or after $m_1$ and $m_3$.
+
+Another detail about these broadcast protocols: we assume that whenever a node broadcasts a message, it also delivers that message to itself (represented as a loopback arrow on \autoref{l:fifo-broadcast}).
+This may seem unnecessary~-- after all, a node knows what messages it has itself broadcast!~-- but setting up the protocol this way makes it easier to formalise.
+
+\begin{frame}
+    \label{s:fifo-broadcast}
+    \frametitle{FIFO broadcast}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (A) at (0,4.7) {A};
+            \node [rectangle,fill=red!10,draw] (B) at (4,4.7) {B};
+            \node [rectangle,fill=red!10,draw] (C) at (8,4.7) {C};
+            \draw (A) -- (0,0);
+            \draw (B) -- (4,0);
+            \draw (C) -- (8,0);
+            % broadcast m1
+            \node [inner sep=2pt] (send1) at (0,4) {};
+            \path<1-> [->,very thick] (send1) edge [leftloop] node {$m_1$} (send1);
+            \draw<1-4| handout: 0> [bigarrow] (0,4.0) -- node [above,near start] {$m_1$} (8,3.2);
+            \draw<5-> [bigarrow,darkgreen] (0,4.0)
+                .. node [above] {$m_1$} controls (2,3.8) .. (6,3.4)
+                .. controls (7,3.3) and (7,1.4) .. (8,1.3);
+            \draw<1-> [bigarrow] (0,3.9)
+                .. controls (1,3.8) and (1,3.2) .. (2,3.1)
+                -- node [above] {$m_1$} (4,2.9);
+            % broadcast m2
+            \node [inner sep=3pt] (send2) at (4,2.2) {};
+            \path<2-> [->,very thick] (send2) edge [rightloop] node [yshift=0.2cm] {$m_2$} (send2);
+            \draw<2-> [bigarrow] (4,2.4) -- node [above] {$m_2$} (0,2.0);
+            \draw<2-> [bigarrow] (4,2.3) -- node [above] {$m_2$} (8,1.9);
+            % broadcast m3
+            \node [inner sep=2pt] (send3) at (0,1.5) {};
+            \path<3-> [->,very thick] (send3) edge [leftloop] node {$m_3$} (send3);
+            \draw<3-> [bigarrow] (0,1.5) -- node [above,near start] {$m_3$} (8,0.7);
+            \draw<3-> [bigarrow] (0,1.4)
+                .. controls (1,1.3) and (1,0.7) .. (2,0.6)
+                -- node [above] {$m_3$} (4,0.4);
+        \end{tikzpicture}
+    \end{center}%
+    \uncover<4->{Messages sent by the same node must be delivered in the order they were sent.\\
+    Messages sent by different nodes can be delivered in any order.}\\%
+    \uncover<5->{Valid orders: $(m_2, m_1, m_3)$ or $(m_1, m_2, m_3)$ or $(m_1, m_3, m_2)$}
+\end{frame}
+\inlineslide{s:fifo-broadcast}\label{l:fifo-broadcast}
+
+\begin{frame}
+    \label{s:causal-broadcast}
+    \frametitle{Causal broadcast}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (A) at (0,4.7) {A};
+            \node [rectangle,fill=red!10,draw] (B) at (4,4.7) {B};
+            \node [rectangle,fill=red!10,draw] (C) at (8,4.7) {C};
+            \draw (A) -- (0,0.4);
+            \draw (B) -- (4,0.4);
+            \draw (C) -- (8,0.4);
+            % broadcast m1
+            \node [inner sep=2pt] (send1) at (0,4) {};
+            \path<1-> [->,very thick] (send1) edge [leftloop] node {$m_1$} (send1);
+            \draw<1-> [bigarrow] (0,4.0) -- node [above,near start] {$m_1$} (8,3.2);
+            \draw<1-> [bigarrow] (0,3.9)
+                .. controls (1,3.8) and (1,3.2) .. (2,3.1)
+                -- node [above] {$m_1$} (4,2.9);
+            % broadcast m2
+            \node [inner sep=3pt] (send2) at (4,2.2) {};
+            \path<2-> [->,very thick] (send2) edge [rightloop] node {$m_2$} (send2);
+            \draw<2-> [bigarrow] (4,2.4) -- node [above,near start] {$m_2$} (0,0.8);
+            \draw<2-> [bigarrow] (4,2.3) -- (8,0.6);
+            % broadcast m3
+            \node [inner sep=2pt] (send3) at (0,2.0) {};
+            \path<3-> [->,very thick] (send3) edge [leftloop] node {$m_3$} (send3);
+            \draw<3-> [bigarrow] (0,2.0) -- node [above,pos=0.15] {$m_3$} (8,1.2);
+            \draw<3-> [bigarrow] (0,1.9)
+                .. controls (1,1.8) and (1,1.2) .. (2,1.1)
+                -- node [above] {$m_3$} (4,0.9);
+        \end{tikzpicture}
+    \end{center}%
+    \uncover<4->{Causally related messages must be delivered in causal order.\\
+    Concurrent messages can be delivered in any order.}\\[0.5em]%
+    \uncover<5->{Here: $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$ and $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_3)$\\
+    so valid orders are: $(m_1, m_2, m_3)$ or $(m_1, m_3, m_2)$}
+\end{frame}
+\inlineslide{s:causal-broadcast}\label{l:causal-broadcast}
+
+
+
+
+% Gossip protocols
+
+
 \section{Replication}\label{sec:replication}
 
 \section{Work in progress from here onwards}
-
-Hybrid Logical Clocks - Kulkarni et al, Logical physical clocks (OPODIS 2014) \url{https://doi.org/10.1007/978-3-319-14472-6_2}
 
 
 Distributed systems are fascinating because we have to work with partial knowledge and uncertain
