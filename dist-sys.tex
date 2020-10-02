@@ -1921,7 +1921,7 @@ Note that here, ``concurrent'' does not mean literally ``at the same time'', but
     \end{enumerate}
 }
 
-\supervision{
+\supervision{\label{q:hb-three-cases}
     Show that for any two events $a$ and $b$, exactly one of the three following statements must be true: either $a \rightarrow b$, or $b \rightarrow a$, or $a \parallel b$.
 }{
     The statement $a \rightarrow b$ must be either true or false.
@@ -2477,7 +2477,7 @@ This completes our discussion of logical time.
 We have seen two key algorithms: Lamport clocks and vector clocks, one providing a total order and the other capturing the partial order of happens-before.
 Various other constructions have been proposed: for example, there are hybrid clocks that combine some of the properties of logical and physical clocks \citep{Kulkarni:2014}.
 
-\subsection{Broadcast protocols}
+\subsection{Delivery order in broadcast protocols}\label{sec:delivery-order}
 
 Many networks provide point-to-point (unicast) messaging, in which a message has one specified recipient.
 We will now look at \emph{broadcast protocols}, which generalise networking such that a message is sent to \emph{all} nodes in some group.
@@ -2527,10 +2527,12 @@ As we shall see shortly, there is sometimes a delay between the time when a mess
         \node [rectangle,draw,text width=4cm] (mid1) at (0,1.8) {Broadcast algorithm\\(middleware)};
         \node [rectangle,draw,text width=4cm] (mid2) at (6,1.8) {Broadcast algorithm\\(middleware)};
         \node [rectangle,draw,text width=10cm] (net) at (3,0) {Network};
-        \draw<2-> [bigarrow] (app1)       -- node [right,orange] {\textbf{broadcast}} (mid1);
-        \draw<3-> [bigarrow] (mid1.south) -- node [right,red]    {\textbf{send}}      (0,0.25);
-        \draw<3-> [bigarrow] (6,0.25)     -- node [right,violet] {\textbf{receive}}   (mid2.south);
-        \draw<4-> [bigarrow] (mid2)       -- node [right,blue]   {\textbf{deliver}}   (app2);
+        \draw<2-> [bigarrow] (app1)     -- node [left,orange]  {\textbf{broadcast}} (mid1);
+        \draw<3-> [bigarrow] (-0.5,1.3) -- node [left,red]     {\textbf{send}}      (-0.5,0.25);
+        \draw<3-> [bigarrow] (0.5,0.25) -- node [right,violet] {\textbf{receive}}   (0.5,1.3);
+        \draw<3-> [bigarrow] (5.5,1.3)  -- node [left,red]     {\textbf{send}}      (5.5,0.25);
+        \draw<3-> [bigarrow] (6.5,0.25) -- node [right,violet] {\textbf{receive}}   (6.5,1.3);
+        \draw<4-> [bigarrow] (mid2)     -- node [right,blue]   {\textbf{deliver}}   (app2);
     \end{tikzpicture}\\[1em]%
     \uncover<3->{Assume network provides point-to-point \textbf{\color{red}send}/\textbf{\color{violet}receive}}\\[1em]%
     \uncover<4->{After broadcast algorithm \textbf{\color{violet}receives} message from network,
@@ -2545,13 +2547,15 @@ It turns out that this difference in ordering has very fundamental consequences 
 
 \begin{frame}
     \label{s:broadcast-order}
-    \frametitle{Three forms of reliable broadcast}
+    \frametitle{Forms of reliable broadcast}
     \textbf{FIFO broadcast}:\\
-    If $m_1$ and $m_2$ are sent by the same node, and $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$, then $m_1$ must be delivered before $m_2$\\[2em]\pause
-    \textbf{Causal order broadcast}:\\
-    If $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$ then $m_1$ must be delivered before $m_2$\\[2em]\pause
+    If $m_1$ and $m_2$ are broadcast by the same node, and $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_2)$, then $m_1$ must be delivered before $m_2$\\[1em]\pause
+    \textbf{Causal broadcast}:\\
+    If $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_2)$ then $m_1$ must be delivered before $m_2$\\[1em]\pause
     \textbf{Total order broadcast}:\\
-    If $m_1$ is delivered before $m_2$ on one node, then\\ $m_1$ must be delivered before $m_2$ on all nodes
+    If $m_1$ is delivered before $m_2$ on one node, then $m_1$ must be delivered before $m_2$ on all nodes\\[1em]\pause
+    \textbf{FIFO-total order broadcast}:\\
+    Combination of FIFO broadcast and total order broadcast
 \end{frame}
 \inlineslide{s:broadcast-order}\label{l:broadcast-order}
 
@@ -2561,7 +2565,7 @@ For example, on \autoref{l:fifo-broadcast}, $m_1$ must be delivered before $m_3$
 However, $m_2$ can be delivered at any time before, between, or after $m_1$ and $m_3$.
 
 Another detail about these broadcast protocols: we assume that whenever a node broadcasts a message, it also delivers that message to itself (represented as a loopback arrow on \autoref{l:fifo-broadcast}).
-This may seem unnecessary~-- after all, a node knows what messages it has itself broadcast!~-- but setting up the protocol this way makes it easier to formalise.
+This may seem unnecessary at first~-- after all, a node knows what messages it has itself broadcast!~-- but we will need this for total order broadcast.
 
 \begin{frame}
     \label{s:fifo-broadcast}
@@ -2604,6 +2608,17 @@ This may seem unnecessary~-- after all, a node knows what messages it has itself
 \end{frame}
 \inlineslide{s:fifo-broadcast}\label{l:fifo-broadcast}
 
+The example execution on \autoref{l:fifo-broadcast} is valid FIFO broadcast, but it violates causality: node $C$ delivers $m_2$ before $m_1$, even though $B$ broadcast $m_2$ after delivering $m_1$.
+\emph{Causal broadcast} provides a stricter ordering property than FIFO broadcast.
+As the name suggests, it ensures that messages are delivered in causal order: that is, if the broadcast of one message happened before the broadcast of another message, then all nodes must deliver those two messages in that order.
+If two messages are broadcast concurrently, a node may deliver them in either order.
+
+In the example on \autoref{l:fifo-broadcast}, if node $C$ receives $m_2$ before $m_1$, the broadcast algorithm at $C$ will have to \emph{hold back} (delay or buffer) $m_2$ until after $m_1$ has been delivered, to ensure the messages are delivered in causal order.
+
+In the example on \autoref{l:causal-broadcast}, messages $m_2$ and $m_3$ are broadcast concurrently.
+Nodes $A$ and $C$ deliver messages in the order $m_1, m_3, m_2$, while node $B$ delivers them in the order $m_1, m_2, m_3$.
+Either of these delivery orders is acceptable, since they are both consistent with causality.
+
 \begin{frame}
     \label{s:causal-broadcast}
     \frametitle{Causal broadcast}
@@ -2624,13 +2639,14 @@ This may seem unnecessary~-- after all, a node knows what messages it has itself
                 -- node [above] {$m_1$} (4,2.9);
             % broadcast m2
             \node [inner sep=3pt] (send2) at (4,2.2) {};
-            \path<2-> [->,very thick] (send2) edge [rightloop] node {$m_2$} (send2);
+            \path<2-> [->,very thick] (send2) edge [rightloop] node {} (send2);
             \draw<2-> [bigarrow] (4,2.4) -- node [above,near start] {$m_2$} (0,0.8);
-            \draw<2-> [bigarrow] (4,2.3) -- (8,0.6);
+            \draw<2-5> [bigarrow] (4,2.3) -- node [above,near start] {$m_2$} (8,0.6);
+            \draw<6-| handout:0> [bigarrow,darkgreen] (4,2.3) -- node [above, near start] {$m_2$} (8,1.9);
             % broadcast m3
             \node [inner sep=2pt] (send3) at (0,2.0) {};
             \path<3-> [->,very thick] (send3) edge [leftloop] node {$m_3$} (send3);
-            \draw<3-> [bigarrow] (0,2.0) -- node [above,pos=0.15] {$m_3$} (8,1.2);
+            \draw<3-> [bigarrow] (0,2.0) -- node [above,pos=0.1] {$m_3$} (8,1.2);
             \draw<3-> [bigarrow] (0,1.9)
                 .. controls (1,1.8) and (1,1.2) .. (2,1.1)
                 -- node [above] {$m_3$} (4,0.9);
@@ -2638,13 +2654,137 @@ This may seem unnecessary~-- after all, a node knows what messages it has itself
     \end{center}%
     \uncover<4->{Causally related messages must be delivered in causal order.\\
     Concurrent messages can be delivered in any order.}\\[0.5em]%
-    \uncover<5->{Here: $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$ and $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_3)$\\
-    so valid orders are: $(m_1, m_2, m_3)$ or $(m_1, m_3, m_2)$}
+    \uncover<5->{Here: $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_2)$
+    and $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_3)$\\
+    $\Longrightarrow$ valid orders are: $(m_1, m_2, m_3)$ or $(m_1, m_3, m_2)$}
 \end{frame}
 \inlineslide{s:causal-broadcast}\label{l:causal-broadcast}
 
+The third type of broadcast is \emph{total order broadcast}, sometimes also known as \emph{atomic broadcast}.
+While FIFO and causal broadcast allow different nodes to deliver messages in different orders, total order broadcast enforces consistency across the nodes, ensuring that all nodes deliver messages in the same order.
+The precise delivery order is not defined, as long as it is the same on all nodes.
 
+\autoref{l:total-order1} and \ref{l:total-order2} show two example executions of total order broadcast.
+On \autoref{l:total-order1}, all three nodes deliver the messages in the order $m_1, m_2, m_3$, while on \autoref{l:total-order2}, all three nodes deliver the messages in the order of $m_1, m_3, m_2$.
+Either of these executions is valid, as long as the nodes agree.
 
+As with causal broadcast, nodes may need to hold back messages, waiting for other messages that need to be delivered first.
+For example, node $C$ could receive messages $m_2$ and $m_3$ in either order.
+If the algorithm has determined that $m_3$ should be delivered before $m_2$, but if node $C$ receives $m_2$ first, then $C$ will need to hold back $m_2$ until after $m_3$ has been received.
+
+Another important detail can be seen on these diagrams: in the case of FIFO and causal broadcast, when a node broadcasts a message, it can immediately deliver that message to itself, without having to wait for communication with any other node.
+This is no longer true in total order broadcast: for example, on \autoref{l:total-order1}, $m_2$ needs to be delivered before $m_3$, so node $A$'s delivery of $m_3$ to itself must wait until after $A$ has received $m_2$ from $B$.
+Likewise, on \autoref{l:total-order2}, node $B$'s delivery of $m_2$ to itself must wait for $m_3$.
+
+\begin{frame}
+    \label{s:total-order1}
+    \frametitle{Total order broadcast (1)}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (A) at (0,4.7) {A};
+            \node [rectangle,fill=red!10,draw] (B) at (4,4.7) {B};
+            \node [rectangle,fill=red!10,draw] (C) at (8,4.7) {C};
+            \draw (A) -- (0,0.4);
+            \draw (B) -- (4,0.4);
+            \draw (C) -- (8,0.4);
+            % broadcast m1
+            \node [inner sep=2pt] (send1) at (0,4) {};
+            \path<1-> [->,very thick] (send1) edge [leftloop] node {$m_1$} (send1);
+            \draw<1-> [bigarrow] (0,4.0) -- node [above,near start] {$m_1$} (8,3.2);
+            \draw<1-> [bigarrow] (0,3.9)
+                .. controls (1,3.8) and (1,3.2) .. (2,3.1)
+                -- node [above] {$m_1$} (4,2.9);
+            % broadcast m2
+            \node [inner sep=3pt] (send2) at (4,2.2) {};
+            \path<2-> [->,very thick] (send2) edge [rightloop] node {} (send2);
+            \draw<2-> [bigarrow] (4,2.4) -- node [above,near start] {$m_2$} (0,1.3);
+            \draw<2-> [bigarrow] (4,2.3) -- node [above, near start] {$m_2$} (8,1.9);
+            % broadcast m3
+            \draw<3-> [bigarrow] (-0.1,2.1)
+                .. controls (-1,3.0) and (-1,-0.1)
+                .. node [above,pos=0.15] {$m_3$} (-0.1,0.8);
+            \draw<3-> [bigarrow] (0,2.0) -- node [above,pos=0.1] {$m_3$} (8,1.2);
+            \draw<3-> [bigarrow] (0,1.9)
+                .. controls (1,1.8) and (1,1.2) .. (2,1.1)
+                -- node [above] {$m_3$} (4,0.9);
+        \end{tikzpicture}
+    \end{center}%
+    \uncover<4->{All nodes must deliver messages in \textbf{the same} order\\(here: $m_1, m_2, m_3$)}\\[1em]%
+    \uncover<5->{This includes a node's deliveries to itself!}
+\end{frame}
+\inlineslide{s:total-order1}\label{l:total-order1}
+
+\begin{frame}
+    \label{s:total-order2}
+    \frametitle{Total order broadcast (2)}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (A) at (0,4.7) {A};
+            \node [rectangle,fill=red!10,draw] (B) at (4,4.7) {B};
+            \node [rectangle,fill=red!10,draw] (C) at (8,4.7) {C};
+            \draw (A) -- (0,0.4);
+            \draw (B) -- (4,0.4);
+            \draw (C) -- (8,0.4);
+            % broadcast m1
+            \node [inner sep=2pt] (send1) at (0,4) {};
+            \path [->,very thick] (send1) edge [leftloop] node {$m_1$} (send1);
+            \draw [bigarrow] (0,4.0) -- node [above,near start] {$m_1$} (8,3.2);
+            \draw [bigarrow] (0,3.9)
+                .. controls (1,3.8) and (1,3.2) .. (2,3.1)
+                -- node [above] {$m_1$} (4,2.9);
+            % broadcast m2
+            \draw [bigarrow] (4.1,2.4)
+                .. controls (5,3.3) and (5,-0.2)
+                .. node [right,pos=0.75] {$m_2$} (4.1,0.7);
+            \draw [bigarrow] (4,2.4) -- node [above,near start] {$m_2$} (0,1.0);
+            \draw [bigarrow] (4,2.3) -- node [above] {$m_2$} (6,2.1)
+                .. controls (7,2.0) and (7,0.7) .. (8,0.6);
+            % broadcast m3
+            \node [inner sep=2pt] (send3) at (0,2.0) {};
+            \path [->,very thick] (send3) edge [leftloop] node {$m_3$} (send3);
+            \draw [bigarrow] (0,2.0) -- node [above,pos=0.1] {$m_3$} (8,1.2);
+            \draw [bigarrow] (0,1.9)
+                .. controls (1,1.8) and (1,1.5) .. (2,1.3)
+                -- node [above] {$m_3$} (4,1.1);
+        \end{tikzpicture}
+    \end{center}%
+    All nodes must deliver messages in \textbf{the same} order\\(here: $m_1, m_3, m_2$)\\[1em]
+    This includes a node's deliveries to itself!
+\end{frame}
+\inlineslide{s:total-order2}\label{l:total-order2}
+
+Finally, \emph{FIFO-total order broadcast} is like total order broadcast, but with the additional FIFO requirement that any messages broadcast by the same node are delivered in the order they were sent.
+The examples on \autoref{l:total-order1} and \ref{l:total-order2} are in fact valid FIFO-total order broadcast executions, since $m_1$ is delivered before $m_3$ in both.
+
+\supervision{\label{q:broadcast-strength}
+    Prove that causal broadcast also satisfies the requirements of FIFO broadcast, and that FIFO-total order broadcast also satisfies the requirements of causal broadcast.
+}{
+    To prove that causal broadcast is stronger than FIFO broadcast, assume an execution of causal broadcast containing at least two broadcast messages $m_1$ and $m_2$.
+    If the two messages are broadcast by different nodes, FIFO broadcast does not require them to be delivered in any particular order, so we can ignore this case.
+    If the two messages are broadcast by the same node, one of them must have been broadcast first.
+    Without loss of generality, assume that $m_1$ was broadcast first and $m_2$ second.
+    Then $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_2)$ by the first bullet point of the definition of the happens-before relation.
+    Causal broadcast will therefore deliver $m_1$ before $m_2$ at every node, which meets the requirements of FIFO broadcast.
+
+    To prove that FIFO-total order broadcast is stronger than causal broadcast, assume an execution of FIFO-total order broadcast containing at least two broadcast messages $m_1$ and $m_2$.
+    Per \autoref{q:hb-three-cases} we have either $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_2)$ or $\mathsf{broadcast}(m_2) \rightarrow \mathsf{broadcast}(m_1)$ or $\mathsf{broadcast}(m_1) \parallel \mathsf{broadcast}(m_2)$.
+    In the case where the events are concurrent, causal broadcast does not require any particular message ordering, so we can ignore this case.
+    This leaves the two cases where one broadcast happened before the other; we choose $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_2)$ without loss of generality.
+    There are now two cases:
+    \begin{enumerate}
+        \item $m_1$ and $m_2$ were broadcast by the same node.
+            Then $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_2)$ implies that this node broadcast $m_1$ before $m_2$.
+            FIFO ordering requires that all nodes deliver these messages in the order they were sent, so all nodes deliver these two messages in causal order.
+        \item $m_1$ and $m_2$ were broadcast by different nodes.
+            Then $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_2)$ implies the existence of a series of zero or more messages $M_1, M_2, \dots$ such that $m_1$ was delivered by the sender of $M_1$ before $M_1$ was broadcast, $M_1$ was delivered by the sender of $M_2$ before $M_2$ was broadcast, and so on, and $M_k$ was delivered by the sender of $m_2$ before $m_2$ was broadcast.
+
+            A message can only be delivered after it has been broadcast, and since total order broadcast requires all nodes to deliver messages in the same order, this implies that $m_1$ is delivered before $M_1$ on all nodes, $M_1$ is delivered before $M_2$ on all nodes, and so on, and $M_k$ is delivered before $m_2$ on all nodes.
+            By transitivity, $m_1$ is delivered before $m_2$ on all nodes, so the delivery order of these two messages matches their causal order.
+    \end{enumerate}
+    Thus, FIFO-total order broadcast always delivers messages in causal order.
+}
+
+\subsection{Broadcast protocols}\label{sec:broadcast-protocols}
 
 % Gossip protocols
 
