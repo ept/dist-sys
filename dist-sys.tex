@@ -2614,7 +2614,6 @@ As the name suggests, it ensures that messages are delivered in causal order: th
 If two messages are broadcast concurrently, a node may deliver them in either order.
 
 In the example on \autoref{l:fifo-broadcast}, if node $C$ receives $m_2$ before $m_1$, the broadcast algorithm at $C$ will have to \emph{hold back} (delay or buffer) $m_2$ until after $m_1$ has been delivered, to ensure the messages are delivered in causal order.
-
 In the example on \autoref{l:causal-broadcast}, messages $m_2$ and $m_3$ are broadcast concurrently.
 Nodes $A$ and $C$ deliver messages in the order $m_1, m_3, m_2$, while node $B$ delivers them in the order $m_1, m_2, m_3$.
 Either of these delivery orders is acceptable, since they are both consistent with causality.
@@ -2753,6 +2752,31 @@ Likewise, on \autoref{l:total-order2}, node $B$'s delivery of $m_2$ to itself mu
 \end{frame}
 \inlineslide{s:total-order2}\label{l:total-order2}
 
+\begin{frame}
+    \label{s:broadcast-hierarchy}
+    \frametitle{Relationships between broadcast models}
+    \begin{center}
+        \begin{tikzpicture}
+            \tikzstyle{algo}=[rectangle,draw,text width=3cm,minimum height=1cm,font=\footnotesize,align=center]
+            \node [algo,text width=4cm] (fifototal) at (4,6) {FIFO-total order broadcast};
+            \node [algo] (total) at (6,4.5) {Total order broadcast};
+            \node [algo] (causal) at (2,4.5) {Causal broadcast};
+            \node [algo] (fifo) at (2,3) {FIFO broadcast};
+            \node [algo] (reliable) at (2,1.5) {Reliable broadcast};
+            \node [algo] (effort) at (2,0) {Best-effort broadcast};
+            \tikzstyle{stronger}=[very thick,-{Stealth[length=3mm]}]
+            \draw [stronger] (effort) -- (reliable);
+            \draw [stronger] (reliable) -- (fifo);
+            \draw [stronger] (reliable.north east) -- (total.south);
+            \draw [stronger] (fifo) -- (causal);
+            \draw [stronger] (causal) -- (fifototal);
+            \draw [stronger] (total) -- (fifototal);
+            \draw [stronger] (5,0) -- node [at end,right] {= stronger than} (6,0);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:broadcast-hierarchy}\label{l:broadcast-hierarchy}
+
 Finally, \emph{FIFO-total order broadcast} is like total order broadcast, but with the additional FIFO requirement that any messages broadcast by the same node are delivered in the order they were sent.
 The examples on \autoref{l:total-order1} and \ref{l:total-order2} are in fact valid FIFO-total order broadcast executions, since $m_1$ is delivered before $m_3$ in both.
 
@@ -2784,9 +2808,236 @@ The examples on \autoref{l:total-order1} and \ref{l:total-order2} are in fact va
     Thus, FIFO-total order broadcast always delivers messages in causal order.
 }
 
-\subsection{Broadcast protocols}\label{sec:broadcast-protocols}
+\subsection{Broadcast algorithms}\label{sec:broadcast-protocols}
 
-% Gossip protocols
+We will now move on to algorithms for implementing broadcast.
+Roughly speaking, this involves two steps: first, ensuring that every message is received by every node; and second, delivering those messages in the right order.
+We will first look at disseminating the messages reliably.
+
+The first algorithm we might try is: when a node wants to broadcast a message, it individually sends that message to every other node, using reliable links as discussed on \autoref{l:model-network} (i.e.\ retransmitting dropped messages).
+However, it could happen that a message is dropped, and the sender crashes before retransmitting it.
+In this situation, one of the nodes will never receive that message.
+
+\begin{frame}
+    \label{s:broadcast-alg}
+    \frametitle{Broadcast algorithms}
+    Break down into two layers:
+    \begin{enumerate}
+        \item Make best-effort broadcast reliable by retransmitting dropped messages
+        \item Enforce delivery order on top of reliable broadcast\\[1em]
+    \end{enumerate}\pause
+    First attempt: \textbf{broadcasting node sends message directly} to every other node
+    \begin{itemize}
+        \item Use reliable links (retry + deduplicate)\pause
+        \item Problem: node may crash before all messages delivered\\[1em]
+    \end{itemize}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (A) at (0,4.7) {A};
+            \node [rectangle,fill=red!10,draw] (B) at (4,4.7) {B};
+            \node [rectangle,fill=red!10,draw] (C) at (8,4.7) {C};
+            \draw [-{Rays[length=8mm,red,line width=4pt]}] (A) -- (0,3.0);
+            \draw (B) -- (4,2.8);
+            \draw (C) -- (8,2.8);
+            \draw [bigarrow] (0,4.0) -- node [above,near start] {$m_1$} (8,3.2);
+            \draw [messageloss] (0,3.9)
+                .. controls (1,3.8) and (1,3.2) .. (2,3.1)
+                -- node [above,at start] {$m_1$} (3,3.0);
+        \end{tikzpicture}
+    \end{center}%
+\end{frame}
+\inlineslide{s:broadcast-alg}\label{l:broadcast-alg}
+
+To improve the reliability, we can enlist the help of the other nodes.
+For example, we could say that the first time a node receives a particular message, it forwards it to every other node.
+This algorithm ensures that even if some nodes crash, all of the remaining (non-faulty) nodes will receive every message.
+However, this algorithm is fairly inefficient: in the absence of faults, every message is sent $O(n^2)$ times in a group of $n$ nodes, as each node will receive every message $n-1$ times.
+This means it uses a large amount of redundant network traffic.
+
+\begin{frame}
+    \label{s:eager-broadcast}
+    \frametitle{Eager reliable broadcast}
+    Idea: the \textbf{first time} a node receives a particular message, it \textbf{re-broadcasts} to each other node (via reliable links).
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (A) at (0,4.7) {A};
+            \node [rectangle,fill=red!10,draw] (B) at (4,4.7) {B};
+            \node [rectangle,fill=red!10,draw] (C) at (8,4.7) {C};
+            \draw (A) -- (0,0.4);
+            \draw (B) -- (4,0.4);
+            \draw (C) -- (8,0.4);
+            \draw<2-> [bigarrow] (0,4.0) -- node [above,near start] {$m_1$} (8,3.2);
+            \draw<2-> [bigarrow] (0,3.9)
+                .. controls (1,3.8) and (1,3.2) .. (2,3.1)
+                -- node [above] {$m_1$} (4,2.9);
+            \node<3> [circle,fill=green,semitransparent,inner sep=6pt] at (4,2.7) {};
+            \draw<3-> [bigarrow] (4,2.5) -- node [above,near start] {$m_1$} (0,2.1);
+            \draw<3-> [bigarrow] (4,2.4) -- node [above,near start] {$m_1$} (8,2.0);
+            \node<4> [circle,fill=green,semitransparent,inner sep=6pt] at (8,3.0) {};
+            \draw<4-> [bigarrow] (8,2.8)
+                .. controls (7,2.7) and (7,2.0) .. (6,1.9)
+                -- node [above,near end] {$m_1$} (4,1.7);
+            \draw<4-> [bigarrow] (8,2.7)
+                .. controls (7,2.6) and (7,1.5) .. (6,1.4)
+                -- node [above,pos=0.67] {$m_1$} (0,0.8);
+        \end{tikzpicture}
+    \end{center}%
+    \uncover<5->{Reliable, but\dots{} up to $O(n^2)$ messages for $n$ nodes!}
+\end{frame}
+\inlineslide{s:eager-broadcast}\label{l:eager-broadcast}
+
+Many variants of this algorithm have been developed, optimising along various dimensions such as the fault tolerance, the time until all nodes receive a message, and the network bandwidth used.
+One particularly common family of broadcast algorithms are \emph{gossip protocols} (also known as \emph{epidemic protocols}).
+In these protocols, a node that wishes to broadcast a message sends it to a small fixed number of nodes that are chosen randomly.
+On receiving a message for the first time, a node forwards it to a fixed number of randomly chosen nodes.
+This resembles the way gossip, rumours, or an infectious disease may spread through a population.
+
+Gossip protocols do not strictly guarantee that all nodes will receive a message: it is possible that in the random selection of nodes, some node is always omitted.
+However, if the parameters of the algorithm are chosen appropriately, the probability of a message not being delivered can be very small.
+Gossip protocols are appealing because, with the right parameters, they are very resilient to message loss and node crashes while also remaining efficient.
+
+\begin{frame}
+    \label{s:gossip}
+    \frametitle{Gossip protocols}
+    Useful when broadcasting to a large number of nodes.\\
+    Idea: when a node receives a message for the first time, \textbf{forward it to 3 other nodes}, chosen randomly.
+    \begin{center}
+        \begin{tikzpicture}
+            \tikzstyle{before}=[circle,fill=black!20,inner sep=3pt]
+            \tikzstyle{active}=[circle,fill=red,inner sep=3pt]
+            \tikzstyle{after}=[circle,fill=black,inner sep=3pt]
+            \node [before] (a)  at (0.45, 0.16) {}; \node<1> [active] at (0.45, 0.16) {}; \node<2-> [after] at (0.45, 0.16) {};
+            \node [before] (b)  at (0.34, 1.49) {}; \node<2> [active] at (0.34, 1.49) {}; \node<3-> [after] at (0.34, 1.49) {};
+            \node [before] (c)  at (2.31, 1.65) {}; \node<2> [active] at (2.31, 1.65) {}; \node<3-> [after] at (2.31, 1.65) {};
+            \node [before] (d)  at (3.63, 0.37) {}; \node<2> [active] at (3.63, 0.37) {}; \node<3-> [after] at (3.63, 0.37) {};
+            \node [before] (e)  at (1.30, 2.67) {}; \node<3> [active] at (1.30, 2.67) {}; \node<4-> [after] at (1.30, 2.67) {};
+            \node [before] (f)  at (2.33, 3.03) {}; \node<3> [active] at (2.33, 3.03) {}; \node<4-> [after] at (2.33, 3.03) {};
+            \node [before] (g)  at (0.53, 3.56) {}; \node<4> [active] at (0.53, 3.56) {}; \node<5-> [after] at (0.53, 3.56) {};
+            \node [before] (h)  at (2.26, 4.54) {}; \node<4> [active] at (2.26, 4.54) {}; \node<5-> [after] at (2.26, 4.54) {};
+            \node [before] (i)  at (3.36, 2.52) {}; \node<3> [active] at (3.36, 2.52) {}; \node<4-> [after] at (3.36, 2.52) {};
+            \node [before] (j)  at (3.16, 1.91) {}; \node<3> [active] at (3.16, 1.91) {}; \node<4-> [after] at (3.16, 1.91) {};
+            \node [before] (k)  at (4.88, 2.47) {}; \node<3> [active] at (4.88, 2.47) {}; \node<4-> [after] at (4.88, 2.47) {};
+            \node [before] (l)  at (6.78, 1.62) {}; \node<3> [active] at (6.78, 1.62) {}; \node<4-> [after] at (6.78, 1.62) {};
+            \node [before] (m)  at (3.21, 3.76) {}; \node<4> [active] at (3.21, 3.76) {}; \node<5-> [after] at (3.21, 3.76) {};
+            \node [before] (n)  at (4.02, 3.23) {}; \node<4> [active] at (4.02, 3.23) {}; \node<5-> [after] at (4.02, 3.23) {};
+            \node [before] (o)  at (4.05, 4.31) {}; \node<4> [active] at (4.05, 4.31) {}; \node<5-> [after] at (4.05, 4.31) {};
+            \node [before] (p)  at (5.74, 4.05) {}; \node<4> [active] at (5.74, 4.05) {}; \node<5-> [after] at (5.74, 4.05) {};
+            \node [before] (q)  at (5.49, 2.94) {}; \node<4> [active] at (5.49, 2.94) {}; \node<5-> [after] at (5.49, 2.94) {};
+            \node [before] (r)  at (7.36, 3.19) {}; \node<4> [active] at (7.36, 3.19) {}; \node<5-> [after] at (7.36, 3.19) {};
+            \node [before] (s)  at (7.73, 1.58) {}; \node<4> [active] at (7.73, 1.58) {}; \node<5-> [after] at (7.73, 1.58) {};
+            \node [before] (t)  at (7.63, 0.90) {}; \node<4> [active] at (7.63, 0.90) {}; \node<5-> [after] at (7.63, 0.90) {};
+            \node [before] (u)  at (6.81, 4.57) {}; \node<5> [active] at (6.81, 4.57) {}; \node<6-> [after] at (6.81, 4.57) {};
+            \node [before] (v)  at (9.22, 4.57) {}; \node<5> [active] at (9.22, 4.57) {}; \node<6-> [after] at (9.22, 4.57) {};
+            \node [before] (w)  at (8.33, 3.30) {}; \node<5> [active] at (8.33, 3.30) {}; \node<6-> [after] at (8.33, 3.30) {};
+            \node [before] (x)  at (8.22, 2.28) {}; \node<5> [active] at (8.22, 2.28) {}; \node<6-> [after] at (8.22, 2.28) {};
+            \node [before] (y)  at (8.84, 1.03) {}; \node<5> [active] at (8.84, 1.03) {}; \node<6-> [after] at (8.84, 1.03) {};
+            \node [before] (z)  at (9.47, 0.17) {}; \node<5> [active] at (9.47, 0.17) {}; \node<6-> [after] at (9.47, 0.17) {};
+            \node [before] (aa) at (9.26, 3.96) {}; \node<6> [active] at (9.26, 3.96) {}; \node<7-> [after] at (9.26, 3.96) {};
+            \node [before] (bb) at (9.95, 3.31) {}; \node<6> [active] at (9.95, 3.31) {}; \node<7-> [after] at (9.95, 3.31) {};
+            \node [before] (cc) at (9.39, 2.39) {}; \node<6> [active] at (9.39, 2.39) {}; \node<7-> [after] at (9.39, 2.39) {};
+            \node [before] (dd) at (9.89, 1.56) {}; \node<6> [active] at (9.89, 1.56) {}; \node<7-> [after] at (9.89, 1.56) {};
+
+            % Round 1
+            \draw<1> [->] (a) -- (b);
+            \draw<1> [->] (a) -- (c);
+            \draw<1> [->] (a) -- (d);
+            % Round 2
+            \draw<2> [->] (b) -- (e);
+            \draw<2> [->] (b) -- (c);
+            \draw<2> [->] (b) -- (f);
+            \draw<2> [->] (c) -- (f);
+            \draw<2> [->] (c) -- (i);
+            \draw<2> [->] (c) -- (j);
+            \draw<2> [->] (d) -- (j);
+            \draw<2> [->] (d) -- (k);
+            \draw<2> [->] (d) -- (l);
+            % Round 3
+            \draw<3> [->] (e) -- (g);
+            \draw<3> [->] (e) -- (h);
+            \draw<3> [->] (e) -- (c);
+            \draw<3> [->] (f) -- (h);
+            \draw<3> [->] (f) -- (m);
+            \draw<3> [->] (f) -- (i);
+            \draw<3> [->] (i) -- (m);
+            \draw<3> [->] (i) -- (n);
+            \draw<3> [->] (i) -- (k);
+            \draw<3> [->] (j) -- (i);
+            \draw<3> [->] (j) -- (k);
+            \draw<3> [->] (j) -- (l);
+            \draw<3> [->] (k) -- (o);
+            \draw<3> [->] (k) -- (p);
+            \draw<3> [->] (k) -- (q);
+            \draw<3> [->] (l) -- (r);
+            \draw<3> [->] (l) -- (s);
+            \draw<3> [->] (l) -- (t);
+            % Round 4
+            \draw<4> [->] (g) -- (b);
+            \draw<4> [->] (g) -- (f);
+            \draw<4> [->] (g) -- (h);
+            \draw<4> [->] (h) -- (g);
+            \draw<4> [->] (h) -- (m);
+            \draw<4> [->] (h) -- (o);
+            \draw<4> [->] (m) -- (h);
+            \draw<4> [->] (m) -- (o);
+            \draw<4> [->] (m) -- (n);
+            \draw<4> [->] (n) -- (o);
+            \draw<4> [->] (n) -- (p);
+            \draw<4> [->] (n) -- (q);
+            \draw<4> [->] (o) -- (u);
+            \draw<4> [->] (o) -- (p);
+            \draw<4> [->] (o) -- (q);
+            \draw<4> [->] (p) -- (u);
+            \draw<4> [->] (p) -- (r);
+            \draw<4> [->] (p) -- (l);
+            \draw<4> [->] (q) -- (p);
+            \draw<4> [->] (q) -- (r);
+            \draw<4> [->] (q) -- (s);
+            \draw<4> [->] (r) -- (u);
+            \draw<4> [->] (r) -- (v);
+            \draw<4> [->] (r) -- (w);
+            \draw<4> [->] (s) -- (r);
+            \draw<4> [->] (s) -- (x);
+            \draw<4> [->] (s) -- (y);
+            \draw<4> [->] (t) -- (s);
+            \draw<4> [->] (t) -- (y);
+            \draw<4> [->] (t) -- (z);
+            % Round 5
+            \draw<5> [->] (u) -- (v);
+            \draw<5> [->] (u) -- (aa);
+            \draw<5> [->] (u) -- (w);
+            \draw<5> [->] (v) -- (w);
+            \draw<5> [->] (v) -- (aa);
+            \draw<5> [->] (v) -- (bb);
+            \draw<5> [->] (w) -- (aa);
+            \draw<5> [->] (w) -- (bb);
+            \draw<5> [->] (w) -- (x);
+            \draw<5> [->] (x) -- (w);
+            \draw<5> [->] (x) -- (bb);
+            \draw<5> [->] (x) -- (cc);
+            \draw<5> [->] (y) -- (cc);
+            \draw<5> [->] (y) -- (dd);
+            \draw<5> [->] (y) -- (z);
+            \draw<5> [->] (z) -- (y);
+            \draw<5> [->] (z) -- (cc);
+            \draw<5> [->] (z) -- (dd);
+            % Round 6
+            \draw<6> [->] (aa) -- (bb);
+            \draw<6> [->] (aa) -- (cc);
+            \draw<6> [->] (aa) -- (x);
+            \draw<6> [->] (bb) -- (aa);
+            \draw<6> [->] (bb) -- (dd);
+            \draw<6> [->] (bb) -- (cc);
+            \draw<6> [->] (cc) -- (w);
+            \draw<6> [->] (cc) -- (s);
+            \draw<6> [->] (cc) -- (dd);
+            \draw<6> [->] (dd) -- (bb);
+            \draw<6> [->] (dd) -- (cc);
+            \draw<6> [->] (dd) -- (s);
+        \end{tikzpicture}
+    \end{center}%
+    \uncover<7>{Eventually reaches all nodes (with high probability).}
+\end{frame}
+\inlineslide{s:gossip}\label{l:gossip}
 
 
 \section{Replication}\label{sec:replication}
