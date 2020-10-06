@@ -1306,6 +1306,7 @@ All of these require more or less accurate measurements of time.
 
 \subsection{Physical clocks}\label{sec:physical-clocks}
 
+% Physical clocks are sometimes also called wall clocks, even though they need not be attached to an actual wall
 We will start by discussing \emph{physical clocks}, which are the types of clocks you are familiar with from everyday usage.
 Physical clocks include analogue/mechanical clocks based on pendulums or similar mechanisms, and digital clocks based e.g.\ on a vibrating quartz crystal.
 Quartz clocks are found in most wristwatches, in every computer and mobile phone, in microwave ovens that display the time, and many other everyday objects.
@@ -2837,7 +2838,7 @@ In this situation, one of the nodes will never receive that message.
             \node [rectangle,fill=red!10,draw] (A) at (0,4.7) {A};
             \node [rectangle,fill=red!10,draw] (B) at (4,4.7) {B};
             \node [rectangle,fill=red!10,draw] (C) at (8,4.7) {C};
-            \draw [-{Rays[length=8mm,red,line width=4pt]}] (A) -- (0,3.0);
+            \draw [crash] (A) -- (0,3.0);
             \draw (B) -- (4,2.8);
             \draw (C) -- (8,2.8);
             \draw [bigarrow] (0,4.0) -- node [above,near start] {$m_1$} (8,3.2);
@@ -3172,26 +3173,312 @@ We will return to the problem of fault-tolerant total order broadcast in \autore
     \end{center}
 \end{frame}
 
+We will now turn to the problem of \emph{replication}, which means to maintain a copy of the same data on multiple nodes, each of which is called a \emph{replica}.
+Replication is a standard feature of many distributed databases, filesystems, and other storage systems.
+It is one of the main mechanisms we have for achieving \emph{fault tolerance}: if one replica becomes faulty, we can continue accessing the copies of the data on other replicas.
+
 \begin{frame}
     \label{s:replication-intro}
     \frametitle{Replication}
     \begin{itemize}
         \item Keeping a copy of the same data on multiple nodes
         \item Databases, filesystems, caches, \dots
-        \item If some nodes are faulty, the others are still accessible\pause
-        \item A node that has a copy is called a \textbf{replica}\pause
+        \item A node that has a copy of the data is called a \textbf{replica}\pause
+        \item If some replicas are faulty, others are still accessible
+        \item Spread load across many replicas\pause
         \item Easy if the data doesn't change: just copy it
-        \item We will focus on data changes\\[2em]\pause
+        \item We will focus on data changes\\[1em]\pause
     \end{itemize}
-    Compare to \textbf{RAID} (Redundant Array of Independent Disks): replication in a single computer
+    Compare to \textbf{RAID} (Redundant Array of Independent Disks):\\replication within a single computer
     \begin{itemize}
         \item RAID has single controller; in distributed system, each node acts independently
-        \item Replicas can be distributed around the world
+        \item Replicas can be distributed around the world, near users
     \end{itemize}
 \end{frame}
 \inlineslide{s:replication-intro}\label{l:replication-intro}
 
-\subsection{Manipulating state}
+\subsection{Manipulating remote state}
+
+If the data doesn't change, replication is easy, since it just requires making a one-time copy of the data.
+Therefore, the main problem in replication is managing changes to the data.
+Before we get into the details of replication, let's look at how data changes happen in a distributed system.
+
+\begin{frame}
+    \label{s:retry-increment}
+    \frametitle{Retrying state updates}
+    \framebox{
+        \begin{minipage}{10cm}
+            \textbf{User A}: The moon is not actually made of cheese!\\[0.5em]
+            \fbox{\thumbsup~Like}\hspace{1em} 12,300 people like this.
+        \end{minipage}
+    }
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (gen1) at (0,4) {client};
+            \node [rectangle,fill=red!10,draw] (gen2) at (8,4) {\storageSymbol};
+            \draw (gen1) -- (0,0);
+            \draw (gen2) -- (8,0);
+            \draw<2-> [bigarrow] (0,3.3) -- node [above,sloped] {increment post.likes} node [at end,right] {12,301} (8,2.9);
+            \draw<2-> [messageloss] (8,2.6) -- node [above,sloped] {ack} (2,2.3);
+            \draw<3-> [bigarrow] (0,1.3) -- node [above,sloped] {increment post.likes} node [at end,right] {12,302} (8,0.9);
+            \draw<3-> [messageloss] (8,0.6) -- node [above,sloped] {ack} (2,0.3);
+        \end{tikzpicture}
+    \end{center}%
+    \uncover<4->{Deduplicating requests requires that the database tracks which requests it has already seen (in stable storage)}
+\end{frame}
+\inlineslide{s:retry-increment}\label{l:retry-increment}
+
+Let's consider as example the act of ``liking'' a status update on a social network.
+When you click the ``like'' button, the fact that you have liked it, and the number of people who have liked it, need to be stored somewhere so that they can be displayed to you and to other users.
+This usually happens in a database on the social network's servers.
+We can consider the data stored in a database to be its \emph{state}.
+
+A request to update the database may be lost in the network, or an acknowledgement that an update has been performed might be lost.
+As usual, we can improve reliability by retrying the request.
+However, if we are not careful, the retry could lead to the request being processed multiple times, leading to an incorrect state in the database.
+
+\begin{frame}
+    \label{s:negative-followers}
+    \includegraphics[width=12cm]{images/negative-followers.png}
+\end{frame}
+\inlineslide{s:negative-followers}\label{l:negative-followers}
+
+Lest you think this is a purely hypthetical problem, consider \autoref{l:negative-followers}, a genuine (I promise!) screenshot of Twitter that I made in 2014, which shows the profile of a user who is apparently following a negative number of people.
+I don't have insight into Twitter's internals to know exactly what happened here, but my guess is that this person used to follow several people, then unfollowed them, and due to a network problem during the unfollowing process, the decrement of the follow counter was retried, resulting in more decrements than the user was originally following.
+
+If following a negative number of people seems like a trivial problem, then instead of decrementing a follow counter, consider the act of deducting {\textsterling}1,000 from your bank account balance.
+The database operation is essentially the same, but performing this operation too many times has the potential to make you rather unhappy.
+
+One way of preventing an update from taking effect multiple times is to deduplicate requests.
+However, in a crash-recovery system model, this requires storing requests (or some metadata about requests, such as a vector clock) in stable storage, so that duplicates can be accurately detected even after a crash.
+
+An alternative to recording requests for deduplication is to make requests \emph{idempotent}.
+
+\begin{frame}
+    \label{s:idempotence}
+    \frametitle{Idempotence}
+    A function $f$ is idempotent if $f(x) = f(f(x))$.
+    \begin{itemize}
+        \item \textbf{Not idempotent:} $f(\mathit{likeCount}) = \mathit{likeCount} + 1$
+        \item \textbf{Idempotent:} $f(\mathit{likeSet}) = \mathit{likeSet} \cup \{\mathit{userID}\}$
+    \end{itemize}
+    Idempotent requests can be retried without deduplication.\\[1em]\pause
+    Choice of retry semantics:
+    \begin{itemize}
+        \item \textbf{At-most-once} semantics:\\
+            send request, don't retry, update may not happen
+        \item \textbf{At-least-once} semantics:\\
+            retry request until acknowledged, may repeat update
+        \item \textbf{Exactly-once} semantics:\\
+            retry + idempotence or deduplication
+    \end{itemize}
+\end{frame}
+\inlineslide{s:idempotence}\label{l:idempotence}
+
+Incrementing a counter is not idempotent, but adding an element to a set is.
+Therefore, if a counter is required (as in the number of likes), it might be better to actually maintain the set of elements in the database, and to derive the counter value from the set by computing its cardinality.
+
+An idempotent update can safely be retried, because performing it several times has the same effect as performing it once.
+Idempotence allows an update to have \emph{exactly-once} semantics: that is, the update may actually be applied multiple times, but the effect is the same as if it had been applied exactly once.
+Idempotence is a very useful property in practical systems, and it is often found in the context of RPC (\autoref{sec:rpc}), where retries are often unavoidable.
+
+However, idempotence has a limitation that becomes apparent when there are multiple updates in progress.
+On \autoref{l:retry-union}, client 1 adds a user ID to the set of likes for a post, but the acknowledgement is lost.
+Client 2 reads the set of likes from the database (including the user ID added by client 1), and then makes a request to remove the user ID again.
+Meanwhile, client 1 retries its request, unaware of the update made by client 2.
+The retry therefore has the effect of adding the user ID to the set again.
+This is unexpected since client 2 observed client 1's change, so the removal happened causally after the addition of the set element, and therefore we might expect that in the final state, the user ID should \emph{not} be present in the set.
+In this case, the fact that adding an element to a set is idempotent is not sufficient to make the retry safe.
+
+\begin{frame}
+    \label{s:retry-union}
+    \frametitle{Adding and then removing again}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,4) {client 1};
+            \node [rectangle,fill=red!10,draw] (node2) at (4,4) {\storageSymbol};
+            \node [rectangle,fill=red!10,draw] (node3) at (8,4) {client 2};
+            \draw (node1) -- (0,-0.4);
+            \draw (node2) -- (4,-0.4);
+            \draw (node3) -- (8,-0.4);
+            \draw<2-> [bigarrow] (0,3.3) -- node [above,sloped] {$f$: add like} (4,2.9);
+            \draw<2-> [messageloss] (4,2.6) -- node [above,sloped] {ack} (1,2.3);
+            \draw<3-> [bigarrow] (4,2.3) -- node [above,sloped] {set of likes} (8,1.9);
+            \draw<4-> [bigarrow] (8,1.6) -- node [above,sloped] {$g$: unlike} (4,1.2);
+            \draw<4-> [bigarrow] (4,0.9) -- node [above,sloped] {ack} (8,0.6);
+            \draw<5-> [bigarrow] (0,1.0) -- node [above,sloped] {$f$: add like} (4,0.6);
+            \draw<5-> [bigarrow] (4,0.3) -- node [above,sloped] {ack} (0,-0.1);
+        \end{tikzpicture}
+    \end{center}%
+    \uncover<2->{$f(\mathit{likes}) = \mathit{likes} \cup \{\mathit{userID}\}$}\\%
+    \uncover<4->{$g(\mathit{likes}) = \mathit{likes} \setminus \{\mathit{userID}\}$}\\%
+    \uncover<6->{\textbf{Idempotent?} $f(f(x)) = f(x)$ but $f(g(f(x)) \neq g(f(x))$}
+\end{frame}
+\inlineslide{s:retry-union}\label{l:retry-union}
+
+A similar problem occurs on \autoref{l:add-remove}, in which we have two replicas.
+In the first scenario a client first adds $x$ to both replicas of the database, then tries to remove $x$ again from both.
+However, the remove request to replica $B$ is lost, and the client crashes before it is able to retry.
+In the second scenario a client tries to add $x$ to both replicas, but the request to replica $A$ is lost, and again the client crashes.
+
+\begin{frame}
+    \label{s:add-remove}
+    \frametitle{Another problem with adding and removing}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,4.5) {client};
+            \node [rectangle,fill=red!10,draw] (node2) at (4,4.5) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
+            \node [rectangle,fill=red!10,draw] (node3) at (8,4.5) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
+            \draw [crash] (node1) -- (0,1.6);
+            \draw (node2) -- (4,1.5);
+            \draw (node3) -- (8,1.5);
+            \draw<2-> [bigarrow] (0,4.0) -- node [above,near start,sloped] {add $x$} (8,3.2);
+            \draw<2-> [bigarrow] (0,3.9)
+                .. controls (1,3.8) and (1,3.3) .. (2,3.2)
+                -- node [above,sloped] {add $x$} (4,3.0);
+            \draw<3-> [messageloss] (0,2.8) -- node [above,near start,sloped] {remove $x$} (6,2.2);
+            \draw<3-> [bigarrow] (0,2.7)
+                .. controls (1,2.6) and (1,2.1) .. (2,2.0)
+                -- node [above,sloped] {remove $x$} (4,1.8);
+        \end{tikzpicture}\\[1em]%
+        \uncover<4->{Final state ($x \notin A,\; x \in B$) is the same as in this case:}\\[1em]%
+        \begin{tikzpicture}
+            \node at (0,0) {}; \node at (0,5) {}; % placeholder
+            \node<5-> [rectangle,fill=red!10,draw] (node1) at (0,4.5) {client};
+            \node<5-> [rectangle,fill=red!10,draw] (node2) at (4,4.5) {\storageSymbol}; \node<5-> [yshift=-0.2cm] at (node2) {$A$};
+            \node<5-> [rectangle,fill=red!10,draw] (node3) at (8,4.5) {\storageSymbol}; \node<5-> [yshift=-0.2cm] at (node3) {$B$};
+            \draw<5-> [crash] (node1) -- (0,2.9);
+            \draw<5-> (node2) -- (4,2.8);
+            \draw<5-> (node3) -- (8,2.8);
+            \draw<5-> [bigarrow] (0,4.0) -- node [above,near start,sloped] {add $x$} (8,3.2);
+            \draw<5-> [messageloss] (0,3.9)
+                .. controls (1,3.8) and (1,3.3) .. (2,3.2)
+                -- node [at start,above,sloped] {add $x$} (3.5,3.05);
+        \end{tikzpicture}
+    \end{center}%
+\end{frame}
+\inlineslide{s:add-remove}\label{l:add-remove}
+
+In both scenarios the outcome is the same: $x$ is present on replica $B$, and absent from replica $A$.
+Yet the intended effect is different: in the first scenario, the client wanted $x$ to be removed from both replicas, whereas in the second scenario, the client wanted $x$ to be present on both replicas.
+When the two replicas reconcile their inconsistent states, we want them to both end up in the state that the client intended.
+However, this is not possible if the replicas cannot distinguish between these two scenarios.
+
+To solve this problem, we can do two things.
+First, we attach a logical timestamp to every update operation, and store that timestamp in the database as part of the data written by the update.
+Second, when asked to remove a record from the database, we don't actually remove it, but rather write a special type of update (called a \emph{tombstone}) marking it as deleted.
+On \autoref{l:tombstones}, records containing $\mathsf{false}$ are tombstones.
+
+\begin{frame}
+    \label{s:tombstones}
+    \frametitle{Timestamps and tombstones}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,5) {client};
+            \node [rectangle,fill=red!10,draw] (node2) at (4,5) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
+            \node [rectangle,fill=red!10,draw] (node3) at (8,5) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
+            \draw [crash] (node1) -- (0,0.6);
+            \draw (node2) -- (4,0.5);
+            \draw (node3) -- (8,0.5);
+            \draw [bigarrow] (0,4.0)
+                -- node [left,at start] {$t_1$}
+                   node [above,near start,sloped] {$(t_1, \mathsf{add}\; x)$}
+                   node [right,at end] {$\{x \mapsto (t_1, \mathsf{true})\}$} (8,3.2);
+            \draw [bigarrow] (0,3.9)
+                .. controls (1,3.8) and (1,3.1) .. (2,3.0)
+                -- node [above,sloped,near start] {$(t_1, \mathsf{add}\; x)$}
+                   node [right,at end] {$\{x \mapsto (t_1, \mathsf{true})\}$} (4,2.8);
+            \draw<2-> [messageloss] (0,2.0)
+                -- node [left,at start] {$t_2$}
+                   node [above,near start,sloped] {$(t_2, \mathsf{remove}\; x)$} (6,1.4);
+            \draw<2-> [bigarrow] (0,1.9)
+                .. controls (1,1.8) and (1,1.1) .. (2,1.0)
+                -- node [above,sloped,near start] {$(t_2, \mathsf{remove}\; x)$}
+                   node [right,at end] {$\{x \mapsto (t_2, \mathsf{false})\}$} (4,0.8);
+        \end{tikzpicture}
+    \end{center}%
+    \uncover<3->{``$\mathsf{remove}\; x$'' doesn't actually remove $x$:
+    it labels $x$ with ``$\mathsf{false}$'' to indicate it is invisible (a \textbf{tombstone})}\\[0.5em]%
+    \uncover<4->{Every record has \textbf{logical timestamp} of last write}\\[1em]
+\end{frame}
+\inlineslide{s:tombstones}\label{l:tombstones}
+
+In many replicated systems, replicas run a protocol to detect and reconcile any differences (this is called \emph{anti-entropy}), so that the replicas eventually hold consistent copies of the same data.
+Thanks to tombstones, the anti-entropy process can tell the difference between a record that has been deleted and a record that has not yet been created.
+And thanks to timestamps, we can tell which version of a record is older and which is newer.
+The anti-entropy process then keeps the newer and discards the older record.
+
+\begin{frame}
+    \label{s:reconcile}
+    \frametitle{Reconciling replicas}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node2) at (0,5) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
+            \node [rectangle,fill=red!10,draw] (node3) at (8,5) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
+            \node (left1) at (0,3.5) {$\{x \mapsto (t_2, \mathsf{false})\}$};
+            \node (right1) at (8,3.5) {$\{x \mapsto (t_1, \mathsf{true})\}$};
+            \node<3-> (left2) at (0,2.0) {$\{x \mapsto (t_2, \mathsf{false})\}$};
+            \node<3-> (right2) at (8,2.0) {$\{x \mapsto (t_2, \mathsf{false})\}$};
+            \draw<2-> [doublebigarrow] (left1) -- node [above] {reconcile state} (right1);
+            \draw<3-> [bigarrow] (left1) -- (left2);
+            \draw<3-> [bigarrow] (right1) -- (right2);
+            \node<3-> at (4,2.75) {$t_1 < t_2$};
+            \node at (0,1.8) {}; % placeholder
+        \end{tikzpicture}
+    \end{center}
+    \begin{uncoverenv}<4->
+        \begin{algorithmic}
+            \On{receiving request $(t, \mathit{key}, \mathit{value})$}
+                \If{$\mathit{key} \notin \mathit{database}$}
+                    \State add $\mathit{key} \mapsto (t, \mathit{value})$ to $\mathit{database}$
+                \ElsIf{$\exists t', v'.\; \mathit{database}[\mathit{key}] = (t', v') \wedge t' < t$}
+                    \State update $\mathit{key} \mapsto (t, \mathit{value})$ in $\mathit{database}$
+                \EndIf
+            \EndOn
+        \end{algorithmic}
+    \end{uncoverenv}
+\end{frame}
+\inlineslide{s:reconcile}\label{l:reconcile}
+
+% slide showing concurrent updates to the same record. user record, concurrently updating different fields?
+% last write wins and detecting concurrently written values.
+% dotted version vectors
+
+\supervision{
+    Apache Cassandra, a widely-used distributed database, uses a replication approach similar to the one described here.
+    However, it uses physical timestamps instead of logical timestamps, as discussed in \url{https://www.datastax.com/blog/2013/09/why-cassandra-doesnt-need-vector-clocks}.
+    Write a critique of this blog post.
+    What do you think of its arguments and why?
+    What facts are missing from it?
+    What recommendation would you make to someone considering using Cassandra?
+}{
+    The article conflates several different things.
+    It explains the advantage of performing fine-grained updates (e.g. updating only one field of a user record rather than replacing the whole record), which may reduce the frequency of conflicts between writes and may improve performance.
+    However, the granularity of updates has got nothing to do with the choice between physical or logical clocks.
+
+    The article explains that vector clocks allow the database to detect concurrently written values, giving the application the option of merging those values without data loss.
+    However, as the article points out, this can be difficult for applications to do correctly.
+    The alternative used by Cassandra, namely last-write-wins, simply discards all but one value when several values are written concurrently.
+    This is certainly simpler, but the potential for data loss is not really acknowledged in this article.
+    Moreover, the LWW conflict resolution strategy can be used even in a system that uses vector clocks, by using a merge function that discards all but one value.
+    Using vector clocks opens the \emph{option} of merging concurrently written values, but it does not \emph{force} the application to be any more complicated than one based on LWW.
+
+    Major problems with physical clocks are left unmentioned in the article, in particular that they may be inconsistent with causality.
+    For example, if a client reads the value for a key in the database, and writes back an updated value, it is possible that the write has no effect.
+    This could happen if the client that previously wrote this key has a fast-running clock, and/or the client making the subsequent update has a slow-running clock, and so the second write's physical timestamp ends up being less than the previous write's timestamp.
+    The article's claim that ``clock synchronization is nice to have in a Cassandra cluster but not critical'' is completely wrong.
+
+    If a client makes several successive writes to the same key, and the clock jumps backwards due to NTP stepping or a leap second, then it could happen that a later write fails to overwrite an earlier value because the later write has an earlier timestamp.
+    In all of these cases, there is no error (the client believes that the database has stored the data) even though the data has in fact been discarded, not stored.
+    This problem is discussed further in this article: \url{https://aphyr.com/posts/299-the-trouble-with-timestamps}
+
+    The article claims that Cassandra's approach is faster because an object does not need to be read in order to be updated.
+    However, the choice of logical or physical clocks does not affect this aspect: even with logical clocks, a write that simply overwrites any existing value without reading its value (a so-called \emph{blind write}) can be performed without reading a record first.
+
+    In summary, the article does not make a convincing argument in favour of using physical time, and fails to acknowledge its risks.
+    My recommendation for using Cassandra is that it's okay to use in situations where a record is only written once and then never updated (for example, for storing log files, where each line of the log is one record), because in that case the timestamp is irrelevant.
+    However, any applications that update existing records in Cassandra are at risk of data loss if they encounter any problems with their clock synchronisation.
+}
 
 \section{Consensus}\label{sec:consensus}
 

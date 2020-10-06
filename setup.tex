@@ -28,6 +28,7 @@
 \tikzstyle{bigarrow}=[very thick,-{Classical TikZ Rightarrow[length=2mm]}]
 \tikzstyle{doublebigarrow}=[very thick,{Classical TikZ Rightarrow[length=2mm]}-{Classical TikZ Rightarrow[length=2mm]}]
 \tikzstyle{messageloss}=[very thick,-{Rays[length=8mm,red,line width=4pt]}]
+\tikzstyle{crash}=[-{Rays[length=8mm,red,line width=4pt]}]
 \tikzstyle{leftloop}=[loop left,out=135,in=225,looseness=10]
 \tikzstyle{rightloop}=[loop right,out=45,in=325,looseness=10]
 
@@ -58,3 +59,13 @@
 \newcommand\supervision[2]{\begin{exercise}#1\end{exercise}}
 
 \algblockdefx{On}{EndOn}[1]{\textbf{on} #1 \textbf{do}}{\textbf{end on}}
+
+\newcommand{\storageSymbol}{\begin{tikzpicture}%
+    \draw (0.4, 0.7) ellipse (0.4 and 0.2);
+    \draw (0.0, 0.0) arc (180:360:0.4 and 0.2);
+    \draw (0.0, 0) -- (0.0, 0.7);
+    \draw (0.8, 0) -- (0.8, 0.7);
+\end{tikzpicture}}
+
+% Public domain image https://commons.wikimedia.org/wiki/File:Symbol_thumbs_up.svg
+\newcommand{\thumbsup}{\includegraphics[height=8pt]{images/thumbsup.pdf}}%
