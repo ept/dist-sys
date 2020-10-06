@@ -1,0 +1,43 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{// Called by the user when they want to send a message}
+\PYG{k+kd}{function} \PYG{n+nx}{totalOrderBroadcast}\PYG{p}{(}\PYG{n+nx}{msg}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+  \PYG{n+nx}{counter}\PYG{o}{++}\PYG{p}{;}
+  \PYG{k+kd}{let} \PYG{n+nx}{m} \PYG{o}{=} \PYG{p}{(}\PYG{n+nx}{counter}\PYG{p}{,} \PYG{n+nx}{proc}\PYG{p}{,} \PYG{n+nx}{msg}\PYG{p}{);}
+  \PYG{n+nx}{sendFIFO}\PYG{p}{(}\PYG{n+nx}{m}\PYG{p}{);} \PYG{c+c1}{// use underlying FIFO broadcast}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{c+c1}{// Called by the FIFO broadcast layer when a message is received}
+\PYG{k+kd}{function} \PYG{n+nx}{deliverFIFO}\PYG{p}{(}\PYG{n+nx}{m}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+  \PYG{k+kd}{let} \PYG{p}{(}\PYG{n+nx}{msgCounter}\PYG{p}{,} \PYG{n+nx}{sender}\PYG{p}{,} \PYG{n+nx}{msg}\PYG{p}{)} \PYG{o}{=} \PYG{n+nx}{m}\PYG{p}{;}
+  \PYG{k}{if} \PYG{p}{(}\PYG{n+nx}{counter} \PYG{o}{\PYGZlt{}} \PYG{n+nx}{msgCounter}\PYG{p}{)} \PYG{n+nx}{counter} \PYG{o}{=} \PYG{n+nx}{msgCounter}\PYG{p}{;} \PYG{c+c1}{// Lamport clock update}
+  \PYG{n+nx}{counter}\PYG{o}{++}\PYG{p}{;}
+  \PYG{n+nx}{holdback}\PYG{p}{.}\PYG{n+nx}{add}\PYG{p}{((}\PYG{n+nx}{msgCounter}\PYG{p}{,} \PYG{n+nx}{sender}\PYG{p}{),} \PYG{n+nx}{msg}\PYG{p}{);}
+  \PYG{n+nx}{minLamport}\PYG{p}{[}\PYG{n+nx}{sender}\PYG{p}{]} \PYG{o}{=} \PYG{n+nx}{msgCounter}\PYG{p}{;} \PYG{c+c1}{// latest timestamp seen from each node}
+  \PYG{n+nx}{tryDelivery}\PYG{p}{();}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{c+c1}{// Examines the holdback queue. Delivers any messages that are ready to the}
+\PYG{c+c1}{// application, in increasing Lamport timestamp order.}
+\PYG{k+kd}{function} \PYG{n+nx}{tryDelivery}\PYG{p}{()} \PYG{p}{\PYGZob{}}
+  \PYG{k+kd}{let} \PYG{n+nx}{threshold} \PYG{o}{=} \PYG{n+nx}{getThreshold}\PYG{p}{();}
+  \PYG{k}{while} \PYG{p}{(}\PYG{o}{!}\PYG{n+nx}{holdback}\PYG{p}{.}\PYG{n+nx}{empty}\PYG{p}{())} \PYG{p}{\PYGZob{}}
+    \PYG{k+kd}{let} \PYG{p}{(}\PYG{n+nx}{timestamp}\PYG{p}{,} \PYG{n+nx}{msg}\PYG{p}{)} \PYG{o}{=} \PYG{n+nx}{holdback}\PYG{p}{.}\PYG{n+nx}{getMin}\PYG{p}{();}
+    \PYG{k}{if} \PYG{p}{(}\PYG{n+nx}{timestamp} \PYG{o}{\PYGZgt{}} \PYG{n+nx}{threshold}\PYG{p}{)} \PYG{k}{break}\PYG{p}{;}
+    \PYG{n+nx}{deliverTotalOrder}\PYG{p}{(}\PYG{n+nx}{msg}\PYG{p}{);}
+    \PYG{n+nx}{holdback}\PYG{p}{.}\PYG{n+nx}{remove}\PYG{p}{(}\PYG{n+nx}{timestamp}\PYG{p}{);}
+  \PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{c+c1}{// Returns the threshold, which is the minimum latest timestamp across all}
+\PYG{c+c1}{// nodes. Due to FIFO ordering we know that all future messages delivered}
+\PYG{c+c1}{// to deliverFIFO() will have a timestamp greater than this threshold.}
+\PYG{k+kd}{function} \PYG{n+nx}{getThreshold}\PYG{p}{()} \PYG{p}{\PYGZob{}}
+  \PYG{k+kd}{let} \PYG{n+nx}{minimum} \PYG{o}{=} \PYG{p}{(}\PYG{o}{+}\PYG{n+nx}{infinity}\PYG{p}{,} \PYG{k+kc}{null}\PYG{p}{);}
+  \PYG{n+nx}{foreach} \PYG{n+nx}{p} \PYG{k}{in} \PYG{n+nx}{procs} \PYG{p}{\PYGZob{}}
+    \PYG{k+kd}{let} \PYG{n+nx}{timestamp} \PYG{o}{=} \PYG{p}{(}\PYG{n+nx}{minLamport}\PYG{p}{[}\PYG{n+nx}{p}\PYG{p}{],} \PYG{n+nx}{p}\PYG{p}{);}
+    \PYG{c+c1}{// The following comparison uses the total order on Lamport timestamps}
+    \PYG{k}{if} \PYG{p}{(}\PYG{n+nx}{timestamp} \PYG{o}{\PYGZlt{}} \PYG{n+nx}{minimum}\PYG{p}{)} \PYG{n+nx}{minimum} \PYG{o}{=} \PYG{n+nx}{timestamp}\PYG{p}{;}
+  \PYG{p}{\PYGZcb{}}
+  \PYG{k}{return} \PYG{n+nx}{minimum}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}
