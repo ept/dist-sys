@@ -3408,10 +3408,13 @@ Thanks to tombstones, the anti-entropy process can tell the difference between a
 And thanks to timestamps, we can tell which version of a record is older and which is newer.
 The anti-entropy process then keeps the newer and discards the older record.
 
+This approach also helps address the problem on \autoref{l:retry-union}: a retried request has the same timestamp as the original request, so a retry will not overwrite a value written by a causally later request with a greater timestamp.
+
 \begin{frame}
     \label{s:reconcile}
     \frametitle{Reconciling replicas}
     \begin{center}
+        Replicas periodically communicate among themselves\\to check for any inconsistencies.\\[1em]
         \begin{tikzpicture}
             \node [rectangle,fill=red!10,draw] (node2) at (0,5) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
             \node [rectangle,fill=red!10,draw] (node3) at (8,5) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
@@ -3419,34 +3422,76 @@ The anti-entropy process then keeps the newer and discards the older record.
             \node (right1) at (8,3.5) {$\{x \mapsto (t_1, \mathsf{true})\}$};
             \node<3-> (left2) at (0,2.0) {$\{x \mapsto (t_2, \mathsf{false})\}$};
             \node<3-> (right2) at (8,2.0) {$\{x \mapsto (t_2, \mathsf{false})\}$};
-            \draw<2-> [doublebigarrow] (left1) -- node [above] {reconcile state} (right1);
+            \draw<2-> [doublebigarrow] (left1) -- node [above] {reconcile state} node [below] {(anti-entropy)} (right1);
             \draw<3-> [bigarrow] (left1) -- (left2);
             \draw<3-> [bigarrow] (right1) -- (right2);
-            \node<3-> at (4,2.75) {$t_1 < t_2$};
+            \node<3-> at (4,2.0) {$t_1 < t_2$};
             \node at (0,1.8) {}; % placeholder
-        \end{tikzpicture}
-    \end{center}
-    \begin{uncoverenv}<4->
-        \begin{algorithmic}
-            \On{receiving request $(t, \mathit{key}, \mathit{value})$}
-                \If{$\mathit{key} \notin \mathit{database}$}
-                    \State add $\mathit{key} \mapsto (t, \mathit{value})$ to $\mathit{database}$
-                \ElsIf{$\exists t', v'.\; \mathit{database}[\mathit{key}] = (t', v') \wedge t' < t$}
-                    \State update $\mathit{key} \mapsto (t, \mathit{value})$ in $\mathit{database}$
-                \EndIf
-            \EndOn
-        \end{algorithmic}
-    \end{uncoverenv}
+        \end{tikzpicture}\\[1em]
+        \uncover<4->{Propagate the record with the latest timestamp,\\discard the records with earlier timestamps\\(for a given key).}
+    \end{center}%
 \end{frame}
 \inlineslide{s:reconcile}\label{l:reconcile}
 
-% slide showing concurrent updates to the same record. user record, concurrently updating different fields?
-% last write wins and detecting concurrently written values.
-% dotted version vectors
+The technique of attaching a timestamp to every update is also useful for handling concurrent updates.
+On \autoref{l:concurrent-writes}, client~1 wants to set key $x$ to the value $v_1$ (with timestamp $t_1$), while concurrently client~2 wants to set the same key $x$ to the value $v_2$ (with timestamp $t_2$).
+Replica $A$ receives $v_2$ first and $v_1$ second, while replica $B$ receives the updates in the opposite order.
+To ensure that both replicas end up in the same state, we rely not on the order in which they receive requests, but the order of their timestamps.
 
-\supervision{
+\begin{frame}
+    \label{s:concurrent-writes}
+    \frametitle{Concurrent writes by different clients}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,3) {client 1};
+            \node [rectangle,fill=red!10,draw] (node2) at (3,3) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
+            \node [rectangle,fill=red!10,draw] (node3) at (6,3) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
+            \node [rectangle,fill=red!10,draw] (node4) at (9,3) {client 2};
+            \draw (node1) -- (0,0);
+            \draw (node2) -- (3,0);
+            \draw (node3) -- (6,0);
+            \draw (node4) -- (9,0);
+            \draw<2-> [bigarrow] (0,2.0)
+                -- node [left,at start] {$t_1$}
+                   node [above,near start,sloped] {$(t_1, \mathsf{set}\; x = v_1)$} (6,0.8);
+            \draw<2-> [bigarrow] (0,1.9)
+                .. controls (1,1.7) and (1,0.7) .. (2,0.5) -- (3,0.3);
+            \draw<3-> [bigarrow] (9,2.0)
+                -- node [right,at start] {$t_2$}
+                   node [above,near start,sloped] {$(t_2, \mathsf{set}\; x = v_2)$} (3,0.8);
+            \draw<3-> [bigarrow] (9,1.9)
+                .. controls (8,1.7) and (8,0.7) .. (7,0.5) -- (6,0.3);
+        \end{tikzpicture}
+    \end{center}%
+    \begin{uncoverenv}<4->
+        Two common approaches:
+        \begin{itemize}
+            \item \textbf{Last writer wins} (LWW):\\
+                Use timestamps with total order (e.g. Lamport clock)\\
+                Keep $v_2$ and discard $v_1$ if $t_2 > t_1$. Note: \textbf{data loss}!
+            \item \textbf{Multi-value register}:\\
+                Use timestamps with partial order (e.g. vector clock)\\
+                $v_2$ replaces $v_1$ if $t_2 > t_1$; preserve both $\{v_1,v_2\}$ if $t_1 \parallel t_2$
+        \end{itemize}
+    \end{uncoverenv}
+\end{frame}
+\inlineslide{s:concurrent-writes}\label{l:concurrent-writes}
+
+The details of this approach depend on the type of timestamps used.
+If we use Lamport clocks (with the total order defined on \autoref{l:lamport-example}), two concurrent updates will be ordered arbitrarily, depending on how the timestamps happen to get assigned.
+In this case, we get what is known as \emph{last writer wins} (LWW) semantics: the update with the greatest timestamp takes effect, and any concurrent updates with lower timestamps to the same key are discarded.
+This approach is simple to work with, but it does imply data loss when multiple updates are performed concurrently.
+Whether or not this is a problem depends on the application: in some systems, discarding concurrent updates is fine.
+
+When discarding concurrent updates is not acceptable, we need to use a type of timestamp that allows us to detect when updates happen concurrently, such as vector clocks.
+With such partially ordered timestamps, we can tell when a new value should overwrite an old value (when the old update happened before the new update), and when several updates are concurrent, we can keep all of the concurrently written values.
+These concurrently written values are called \emph{conflicts}, or sometimes \emph{siblings}.
+The application can later merge conflicts back into a single value.
+% We discuss algorithms for doing this further in section TODO
+
+\supervision{\label{q:cassandra}
     Apache Cassandra, a widely-used distributed database, uses a replication approach similar to the one described here.
-    However, it uses physical timestamps instead of logical timestamps, as discussed in \url{https://www.datastax.com/blog/2013/09/why-cassandra-doesnt-need-vector-clocks}.
+    However, it uses physical timestamps instead of logical timestamps, as discussed here: \url{https://www.datastax.com/blog/2013/09/why-cassandra-doesnt-need-vector-clocks}.
     Write a critique of this blog post.
     What do you think of its arguments and why?
     What facts are missing from it?
@@ -3456,29 +3501,41 @@ The anti-entropy process then keeps the newer and discards the older record.
     It explains the advantage of performing fine-grained updates (e.g. updating only one field of a user record rather than replacing the whole record), which may reduce the frequency of conflicts between writes and may improve performance.
     However, the granularity of updates has got nothing to do with the choice between physical or logical clocks.
 
+    Major problems with physical clocks are left unmentioned in the article, in particular that they may be inconsistent with causality.
+    For example, if a client reads the value for a key in the database, and writes back an updated value, it is possible that the write has no effect.
+    This could happen if the client that previously wrote this key has a fast-running clock, and/or the client making the subsequent update has a slow-running clock, and so the second write's physical timestamp ends up being less than the previous write's timestamp.
+    The article's claim that ``clock synchronisation is nice to have in a Cassandra cluster but not critical'' is completely wrong: clock sync is in fact crucial.
+
+    If a client makes several successive writes to the same key, and the clock jumps backwards due to NTP stepping or a leap second, then it could happen that a later write fails to overwrite an earlier value because the later write has an earlier timestamp.
+    In all of these cases, there is no error (the client believes that the database has stored the data) even though the data has in fact been discarded, not stored.
+    This problem is discussed further in this article: \url{https://aphyr.com/posts/299-the-trouble-with-timestamps}
+
     The article explains that vector clocks allow the database to detect concurrently written values, giving the application the option of merging those values without data loss.
     However, as the article points out, this can be difficult for applications to do correctly.
     The alternative used by Cassandra, namely last-write-wins, simply discards all but one value when several values are written concurrently.
     This is certainly simpler, but the potential for data loss is not really acknowledged in this article.
     Moreover, the LWW conflict resolution strategy can be used even in a system that uses vector clocks, by using a merge function that discards all but one value.
     Using vector clocks opens the \emph{option} of merging concurrently written values, but it does not \emph{force} the application to be any more complicated than one based on LWW.
-
-    Major problems with physical clocks are left unmentioned in the article, in particular that they may be inconsistent with causality.
-    For example, if a client reads the value for a key in the database, and writes back an updated value, it is possible that the write has no effect.
-    This could happen if the client that previously wrote this key has a fast-running clock, and/or the client making the subsequent update has a slow-running clock, and so the second write's physical timestamp ends up being less than the previous write's timestamp.
-    The article's claim that ``clock synchronization is nice to have in a Cassandra cluster but not critical'' is completely wrong.
-
-    If a client makes several successive writes to the same key, and the clock jumps backwards due to NTP stepping or a leap second, then it could happen that a later write fails to overwrite an earlier value because the later write has an earlier timestamp.
-    In all of these cases, there is no error (the client believes that the database has stored the data) even though the data has in fact been discarded, not stored.
-    This problem is discussed further in this article: \url{https://aphyr.com/posts/299-the-trouble-with-timestamps}
+    Moreover, if detection of concurrent writes is not desired, Lamport clocks could be used instead of vector clocks: these would be fine for LWW semantics, and would avoid the problems of physical clocks.
 
     The article claims that Cassandra's approach is faster because an object does not need to be read in order to be updated.
     However, the choice of logical or physical clocks does not affect this aspect: even with logical clocks, a write that simply overwrites any existing value without reading its value (a so-called \emph{blind write}) can be performed without reading a record first.
+
+    The only real reason I can see in favour of physical clocks is that they allow the API for clients to be simpler.
+    If logical clocks are used, a write that depends on a prior read needs to propagate the logical timestamp from the read operation to the write operation, which means that they have to somehow be coupled in the client code.
+    Using physical timestamps does not have this requirement.
+    However, the article doesn't actually make this argument.
 
     In summary, the article does not make a convincing argument in favour of using physical time, and fails to acknowledge its risks.
     My recommendation for using Cassandra is that it's okay to use in situations where a record is only written once and then never updated (for example, for storing log files, where each line of the log is one record), because in that case the timestamp is irrelevant.
     However, any applications that update existing records in Cassandra are at risk of data loss if they encounter any problems with their clock synchronisation.
 }
+
+\subsection{Quorums}\label{sec:quorums}
+
+% slide showing concurrent updates to the same record. user record, concurrently updating different fields?
+% last write wins and detecting concurrently written values.
+% dotted version vectors
 
 \section{Consensus}\label{sec:consensus}
 
