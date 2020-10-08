@@ -93,7 +93,7 @@ In this course we don't distinguish them: a node can be any type of communicatin
 % reference for Lamport quote: https://www.microsoft.com/en-us/research/publication/distribution/
 % License for photo: https://commons.wikimedia.org/wiki/File:Leslie_Lamport.jpg
 
-\subsection{About this course}\label{sec:about}
+\subsection{About distributed systems}\label{sec:about}
 
 These notes and the lecture recordings should be self-contained, but if you would like to read up on further detail, there are several suggested textbooks:
 \begin{itemize}
@@ -172,8 +172,6 @@ This course is related to several other courses in the tripos, as shown on \auto
 \end{frame}
 \inlineslide{s:other-courses}\label{l:other-courses}
 
-
-\subsection{Pros and cons of distributed systems}\label{sec:pros-cons}
 
 There are a number of reasons for creating distributed systems.
 Some applications are \emph{intrinsically distributed}: if you want to send a message from your phone to your friend's phone, that operation inevitably requires those phones to communicate via some kind of network.
@@ -304,8 +302,6 @@ The design of distributed algorithms is about deciding what messages to send, an
 \end{frame}
 \inlineslide{s:latency-bandwidth}
 
-\subsection{Example: the web, a client-server distributed system}\label{sec:web}
-
 The web is an example of a distributed system that you use every day.
 
 \begin{frame}[plain]
@@ -367,7 +363,7 @@ This keeps things independent of the underlying networking technology.
 \end{frame}
 \inlineslide{s:wireshark}\label{l:wireshark}
 
-\subsection{Example: remote procedure calls (RPC)}\label{sec:rpc}
+\subsection{Example: Remote Procedure Calls (RPC)}\label{sec:rpc}
 
 Another example of an everyday distributed system is when you buy something online using a credit/debit card.
 When you enter your card number in some online shop, that shop will send a payment request over the Internet to a service that specialises in processing card payments.
@@ -947,7 +943,7 @@ The fair-loss assumption means that any \emph{network partition} (network interr
 Of course, any messages sent during a network partition will only be received after the interruption is repaired, which may take a long time, but the definitions on \autoref{l:model-network} do not say anything about network delay or latency.
 We will get to that topic on \autoref{l:model-synchrony}.
 
-The TCP protocol, which we discussed briefly in \autoref{sec:web}, performs this kind of retry and deduplication at the network packet level.
+The TCP protocol, which we discussed briefly in \autoref{sec:networking}, performs this kind of retry and deduplication at the network packet level.
 However, TCP is usually configured with a timeout, so it will give up and stop retrying after a certain time, typically on the order of one minute.
 To overcome network partitions that last for longer than this duration, a separate retry and deduplication mechanism needs to be implemented in addition to that provided by TCP.
 
