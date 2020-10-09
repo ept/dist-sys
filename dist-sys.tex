@@ -196,7 +196,7 @@ For example, the Large Hadron Collider at CERN is supported by a worldwide compu
         \item \textbf{To solve bigger problems:}\\e.g. huge amounts of data, can't fit on one machine
     \end{itemize}
 \end{frame}
-\inlineslide{s:why-distribute}
+\inlineslide{s:why-distribute}\label{l:why-distribute}
 
 However, there are also downsides to distributed systems, because things can go wrong, and the system needs to deal with such faults.
 The network may fail, leaving the nodes unable to communicate.
@@ -1094,7 +1094,7 @@ Most distributed algorithms need to be designed for the asynchronous or partiall
 
 \subsection{Fault tolerance and high availability}\label{sec:fault-tolerance}
 
-As highlighted in \autoref{sec:pros-cons}, one reason for building distributed systems is to achieve higher reliability than is possible with a single computer.
+As highlighted on \autoref{l:why-distribute}, one reason for building distributed systems is to achieve higher reliability than is possible with a single computer.
 We will now explore this idea further in the light of the system models we have discussed.
 
 From a business point of view, what usually matters most is the \emph{availability} of a service, such as a website.
@@ -3041,6 +3041,9 @@ Gossip protocols are appealing because, with the right parameters, they are very
 \end{frame}
 \inlineslide{s:gossip}\label{l:gossip}
 
+% what state must a recipient maintain in order to eliminate duplicates?
+% the entire message? a unique message ID? a sequence number? (what assumptions does this require making about the sender?)
+
 %\supervision{
 %    Write pseudocode for a gossip-based implementation of reliable broadcast.
 %}{
@@ -3762,33 +3765,154 @@ However, the approach actually predates Dynamo \citep{Attiya:1995}.
 
 \subsection{Replication using broadcast}\label{sec:broadcast-replication}
 
+The quorum approach of \autoref{sec:quorums} essentially uses best-effort broadcast: a client broadcasts every read or write request to all of the replicas, but the protocol is unreliable (requests might be lost) and provides no ordering guarantees.
+
+An alternative approach to replication is to use the broadcast protocols from \autoref{sec:broadcast}.
+Let's first consider FIFO-total order broadcast, the strongest form of broadcast we have seen.
+
+\begin{frame}
+    \label{s:smr}
+    \frametitle{State machine replication}
+    So far we have used best-effort broadcast for replication.\\
+    What about stronger broadcast models?\\[1em]\pause
+    Total order broadcast: every node delivers the \textbf{same messages} in the \textbf{same order}\\[1em]\pause
+    \textbf{State machine replication} (SMR):
+    \begin{itemize}
+        \item FIFO-total order broadcast every update to all replicas
+        \item Replica delivers update message: apply it to own state\pause
+        \item Applying an update is deterministic\pause
+        \item Replica is a \textbf{state machine}: starts in fixed initial state,
+            goes through same sequence of state transitions in the same order
+            $\Longrightarrow$ all replicas end up in the same state
+    \end{itemize}
+\end{frame}
+\inlineslide{s:smr}\label{l:smr}
+
+Using FIFO-total order broadcast it is very easy to build a replicated system: we simply package each update request as a message, broadcast it to the replicas, and replicas update their state based on each message as it is delivered.
+This approach is called \emph{state machine replication} (SMR), because it treats a replica as a state machine whose input is the sequence of broadcast message deliveries.
+We only require that the state change logic is deterministic: any two replicas that are in the same state, and are given the same input, must end up in the same next state.
+
+An excellent feature of SMR is that the logic for moving from one state to the next can be arbitrarily complex, as long as it is deterministic.
+For example, an entire database transaction with arbitrary business logic can be executed, and this logic can depend both on the broadcast message and the current state of the database.
+Some distributed database perform replication in this way, with each replica independently executing the same deterministic transaction code (this is known as \emph{active replication}).
+This principle also underpins blockchains, cryptocurrencies, and distributed ledgers: the ``chain of blocks'' in a blockchain is nothing other than the sequence of messages delivered by a total order broadcast protocol (more on this in \autoref{sec:consensus}), and each replica deterministically executes the transactions described in those blocks to determine the state of the ledger (e.g.\ who owns which money).
+A ``smart contract'' is just a deterministic program that a replica executes when a particular message is delivered.
+
+\begin{frame}
+    \label{s:smr2}
+    \frametitle{State machine replication}
+    \framebox{
+        \begin{minipage}{10cm}
+            \vspace*{3pt}
+            \begin{algorithmic}
+                \On{request to perform update $u$}
+                    \State send $u$ via FIFO-total order broadcast
+                \EndOn
+                \State
+                \On{delivering $u$ through FIFO-total order broadcast}
+                    \State update state using arbitrary deterministic logic!
+                \EndOn
+            \end{algorithmic}
+            \vspace*{3pt}
+        \end{minipage}
+    }\pause\vspace*{0.5em}
+    Closely related ideas:
+    \begin{itemize}
+        \item Serializable transactions (execute in delivery order)\pause
+        \item Blockchains, distributed ledgers, smart contracts\pause
+    \end{itemize}
+    Limitations:
+    \begin{itemize}
+        \item Cannot update state immediately, have to wait for delivery through broadcast\pause
+        \item Need fault-tolerant total order broadcast: see lecture 6
+    \end{itemize}
+\end{frame}
+\inlineslide{s:smr2}\label{l:smr2}
+
+The downsides of state machine replication are the limitations of total order broadcast.
+As discussed in \autoref{sec:delivery-order}, when a node wants to broadcast a message through a total order broadcast, it cannot immediately deliver that message to itself.
+For this reason, when using state machine replication, a replica that wants to update its state cannot do so immediately, but it has to go through the broadcast process, coordinate with other nodes, and wait for the update to be delivered back to itself.
+The fault tolerance of state machine replication depends on the fault tolerance of the underlying total order broadcast, which we will discuss in \autoref{sec:consensus}.
+Nevertheless, replication based on total order broadcast is widely used.
+
+\begin{frame}
+    \label{s:leader-database}
+    \frametitle{Database leader replica}
+    Leader database replica $L$ ensures total order broadcast
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,5) {client 1};
+            \node [rectangle,fill=red!10,draw] (node2) at (3,5) {client 2};
+            \node [rectangle,fill=red!10,draw] (node3) at (6,5) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$L$};
+            \node [rectangle,fill=red!10,draw] (node4) at (9,5) {\storageSymbol}; \node [yshift=-0.2cm] at (node4) {$F$};
+            \draw (node1) -- (0,-0.3);
+            \draw (node2) -- (3,-0.3);
+            \draw (node3) -- (6,-0.3);
+            \draw (node4) -- (9,-0.3);
+            \node<2-> [rectangle,fill=white,draw,text depth=2.4cm] (T1) at (6,2.1) {$T_1$};
+            \draw<2-> [bigarrow] (0,4.2) -- node [above,near start] {$T_1$} (T1.north west);
+            \node<3-> [rectangle,fill=white,draw,text depth=0.6cm] (T2) at (6.4,2.0) {$T_2$};
+            \draw<3-> [bigarrow] (3,2.9) -- node [above] {$T_2$} (T2.north west);
+            \draw<4-> [bigarrow] (T2.south west) -- node [above,sloped] {ok} (3,1.1);
+            \draw<4-> [bigarrow] (T2.south east) -- node [above,sloped] {commit} (9,1.1);
+            \draw<5-> [bigarrow] (T1.south west) -- node [above,sloped,near end] {ok} (0,0);
+            \draw<5-> [bigarrow] (T1.south east) -- node [below,sloped] {commit} (9,0.3);
+        \end{tikzpicture}
+    \end{center}%
+    \uncover<4->{Follower $F$ applies transaction log in commit order}
+\end{frame}
+\inlineslide{s:leader-database}\label{l:leader-database}
+
+Recall from \autoref{l:total-bcast-alg} that one way of implementing total order broadcast is to designate one node as the \emph{leader}, and to route all broadcast messages through it in order to impose a delivery order.
+This principle is also widely used for database replication: many database systems designate one replica as \emph{leader}, \emph{primary}, or \emph{master}.
+Any transactions that wish to modify the database must be executed on the leader replica.
+As shown on \autoref{l:leader-database}, the leader may execute multiple transactions concurrently; however, it \emph{commits} those transactions in a total order.
+When a transaction commits, the leader replica broadcasts the data changes from that transaction to all the follower replicas, and the followers apply those changes in commit order.
+This approach is known as \emph{passive replication}, and we can see that it is equivalent to total order broadcast of transaction commit records.
+
+So much on using total order broadcast for replication.
+What about the other broadcast models from \autoref{sec:broadcast}~-- can we use them for replication too?
+The answer is yes, as shown on \autoref{l:causal-replication}; however, more care is required to ensure that replicas remain consistent.
+It is not sufficient to merely ensure that the state update is deterministic.
+
+For example, we can use causal broadcast, which ensures the same delivery order across replicas when one update happened before another, but which may deliver concurrent updates in any order.
+If we want to ensure that replicas end up in the same state, no matter in which order concurrent updates are delivered, we need to make those updates \emph{commutative}: that is, we have to ensure that the final result is the same, no matter in which order those updates are applied.
+This can be done, and we will see some techniques for commutativity in \autoref{sec:consistency}.
+
+\begin{frame}
+    \label{s:causal-replication}
+    \frametitle{Replication using causal (and weaker) broadcast}
+    State machine replication uses (FIFO-)total order broadcast.\\
+    Can we use weaker forms of broadcast too?\\[1em]\pause
+    If replica state updates are \textbf{commutative}, replicas can process updates in different orders and still end up in the same state.\\[1em]
+    Updates $f$ and $g$ are commutative if $f(g(x)) = g(f(x))$\\\pause
+    \rowcolors[]{2}{}{blue!10}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{l|p{8cm}}
+        \hline
+        \textbf{broadcast} & \textbf{assumptions about state update function} \\\hline
+        total order & deterministic (SMR) \pause\\
+        causal & deterministic, concurrent updates commute \pause\\
+        reliable & deterministic, all updates commute \pause\\
+        best-effort & deterministic, commutative, idempotent,\newline tolerates message loss \\\hline
+    \end{tabular}
+\end{frame}
+\inlineslide{s:causal-replication}\label{l:causal-replication}
+
 \section{Consensus}\label{sec:consensus}
 
-\section{Work in progress from here onwards}
+% also consider Byzantine agreement
 
-% Replication: without broadcast (ABD, quorums); 2-phase commit;
-% with broadcast (total order: state machine replication, causal: CRDTs)
+\section{Replica consistency}\label{sec:consistency}
+
+% Replication: without broadcast (ABD, quorums); 2-phase commit; CRDTs
+% syllabus also lists multi-leader replication
 
 % Calendar app supports offline reads and writes (short video in airplane mode).
 
-% Replication on one node: RAID-1. Geo-replication when replicas are geographically distributed
-
-% Replication example: two clients A and B, four servers. Server 1 receives only A's request,
-% server 2 receives A then B, server 3 receives B then A, and server 4 receives only B.
-% How do we ensure replicas become consistent with each other?
-
-% ABD algorithm. Last writer wins. Linearizability. Even shared memory on one machine is not linearisable!
+% ABD algorithm. Linearizability. Even shared memory on one machine is not linearisable!
 
 % CAP: consistent or available in the presence of a partition
-
-% message loss -> retry; duplicates -> detect and suppress duplicates / idempotence
-% idempotence: f(f(x)) = f(x)
-% incrementing number of likes on a post: not idempotent
-% adding current user to the set of users who have liked a post: idempotent
-% what state must a recipient maintain in order to eliminate duplicates?
-% the entire message? a unique message ID? a sequence number? (what assumptions does this require making about the sender?)
-% Gossip protocols for replication / dissemination
-
 
 % Distributed systems are fascinating because we have to work with partial knowledge and uncertain
 % truths. We never have certainty about the state of the system, because by the time we hear about
