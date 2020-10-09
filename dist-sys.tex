@@ -610,15 +610,17 @@ However, if both armies attack at the same time, they will successfully capture 
             \draw [thick,dashed,-{Stealth[length=3mm]}] (army1) -- node [left,yshift=0.2cm] {attack?} (city);
             \draw [thick,dashed,-{Stealth[length=3mm]}] (army2) -- node [right,yshift=0.2cm] {attack?} (city);
             \draw [doublebigarrow] (army1) -- node [below] {messengers} (army2);
-        \end{tikzpicture}\\[1.5em]\pause
-        \begin{tabular}{|c|c|c|}
+        \end{tikzpicture}\\[1em]\pause
+        \rowcolors[]{2}{}{blue!10}
+        \renewcommand{\arraystretch}{1.3}
+        \begin{tabular}{c|c|c}
             \hline
             army 1 & army 2 & outcome \\\hline
             does not attack & does not attack & nothing happens \\
             attacks & does not attack & army 1 defeated \\
             does not attack & attacks & army 2 defeated \\
             attacks & attacks & city captured \\\hline
-        \end{tabular}\\[1.5em]
+        \end{tabular}\\[1em]
         \textbf{Desired:} army 1 attacks \emph{if and only if} army 2 attacks
     \end{center}
 \end{frame}
@@ -701,15 +703,17 @@ Nevertheless, the shop wants to ensure that it dispatches the goods only if they
             \draw [thick,dashed,-{Stealth[length=3mm]}] (army1) -- node [left,yshift=0.2cm] {dispatch goods} (city);
             \draw [thick,dashed,-{Stealth[length=3mm]}] (army2) -- node [right,yshift=0.2cm] {charge credit card} (city);
             \draw [doublebigarrow] (army1) -- node [below] {RPC} (army2);
-        \end{tikzpicture}\\[1.5em]\pause
-        \begin{tabular}{|c|c|c|}
+        \end{tikzpicture}\\[0.5em]\pause
+        \rowcolors[]{2}{}{blue!10}
+        \renewcommand{\arraystretch}{1.3}
+        \begin{tabular}{c|c|c}
             \hline
             online shop & payments service & outcome \\\hline
             does not dispatch & does not charge & nothing happens \\
             dispatches & does not charge & shop loses money \\
             does not dispatch & charges & customer complaint \\
             dispatches & charges & everyone happy \\\hline
-        \end{tabular}\\[1.5em]
+        \end{tabular}\\[1em]
         \textbf{Desired:} online shop dispatches \emph{if and only if} payment made
     \end{center}
 \end{frame}
@@ -3551,7 +3555,8 @@ However, if the system continues working despite some faulty replicas, then reli
     Probability of \textbf{all} $n$ replicas being faulty: $p^n$\\
     Probability of $\ge 1$ out of $n$ replicas being faulty: $1-(1-p)^n$\\[1em]\pause
     Example with $p=0.01$:\\[0.5em]
-    \begin{tabular}{|c|c|c|c|}
+    \rowcolors[]{2}{}{blue!10}
+    \begin{tabular}{c|c|c|c}
         \hline
         replicas $n$ & $P(\ge 1 \text{ faulty})$ & $P(\ge \frac{n+1}{2}\text{ faulty})$ & $P(\text{all } n \text{ faulty})$ \\\hline
         1 & 0.01 & 0.01 & 0.01 \\
