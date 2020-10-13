@@ -2276,6 +2276,7 @@ While Lamport timestamps are just a single integer (possibly with a node name at
 By convention, if we put the $n$ nodes into a vector $\langle N_1, N_2, \dots, N_n \rangle$, then a vector timestamp is a similar vector $\langle t_1, t_2, \dots, t_n \rangle$ where $t_i$ is the entry corresponding to node $N_i$.
 Concretely, $t_i$ is the number of events known to have occurred at node $N_i$.
 
+% TODO: change this to be zero-indexed, to match with the notation used for Raft in lecture 6
 In a vector $T = \langle t_1, t_2, \dots, t_n \rangle$ we refer to element $t_i$ as $T[i]$, like an index into an array.
 
 \begin{frame}
@@ -3901,7 +3902,260 @@ This can be done, and we will see some techniques for commutativity in \autoref{
 
 \section{Consensus}\label{sec:consensus}
 
-% also consider Byzantine agreement
+\begin{frame}
+    \label{s:raft1}
+    \frametitle{Raft (1): initialisation}
+    \footnotesize
+    \begin{algorithmic}
+        \On{initialisation}
+            \State $\mathit{currentTerm} := 0;\; \mathit{votedFor} := \mathsf{null}$
+            \State $\mathit{log} := \langle\rangle;\; \mathit{commitLength} := 0$
+            \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathsf{null}$
+            \State $\mathit{votesReceived} := \{\};\; \mathit{sentLength} := \langle\rangle;\; \mathit{ackedLength} := \langle\rangle$
+        \EndOn
+        \State
+        \On{recovery from crash}
+            \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathsf{null}$
+            \State $\mathit{votesReceived} := \{\};\; \mathit{sentLength} := \langle\rangle;\; \mathit{ackedLength} := \langle\rangle$
+        \EndOn
+        \State
+        \On{node $\mathit{nodeId}$ suspects leader has failed, or on election timeout}
+            \State $\mathit{currentTerm} := \mathit{currentTerm} + 1$
+            \State $\mathit{currentRole} := \mathsf{candidate};\; \mathit{votedFor} := \mathsf{null}$
+            \State $\mathit{votesReceived} := \{\mathit{nodeId}\};\; \mathit{lastTerm} := \mathit{log}[\mathit{log}.\mathsf{length} - 1].\mathsf{term}$
+            \State $\mathit{msg} := (\mathsf{VoteRequest}, \mathit{nodeId}, \mathit{currentTerm}, \mathit{log}.\mathsf{length}, \mathit{lastTerm})$
+            \State \textbf{for each} $\mathit{node} \in \mathit{nodes}$: \textbf{send} $\mathit{msg}$ to $\mathit{node}$
+            \State start election timer
+        \EndOn
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:raft1}\label{l:raft1}
+
+\begin{frame}
+    \label{s:raft2}
+    \frametitle{Raft (2): voting on a new leader}
+    \footnotesize
+    \begin{algorithmic}
+        \State
+        \On{receiving $(\mathsf{VoteRequest}, \mathit{cId}, \mathit{cTerm}, \mathit{cLogLength}, \mathit{cLogTerm})$\\\hspace{35pt} at node $\mathit{nodeId}$}
+            \State $\mathit{myLogTerm} := \mathit{log}[\mathit{log}.\mathsf{length} - 1].\mathsf{term}$
+            \State $\mathit{logOk} := (\mathit{cLogTerm} > \mathit{myLogTerm}) \;\vee$
+            \State \hspace{25pt}$(\mathit{cLogTerm} = \mathit{myLogTerm} \wedge \mathit{cLogLength} \ge \mathit{log}.\mathsf{length})$
+            \State
+            \State $\mathit{termOk} := (\mathit{cTerm} > \mathit{currentTerm}) \;\vee$
+            \State \hspace{25pt}$(\mathit{cTerm} = \mathit{currentTerm} \wedge \mathit{votedFor} \in \{\mathit{cId}, \mathsf{null}\})$
+            \State
+            \If{$\mathit{logOk} \wedge \mathit{termOk}$}
+                \State $\mathit{currentTerm} := \mathit{cTerm}$
+                \State $\mathit{currentRole} := \mathsf{follower}$
+                \State $\mathit{votedFor} := \mathit{cId}$
+                \State \textbf{send} $(\mathsf{VoteResponse}, \mathit{nodeId}, \mathit{currentTerm}, \mathsf{true})$ to node $\mathit{cId}$
+            \Else
+                \State \textbf{send} $(\mathsf{VoteResponse}, \mathit{nodeId}, \mathit{currentTerm}, \mathsf{false})$ to node $\mathit{cId}$
+            \EndIf
+        \EndOn
+        \State
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:raft2}\label{l:raft2}
+
+\begin{frame}
+    \label{s:raft3}
+    \frametitle{Raft (3): collecting votes}
+    \footnotesize
+    \begin{algorithmic}
+        \State
+        \On{receiving $(\mathsf{VoteResponse}, \mathit{voterId}, \mathit{term}, \mathit{granted})$ at $\mathit{nodeId}$}
+            \If{$\mathit{currentRole} = \mathsf{candidate} \wedge \mathit{term} = \mathit{currentTerm} \wedge \mathit{granted}$}
+                \State $\mathit{votesReceived} := \mathit{votesReceived} \cup \{\mathit{voterId}\}$
+                \If{$|\mathit{votesReceived}| \ge \left\lceil (|\mathit{nodes}| + 1)/2 \right\rceil$}
+                    \State $\mathit{currentRole} := \mathsf{leader};\; \mathit{currentLeader} := \mathit{nodeId}$
+                    \State cancel election timer
+                    \For{each $\mathit{follower} \in \mathit{nodes} \setminus \{\mathit{nodeId}\}$}
+                        \State $\mathit{sentLength}[\mathit{follower}] := \mathit{log}.\mathsf{length}$
+                        \State $\mathit{ackedLength}[\mathit{follower}] := 0$
+                        \State \Call{ReplicateLog}{$\mathit{nodeId}, \mathit{follower}$}
+                    \EndFor
+                \EndIf
+            \ElsIf{$\mathit{term} > \mathit{currentTerm}$}
+                \State $\mathit{currentTerm} := \mathit{term}$
+                \State $\mathit{currentRole} := \mathsf{follower}$
+                \State $\mathit{votedFor} := \mathsf{null}$
+                \State cancel election timer
+            \EndIf
+        \EndOn
+        \State
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:raft3}\label{l:raft3}
+
+\begin{frame}
+    \label{s:raft4}
+    \frametitle{Raft (4): broadcasting messages}
+    \footnotesize
+    \begin{algorithmic}
+        \State
+        \On{request to broadcast $\mathit{msg}$ at node $\mathit{nodeId}$}
+            \If{$\mathit{currentRole} = \mathsf{leader}$}
+                \State append the record $(\mathsf{msg}: \mathit{msg},\; \mathsf{term}: \mathit{currentTerm})$ to $\mathit{log}$
+                \State $\mathit{ackedLength}[\mathit{nodeId}] := \mathit{log}.\mathsf{length}$
+                \For{each $\mathit{follower} \in \mathit{nodes} \setminus \{\mathit{nodeId}\}$}
+                    \State \Call{ReplicateLog}{$\mathit{nodeId}, \mathit{follower}$}
+                \EndFor
+            \Else
+                \State forward the request to $\mathit{currentLeader}$
+            \EndIf
+        \EndOn
+        \State
+        \Periodically
+            \If{$\mathit{currentRole} = \mathsf{leader}$}
+                \For{each $\mathit{follower} \in \mathit{nodes} \setminus \{\mathit{nodeId}\}$}
+                    \State \Call{ReplicateLog}{$\mathit{nodeId}, \mathit{follower}$}
+                \EndFor
+            \EndIf
+        \EndPeriodically
+        \State
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:raft4}\label{l:raft4}
+
+\begin{frame}
+    \label{s:raft5}
+    \frametitle{Raft (5): replicating from leader to followers}
+    \footnotesize
+    Called on the leader whenever there is a new message in the log, and also periodically.
+    If there are no new messages, $\mathit{entries}$ is the empty list.
+    $\mathsf{LogRequest}$ messages with $\mathit{entries} = \langle\rangle$ serve as heartbeats, letting followers know that the leader is still alive.\\[1em]
+    \begin{algorithmic}
+        \Function{ReplicateLog}{$\mathit{leaderId}, \mathit{followerId}$}
+            \State $\mathit{prevLogTerm} := 0$
+            \If{$\mathit{sentLength}[\mathit{followerId}] > 0$}
+                \State $\mathit{prevLogTerm} := \mathit{log}[\mathit{sentLength}[\mathit{followerId}] - 1].\mathsf{term}$
+            \EndIf
+            \State $i := \mathit{sentLength}[\mathit{followerId}]$
+            \State $\mathit{entries} := \langle\mathit{log}[i],\, \mathit{log}[i + 1],\, \dots,\, \mathit{log}[\mathit{log}.\mathsf{length} - 1]\rangle$
+            \State \textbf{send} $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{currentTerm}, \mathit{sentLength}[\mathit{followerId}],$
+            \State \hspace{25pt}$\mathit{prevLogTerm}, \mathit{commitLength}, \mathit{entries})$ to $\mathit{followerId}$
+        \EndFunction
+        \State
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:raft5}\label{l:raft5}
+
+\begin{frame}
+    \label{s:raft6}
+    \frametitle{Raft (6): followers receiving messages}
+    \footnotesize
+    \begin{algorithmic}
+        \On{receiving $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{term}, \mathit{logLength}, \mathit{logTerm},$\\\hspace{58pt}$\mathit{leaderCommit}, \mathit{entries})$ at node $\mathit{nodeId}$}
+            \If{$\mathit{term} > \mathit{currentTerm}$}
+                \State $\mathit{currentTerm} := \mathit{term};\; \mathit{votedFor} := \mathsf{null}$
+            \EndIf
+            \State $\mathit{logOk} := (\mathit{logLength} \le \mathit{log}.\mathsf{length})$
+            \If{$\mathit{logOk} \wedge (\mathit{logLength} > 0)$}
+                \State $\mathit{logOk} := (\mathit{logTerm} = \mathit{log}[\mathit{logLength} - 1].\mathsf{term})$
+            \EndIf
+            \State
+            \If{$\mathit{term} = \mathit{currentTerm} \wedge \mathit{logOk}$}
+                \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathit{leaderId}$
+                \State \Call{AppendEntries}{$\mathit{logLength}, \mathit{leaderCommit}, \mathit{entries}$}
+                \State $\mathit{ack} := \mathit{logLength} + \mathit{entries}.\mathsf{length}$
+                \State \textbf{send} $(\mathsf{LogResponse}, \mathit{nodeId}, \mathit{currentTerm}, \mathit{ack}, \mathsf{true})$ to $\mathit{leaderId}$
+            \Else
+                \State \textbf{send} $(\mathsf{LogResponse}, \mathit{nodeId}, \mathit{currentTerm}, 0, \mathsf{false})$ to $\mathit{leaderId}$
+            \EndIf
+        \EndOn
+        \State
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:raft6}\label{l:raft6}
+
+\begin{frame}
+    \label{s:raft7}
+    \frametitle{Raft (7): updating followers' logs}
+    \footnotesize
+    \begin{algorithmic}
+        \Function{AppendEntries}{$\mathit{logLength}, \mathit{leaderCommit}, \mathit{entries}$}
+            \If{$\mathit{entries}.\mathsf{length} > 0 \;\wedge\; \mathit{log}.\mathsf{length} > \mathit{logLength}$}
+                \If{$\mathit{log}[\mathit{logLength}].\mathsf{term} \neq \mathit{entries}[0].\mathsf{term}$}
+                    \State $\mathit{log} := \langle\mathit{log}[0],\, \mathit{log}[1],\, \dots,\, \mathit{log}[\mathit{logLength} - 1]\rangle$
+                \EndIf
+            \EndIf
+            \If{$\mathit{logLength} + \mathit{entries}.\mathsf{length} > \mathit{log}.\mathsf{length}$}
+                \For{$i := \mathit{log}.\mathsf{length} - \mathit{logLength}$ \textbf{to} $\mathit{entries}.\mathsf{length} - 1$}
+                    \State append $\mathit{entries}[i]$ to $\mathit{log}$
+                \EndFor
+            \EndIf
+            \If{$\mathit{leaderCommit} > \mathit{commitLength}$}
+                \For{$i := commitLength$ \textbf{to} $\mathit{leaderCommit} - 1$}
+                    \State deliver $\mathit{log}[i].\mathsf{msg}$ to the application
+                \EndFor
+                \State $\mathit{commitLength} := \mathit{leaderCommit}$
+            \EndIf
+        \EndFunction
+        \State
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:raft7}\label{l:raft7}
+
+\begin{frame}
+    \label{s:raft8}
+    \frametitle{Raft (8): leader committing log entries}
+    \footnotesize
+    \makebox[\linewidth][c]{%
+        \begin{minipage}{12cm}
+            \raggedright
+            \begin{algorithmic}
+                \State \textbf{define} $\mathrm{acks}(\mathit{length}) = |\{n \in \mathit{nodes} \mid \mathit{ackedLength}[n] \ge \mathit{length}\}|$
+                \On{receiving $(\mathsf{LogResponse}, \mathit{follower}, \mathit{term}, \mathit{ack}, \mathit{success})$ at $\mathit{nodeId}$}
+                    \If{$\mathit{term} = \mathit{currentTerm}$}
+                        \If{$\mathit{success} = \mathsf{true}$}
+                            \State $\mathit{sentLength}[\mathit{follower}] := \mathit{ack};\; \mathit{ackedLength}[\mathit{follower}] := \mathit{ack}$
+                            \State $\mathit{minAcks} := \left\lceil (|\mathit{nodes}| + 1)/2 \right\rceil$
+                            \State $\mathit{ready} := \{\mathit{len} \in \{1,\dots,\mathit{log}.\mathsf{length}\} \mid \mathrm{acks}(\mathit{len}) \ge \mathit{minAcks}\}$
+                            \If{$\mathit{ready} \ne \{\} \;\wedge\; \max(\mathit{ready}) > \mathit{commitLength} \;\wedge$\\\hspace{75pt}$\mathit{log}[\max(\mathit{ready}) - 1].\mathsf{term} = \mathit{currentTerm}$}
+                                \For{$i := commitLength$ \textbf{to} $\max(\mathit{ready}) - 1$}
+                                    \State deliver $\mathit{log}[i].\mathsf{msg}$ to the application
+                                \EndFor
+                                \State $\mathit{commitLength} := \max(\mathit{ready})$
+                            \EndIf
+                        \ElsIf{$\mathit{sentLength}[\mathit{follower}] > 0$}
+                            \State $\mathit{sentLength}[\mathit{follower}] := \mathit{sentLength}[\mathit{follower}] - 1$
+                            \State \Call{ReplicateLog}{$\mathit{nodeId}, \mathit{follower}$}
+                        \EndIf
+                    \EndIf
+                \EndOn
+            \end{algorithmic}
+        \end{minipage}%
+    }%
+\end{frame}
+\inlineslide{s:raft8}\label{l:raft8}
+
+% Differences between this formulation of the algorithm and that in Diego Ongaro's thesis:
+% - arrays (log, list of entries) use 0-based indexing
+% - rename "index" variable names to "length" to avoid confusion because indexes are now 1 lower
+% - changed nextIndex to sentLength and reduced its value by 1, to match the name
+% - allow for replicating more than one log entry at a time
+
+Raft \citep{Ongaro:2014} and Paxos \citep{Lamport:1998}.
+\citet{Howard:2020} give a detailed comparison of Raft and Multi-Paxos.
+
+% Manual leader change, especially for planned maintenance
+
+% The process of choosing a new leader is called \emph{leader election}, and the process of transitioning the leadership to a new node is called \emph{failover}.
+
+% Split brain
+
+% Define total order broadcast as:
+% 1. If a correct process delivers message m, then m was broadcast by a process in the system.
+% 2. No message is delivered more than once.
+% 3. If a correct process p broadcasts a message m, then p eventually delivers m.
+% 4. If a correct process delivers a message m, then all correct processes eventually deliver m.
+% 5. If a correct process delivers m1 before delivering message m2, then all correct processes must deliver m1 before m2.
+% Exercise: can't we combine properties 3 and 4 into one property, namely: if a correct process broadcasts a message m, then all correct processes eventually deliver m.
+% Answer: no, this is not equivalent. Say message m is broadcast by faulty process p, and delivered by correct process q. In the original properties, m must now be delivered by all correct processes because it was delivered by one correct process. In the revised property, other processes would not necessarily need to deliver m, because it was sent by a faulty process.
+
+% also consider Byzantine agreement, 2-phase commit, virtual synchrony
 
 \section{Replica consistency}\label{sec:consistency}
 
@@ -3913,6 +4167,10 @@ This can be done, and we will see some techniques for commutativity in \autoref{
 % ABD algorithm. Linearizability. Even shared memory on one machine is not linearisable!
 
 % CAP: consistent or available in the presence of a partition
+
+% Equivalence of consensus, CAS, abcast
+% Linearisable CAS requires consensus but ABD does not (works in asynchronous model)
+% CRDT works in asynchronous model without quorum
 
 % Distributed systems are fascinating because we have to work with partial knowledge and uncertain
 % truths. We never have certainty about the state of the system, because by the time we hear about
@@ -3931,15 +4189,6 @@ This can be done, and we will see some techniques for commutativity in \autoref{
 % 9. Security (e.g. TLS), byzantine fault tolerance, and blockchains
 
 % Live demo of RESTful API with Dropwizard, curl, browser access
-
-% Define total order broadcast as:
-% 1. If a correct process delivers message m, then m was broadcast by a process in the system.
-% 2. No message is delivered more than once.
-% 3. If a correct process p broadcasts a message m, then p eventually delivers m.
-% 4. If a correct process delivers a message m, then all correct processes eventually deliver m.
-% 5. If a correct process delivers m1 before delivering message m2, then all correct processes must deliver m1 before m2.
-% Exercise: can't we combine properties 3 and 4 into one property, namely: if a correct process broadcasts a message m, then all correct processes eventually deliver m.
-% Answer: no, this is not equivalent. Say message m is broadcast by faulty process p, and delivered by correct process q. In the original properties, m must now be delivered by all correct processes because it was delivered by one correct process. In the revised property, other processes would not necessarily need to deliver m, because it was sent by a faulty process.
 
 % http://book.mixu.net/distsys/single-page.html
 % BaseDS: https://github.com/vaidehijoshi/baseds-series  /   https://medium.com/baseds
