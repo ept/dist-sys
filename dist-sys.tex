@@ -4130,6 +4130,25 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
 
 \subsection{The Raft consensus algorithm}
 
+To make these ideas concrete, we will now walk through the full Raft algorithm for fault-tolerant total order broadcast.
+It is by far the most complex algorithm that we look at in this course, with pseudocode spanning nine slides.
+(Paxos and other consensus algorithms are similarly complex, if not worse.)
+There is no need to memorise the whole algorithm for the exam, but it is worth studying carefully in order to understand the underlying principles.
+
+In order to understand the algorithm, it is worth keeping in mind the state machine on \autoref{l:raft-states}.
+A node can be in one of three states: \emph{leader}, \emph{candidate}, or \emph{follower}.
+When a node first starts running, or when it crashes and recovers, it starts up in the follower state and awaits messages from other nodes.
+
+If it receives no messages from a leader or candidate for some period of time, the follower suspects that the leader is unavailable, and it may attempt to become leader itself.
+To this end, the node transitions to the candidate state, increments the term number, and starts a leader election in that term.
+During this election, if the node hears from another candidate or leader with a higher term, it moves back into the follower state.
+But if the election succeeds and it receives votes from a quorum of nodes, the candidate transitions to leader state.
+If not enough votes are received within some period of time, the election times out, and the candidate restarts the election with a higher term.
+
+Once a node is in the leader state, it remains leader until it is shut down or crashes, or until it receives a message from a leader or candidate with a term higher than its own.
+Such a higher term could occur if a network partition made the leader and another node unable to communicate for long enough that the other node started an election for a new leader.
+On hearing about a higher term, the former leader steps down to become a follower.
+
 \begin{frame}
     \label{s:raft-states}
     \frametitle{Node state transitions in Raft}
@@ -4137,23 +4156,42 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
         \begin{tikzpicture}
             \tikzstyle{transition}=[-Stealth,very thick]
             \tikzstyle{label}=[align=center,font=\footnotesize]
+            \node at (-1,3) {}; \node at (10,-2) {};
             \node [circle,fill=lightgrey,draw,minimum width=2.1cm] (follower) at (0,0) {Follower};
             \node [circle,fill=lightgrey,draw,minimum width=2.1cm] (candidate) at (4.5,0) {Candidate};
             \node [circle,fill=lightgrey,draw,minimum width=2.1cm] (leader) at (9,0) {Leader};
-            \draw (-1,3) edge [transition] node [label,right,near start,text width=2cm] {starts up or recovers from crash} (follower);
-            \draw (follower) edge [transition,out=30,in=150] node [label,above,text width=2.5cm] {suspects leader failure} (candidate);
-            \draw (candidate) edge [transition] node [label,below,text width=2.5cm] {discovers new term} (follower);
-            \draw (candidate) edge [transition,loop above,looseness=5,out=110,in=70] node [label,above,text width=2.5cm] {election times out} (candidate);
-            \draw (candidate) edge [transition] node [label,above,text width=2.5cm] {receives votes from quorum} (leader);
-            \draw (leader) edge [transition,out=215,in=325] node [label,below] {discovers new term} (follower);
+            \draw<2-> (-1,3) edge [transition] node [label,right,near start,text width=2cm] {starts up or recovers from crash} (follower);
+            \draw<3-> (follower) edge [transition,out=30,in=150] node [label,above,text width=2.5cm] {suspects leader failure} (candidate);
+            \draw<4-> (candidate) edge [transition] node [label,above,text width=2.5cm] {receives votes from quorum} (leader);
+            \draw<5-> (candidate) edge [transition] node [label,below,text width=2.5cm] {discovers new term} (follower);
+            \draw<6-> (candidate) edge [transition,loop above,looseness=5,out=110,in=70] node [label,above,text width=2.5cm] {election times out} (candidate);
+            \draw<7-> (leader) edge [transition,out=215,in=325] node [label,below] {discovers new term} (follower);
         \end{tikzpicture}
     \end{center}%
 \end{frame}
 \inlineslide{s:raft-states}\label{l:raft-states}
 
+\autoref{l:raft1} shows the pseudocode for starting up, and for starting an election.
+The variables defined in the initialisation block constitute the state of a node.
+Four of the variables ($\mathit{currentTerm}$, $\mathit{votedFor}$, $\mathit{log}$, and $\mathit{commitLength}$) need to be maintained in stable storage (e.g.\ on disk), since their values must not be lost in the case of a crash.
+The other variables can be in volatile memory, and the crash-recovery function resets their values.
+
+The variable $\mathit{log}$ contains an array of entries, each of which has the properties $\mathsf{msg}$ and $\mathsf{term}$.
+The $\mathsf{msg}$ property of each array entry contains a message that we want to deliver through total order broadcast, and the $\mathsf{term}$ property contains the term number in which it was broadcast.
+The log grows by appending new entries to the end, and Raft replicates this log across nodes.
+When a log entry (and all of its predecessors) have been replicated to a quorum of nodes, it is \emph{committed}.
+At the moment where we commit a log entry, we also deliver its $\mathsf{msg}$ to the application.
+Before a log entry is committed, it may yet change, but Raft guarantees that once a log entry is committed, it is final, and all nodes will commit the same sequence of log entries.
+Therefore, delivering messages from committed log entries in their log order gives us total order broadcast.
+
+When the node suspects a leader failure, starts a leader election as follows: it increments $\mathit{currentTerm}$, it sets its own role to $\mathsf{candidate}$, and it votes for itself by setting $\mathit{votedFor}$ and $\mathit{votesReceived}$ to its own node ID.
+It then sends a $\mathsf{VoteRequest}$ message to each other node, asking it to vote on whether this candidate should be the new leader.
+The message contains the $\mathit{nodeId}$ of the candidate, its $\mathit{currentTerm}$ (after incrementing), the number of entries in its log, and the $\mathsf{term}$ property of its last log entry.
+The pseudocode uses zero-based indexing, so $\mathit{log}[0]$ is the first log entry and $\mathit{log}[\mathit{log}.\mathsf{length}-1]$ is the last.
+
 \begin{frame}
     \label{s:raft1}
-    \frametitle{Raft (1): initialisation}
+    \frametitle{Raft (1/9): initialisation}
     \footnotesize
     \begin{algorithmic}
         \On{initialisation}
@@ -4170,19 +4208,32 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
         \State
         \On{node $\mathit{nodeId}$ suspects leader has failed, or on election timeout}
             \State $\mathit{currentTerm} := \mathit{currentTerm} + 1$
-            \State $\mathit{currentRole} := \mathsf{candidate};\; \mathit{votedFor} := \mathsf{null}$
+            \State $\mathit{currentRole} := \mathsf{candidate};\; \mathit{votedFor} := \mathit{nodeId}$
             \State $\mathit{votesReceived} := \{\mathit{nodeId}\};\; \mathit{lastTerm} := \mathit{log}[\mathit{log}.\mathsf{length} - 1].\mathsf{term}$
             \State $\mathit{msg} := (\mathsf{VoteRequest}, \mathit{nodeId}, \mathit{currentTerm}, \mathit{log}.\mathsf{length}, \mathit{lastTerm})$
             \State \textbf{for each} $\mathit{node} \in \mathit{nodes}$: \textbf{send} $\mathit{msg}$ to $\mathit{node}$
             \State start election timer
         \EndOn
     \end{algorithmic}
+    \begin{tikzpicture}[remember picture,overlay]
+        \tikzstyle{entry}=[rectangle split,rectangle split parts=2,draw,fill=green!10]
+        \node (log) [xshift=3cm,yshift=4cm] at (current page.center) {};
+        \draw<2-> (log) node [left,xshift=-1cm] {$\mathit{log} =$};
+        \node<2-> [entry,xshift=-0.5cm] (entry1) at (log) {$m_1$\nodepart{second}1};
+        \node<2-> [entry,right of=entry1] (entry2) {$m_2$\nodepart{second}1};
+        \node<2-> [entry,right of=entry2] (entry3) {$m_3$\nodepart{second}1};
+        \draw<2-> [<-] (entry3.text east) -- node [at end,right] {$\mathsf{msg}$}  +(0.3,0);
+        \draw<2-> [<-] (entry3.two east)  -- node [at end,right] {$\mathsf{term}$} +(0.3,0);
+        \draw<2-> [<-] (entry1.south) -- node [at end,below] {$\mathit{log}[0]$} +(0,-0.3);
+        \draw<2-> [<-] (entry2.south) -- node [at end,below] {$\mathit{log}[1]$} +(0,-0.3);
+        \draw<2-> [<-] (entry3.south) -- node [at end,below] {$\mathit{log}[2]$} +(0,-0.3);
+    \end{tikzpicture}
 \end{frame}
 \inlineslide{s:raft1}\label{l:raft1}
 
 \begin{frame}
     \label{s:raft2}
-    \frametitle{Raft (2): voting on a new leader}
+    \frametitle{Raft (2/9): voting on a new leader}
     \footnotesize
     \begin{algorithmic}
         \State
@@ -4205,12 +4256,30 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
         \EndOn
         \State
     \end{algorithmic}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node<2-> (log) [xshift=4.5cm,yshift=4.2cm,ellipse callout,callout relative pointer={(-1,-0.6)},draw,fill=green!10]
+            at (current page.center) {$c$ for candidate};
+    \end{tikzpicture}
 \end{frame}
 \inlineslide{s:raft2}\label{l:raft2}
 
+\autoref{l:raft2} shows what happens when a node receives a $\mathsf{VoteRequest}$ message from a candidate.
+A node will only vote for a candidate if the candidate's log is at least as up-to-date as the voter's log; this prevents a candidate with an outdated log from becoming leader, which could lead to the loss of committed log entries.
+The candidate's log is acceptable if the term of its last log entry is higher than the term of the last log entry on the node that received the $\mathsf{VoteRequest}$ message.
+Moreover, the log is also acceptable if the terms are the same and the candidate's log contains at least as many entries as the recipient's log.
+This logic is reflected in the $\mathit{logOk}$ variable.
+
+Moreover, a node will not vote for a candidate if it has already voted for another candidate in the same term or a later term.
+The variable $\mathit{termOk}$ is true if it is okay to vote for the candidate according to this rule.
+The $\mathit{votedFor}$ variable keeps track of any previous vote by the current node in $\mathit{currentTerm}$.
+
+If both $\mathit{logOk}$ and $\mathit{termOk}$, then the node updates its current term to the candidate's term, records its vote in $\mathit{votedFor}$, and sends a $\mathsf{VoteResponse}$ message containing $\mathsf{true}$ (indicating success) to the candidate.
+Otherwise, the node sends a $\mathsf{VoteResponse}$ message containing $\mathsf{false}$ (indicating a refusal to vote for the candidate).
+Besides the flag for success or failure, the response message contains the $\mathit{nodeId}$ of the node sending the vote, and the term of the vote.
+
 \begin{frame}
     \label{s:raft3}
-    \frametitle{Raft (3): collecting votes}
+    \frametitle{Raft (3/9): collecting votes}
     \footnotesize
     \begin{algorithmic}
         \State
@@ -4238,9 +4307,18 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
 \end{frame}
 \inlineslide{s:raft3}\label{l:raft3}
 
+Back on the candidate, \autoref{l:raft3} shows the code for processing the $\mathsf{VoteResponse}$ messages.
+We ignore any responses relating to earlier terms (which could arrive late due to network delays).
+If the term in the response is higher than the candidate's term, the candidate cancels the election and transitions back into the follower state.
+But if the term is correct and the success flag $\mathit{granted}$ is set to true, the candidate adds the node ID of the voter to the set of votes received.
+
+If the set of votes constitutes a quorum, the candidate transitions into the leader state.
+As its first action as a leader, it updates the $\mathit{sentLength}$ and $\mathit{ackedLength}$ variables, which will be explained later, and then calls the \textsc{ReplicateLog} function (defined on \autoref{l:raft5}) for each follower.
+This has the effect of sending a message to each follower, informing them about the new leader.
+
 \begin{frame}
     \label{s:raft4}
-    \frametitle{Raft (4): broadcasting messages}
+    \frametitle{Raft (4/9): broadcasting messages}
     \footnotesize
     \begin{algorithmic}
         \State
@@ -4268,9 +4346,11 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
 \end{frame}
 \inlineslide{s:raft4}\label{l:raft4}
 
+\autoref{l:raft4} shows how new entries are added to the log.
+
 \begin{frame}
     \label{s:raft5}
-    \frametitle{Raft (5): replicating from leader to followers}
+    \frametitle{Raft (5/9): replicating from leader to followers}
     \footnotesize
     Called on the leader whenever there is a new message in the log, and also periodically.
     If there are no new messages, $\mathit{entries}$ is the empty list.
@@ -4293,7 +4373,7 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
 
 \begin{frame}
     \label{s:raft6}
-    \frametitle{Raft (6): followers receiving messages}
+    \frametitle{Raft (6/9): followers receiving messages}
     \footnotesize
     \makebox[\linewidth][c]{%
         \begin{minipage}{11cm}
@@ -4325,7 +4405,7 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
 
 \begin{frame}
     \label{s:raft7}
-    \frametitle{Raft (7): updating followers' logs}
+    \frametitle{Raft (7/9): updating followers' logs}
     \footnotesize
     \begin{algorithmic}
         \Function{AppendEntries}{$\mathit{logLength}, \mathit{leaderCommit}, \mathit{entries}$}
@@ -4353,7 +4433,7 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
 
 \begin{frame}
     \label{s:raft8}
-    \frametitle{Raft (8): leader receiving log acknowledgements}
+    \frametitle{Raft (8/9): leader receiving log acknowledgements}
     \footnotesize
     \makebox[\linewidth][c]{%
         \begin{minipage}{12cm}
@@ -4384,7 +4464,7 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
 
 \begin{frame}
     \label{s:raft9}
-    \frametitle{Raft (9): leader committing log entries}
+    \frametitle{Raft (9/9): leader committing log entries}
     \footnotesize
     Any log entries that have been acknowledged by a quorum of nodes are ready to be committed by the leader.
     When a log entry is committed, its message is delivered to the application.\\[1em]
@@ -4411,13 +4491,6 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
 % - rename "index" variable names to "length" to avoid confusion because indexes are now 1 lower
 % - changed nextIndex to sentLength and reduced its value by 1, to match the name
 % - allow for replicating more than one log entry at a time
-
-
-% Manual leader change, especially for planned maintenance
-
-% The process of choosing a new leader is called \emph{leader election}, and the process of transitioning the leadership to a new node is called \emph{failover}.
-
-% Split brain
 
 % Define total order broadcast as:
 % 1. If a correct process delivers message m, then m was broadcast by a process in the system.
