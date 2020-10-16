@@ -61,7 +61,7 @@
 \newcommand\supervision[2]{\begin{exercise}#1\end{exercise}}
 
 \algblockdefx{On}{EndOn}[1]{\textbf{on} #1 \textbf{do}}{\textbf{end on}}
-\algblockdefx{Periodically}{EndPeriodically}{\textbf{periodically do}}{\textbf{end do}}
+\algblockdefx{Periodically}{EndPeriodically}[1]{\textbf{periodically} #1 \textbf{do}}{\textbf{end do}}
 
 \newcommand{\storageSymbol}{\begin{tikzpicture}%
     \draw (0.4, 0.7) ellipse (0.4 and 0.2);

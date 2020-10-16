@@ -4031,7 +4031,7 @@ Only the \emph{liveness} (namely, that a message is eventually delivered) depend
             \filldraw<6-> [blue,fill opacity=0.1] (2,2) circle [x radius=3,y radius=1];
             \filldraw<7-> [red,fill opacity=0.1] (6,2) circle [x radius=3,y radius=1];
             \node<6-> [blue] at (1,0.7) {\textbf{elects a leader}};
-            \node<7-> [red,text width=6.5cm]  at (7,0.45) {\textbf{cannot elect a different leader} because $C$ knows about first leader};
+            \node<7-> [red,text width=6.5cm]  at (7,0.45) {\textbf{cannot elect a different leader} because $C$ already voted};
             \node (A) at (0,2) {\storageSymbol}; \node [yshift=-0.2cm] at (A) {$A$};
             \node (B) at (2,2) {\storageSymbol}; \node [yshift=-0.2cm] at (B) {$B$};
             \node (C) at (4,2) {\storageSymbol}; \node [yshift=-0.2cm] at (C) {$C$};
@@ -4175,19 +4175,21 @@ On hearing about a higher term, the former leader steps down to become a followe
 The variables defined in the initialisation block constitute the state of a node.
 Four of the variables ($\mathit{currentTerm}$, $\mathit{votedFor}$, $\mathit{log}$, and $\mathit{commitLength}$) need to be maintained in stable storage (e.g.\ on disk), since their values must not be lost in the case of a crash.
 The other variables can be in volatile memory, and the crash-recovery function resets their values.
+Each node has a unique ID, and we assume there is a global constant, $\mathit{nodes}$, containing the set of IDs of all nodes in the system.
+This version of the algorithm does not deal with reconfiguration (adding or removing nodes in the system).
 
 The variable $\mathit{log}$ contains an array of entries, each of which has the properties $\mathsf{msg}$ and $\mathsf{term}$.
 The $\mathsf{msg}$ property of each array entry contains a message that we want to deliver through total order broadcast, and the $\mathsf{term}$ property contains the term number in which it was broadcast.
+The log uses zero-based indexing, so $\mathit{log}[0]$ is the first log entry and $\mathit{log}[\mathit{log}.\mathsf{length}-1]$ is the last.
 The log grows by appending new entries to the end, and Raft replicates this log across nodes.
 When a log entry (and all of its predecessors) have been replicated to a quorum of nodes, it is \emph{committed}.
-At the moment where we commit a log entry, we also deliver its $\mathsf{msg}$ to the application.
+At the moment when we commit a log entry, we also deliver its $\mathsf{msg}$ to the application.
 Before a log entry is committed, it may yet change, but Raft guarantees that once a log entry is committed, it is final, and all nodes will commit the same sequence of log entries.
 Therefore, delivering messages from committed log entries in their log order gives us total order broadcast.
 
-When the node suspects a leader failure, starts a leader election as follows: it increments $\mathit{currentTerm}$, it sets its own role to $\mathsf{candidate}$, and it votes for itself by setting $\mathit{votedFor}$ and $\mathit{votesReceived}$ to its own node ID.
+When a node suspects a leader failure, it starts a leader election as follows: it increments $\mathit{currentTerm}$, it sets its own role to $\mathsf{candidate}$, and it votes for itself by setting $\mathit{votedFor}$ and $\mathit{votesReceived}$ to its own node ID.
 It then sends a $\mathsf{VoteRequest}$ message to each other node, asking it to vote on whether this candidate should be the new leader.
 The message contains the $\mathit{nodeId}$ of the candidate, its $\mathit{currentTerm}$ (after incrementing), the number of entries in its log, and the $\mathsf{term}$ property of its last log entry.
-The pseudocode uses zero-based indexing, so $\mathit{log}[0]$ is the first log entry and $\mathit{log}[\mathit{log}.\mathsf{length}-1]$ is the last.
 
 \begin{frame}
     \label{s:raft1}
@@ -4207,9 +4209,9 @@ The pseudocode uses zero-based indexing, so $\mathit{log}[0]$ is the first log e
         \EndOn
         \State
         \On{node $\mathit{nodeId}$ suspects leader has failed, or on election timeout}
-            \State $\mathit{currentTerm} := \mathit{currentTerm} + 1$
-            \State $\mathit{currentRole} := \mathsf{candidate};\; \mathit{votedFor} := \mathit{nodeId}$
-            \State $\mathit{votesReceived} := \{\mathit{nodeId}\};\; \mathit{lastTerm} := \mathit{log}[\mathit{log}.\mathsf{length} - 1].\mathsf{term}$
+            \State $\mathit{currentTerm} := \mathit{currentTerm} + 1;\; \mathit{currentRole} := \mathsf{candidate}$
+            \State $\mathit{votedFor} := \mathit{nodeId};\; \mathit{votesReceived} := \{\mathit{nodeId}\};\; \mathit{lastTerm} := 0$
+            \State \textbf{if} $\mathit{log}.\mathsf{length} > 0$ \textbf{then} $\mathit{lastTerm} := \mathit{log}[\mathit{log}.\mathsf{length} - 1].\mathsf{term}$; \textbf{end if}
             \State $\mathit{msg} := (\mathsf{VoteRequest}, \mathit{nodeId}, \mathit{currentTerm}, \mathit{log}.\mathsf{length}, \mathit{lastTerm})$
             \State \textbf{for each} $\mathit{node} \in \mathit{nodes}$: \textbf{send} $\mathit{msg}$ to $\mathit{node}$
             \State start election timer
@@ -4313,8 +4315,21 @@ If the term in the response is higher than the candidate's term, the candidate c
 But if the term is correct and the success flag $\mathit{granted}$ is set to true, the candidate adds the node ID of the voter to the set of votes received.
 
 If the set of votes constitutes a quorum, the candidate transitions into the leader state.
-As its first action as a leader, it updates the $\mathit{sentLength}$ and $\mathit{ackedLength}$ variables, which will be explained later, and then calls the \textsc{ReplicateLog} function (defined on \autoref{l:raft5}) for each follower.
+As its first action as a leader, it updates the $\mathit{sentLength}$ and $\mathit{ackedLength}$ variables (explained below), and then calls the \textsc{ReplicateLog} function (defined on \autoref{l:raft5}) for each follower.
 This has the effect of sending a message to each follower, informing them about the new leader.
+
+On the leader, $\mathit{sentLength}$ and $\mathit{ackedLength}$ are variables that map each node ID to an integer (non-leader nodes do not use these variables).
+For each follower $F$, $\mathit{sentLength}[F]$ tracks how many log entries, counting from the beginning of the log, have been sent to $F$, and $\mathit{ackedLength}[F]$ tracks how many log entries have been acknowledged as received by $F$.
+On becoming a leader, a node initialises $\mathit{sentLength}[F]$ to $\mathit{log}.\mathsf{length}$ (i.e.\ it assumes that the follower has already been sent the whole log), and initialises $\mathit{ackedLength}[F]$ to $0$ (i.e.\ nothing has been acknowledged yet).
+These assumptions might be wrong: for example, the follower might be missing some of the log entries that are present on the leader.
+In this case, $\mathit{sentLength}[F]$ will be corrected through a process that we discuss on \autoref{l:raft8}.
+
+\autoref{l:raft4} shows how a new entry is added to the log when the application wishes to broadcast a message through total order broadcast.
+A leader can simply go ahead and append a new entry to its log, while any other node needs to ask the leader to do this on its behalf.
+The leader then updates its own entry in $\mathit{ackedLength}$ to $\mathit{log}.\mathsf{length}$, indicating that it has acknowledged its own addition to the log, and calls \textsc{ReplicateLog} for each other node.
+
+Moreover, a leader also periodically calls \textsc{ReplicateLog} for each other node, even if there is no new message to broadcast.
+This serves multiple purposes: it lets the followers know that the leader is still alive; it serves as retransmission of any messages from leader to follower that might have been lost; and it updates the follower about which messages can be committed, as explained below.
 
 \begin{frame}
     \label{s:raft4}
@@ -4334,7 +4349,7 @@ This has the effect of sending a message to each follower, informing them about 
             \EndIf
         \EndOn
         \State
-        \Periodically
+        \Periodically{at node $\mathit{nodeId}$}
             \If{$\mathit{currentRole} = \mathsf{leader}$}
                 \For{each $\mathit{follower} \in \mathit{nodes} \setminus \{\mathit{nodeId}\}$}
                     \State \Call{ReplicateLog}{$\mathit{nodeId}, \mathit{follower}$}
@@ -4346,8 +4361,6 @@ This has the effect of sending a message to each follower, informing them about 
 \end{frame}
 \inlineslide{s:raft4}\label{l:raft4}
 
-\autoref{l:raft4} shows how new entries are added to the log.
-
 \begin{frame}
     \label{s:raft5}
     \frametitle{Raft (5/9): replicating from leader to followers}
@@ -4357,19 +4370,41 @@ This has the effect of sending a message to each follower, informing them about 
     $\mathsf{LogRequest}$ messages with $\mathit{entries} = \langle\rangle$ serve as heartbeats, letting followers know that the leader is still alive.\\[1em]
     \begin{algorithmic}
         \Function{ReplicateLog}{$\mathit{leaderId}, \mathit{followerId}$}
-            \State $\mathit{prevLogTerm} := 0$
-            \If{$\mathit{sentLength}[\mathit{followerId}] > 0$}
-                \State $\mathit{prevLogTerm} := \mathit{log}[\mathit{sentLength}[\mathit{followerId}] - 1].\mathsf{term}$
-            \EndIf
             \State $i := \mathit{sentLength}[\mathit{followerId}]$
             \State $\mathit{entries} := \langle\mathit{log}[i],\, \mathit{log}[i + 1],\, \dots,\, \mathit{log}[\mathit{log}.\mathsf{length} - 1]\rangle$
-            \State \textbf{send} $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{currentTerm}, \mathit{sentLength}[\mathit{followerId}],$
-            \State \hspace{25pt}$\mathit{prevLogTerm}, \mathit{commitLength}, \mathit{entries})$ to $\mathit{followerId}$
+            \State $\mathit{prevLogTerm} := 0$
+            \If{$i > 0$}
+                \State $\mathit{prevLogTerm} := \mathit{log}[i - 1].\mathsf{term}$
+            \EndIf
+            \State \textbf{send} $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{currentTerm}, i, \mathit{prevLogTerm},$
+            \State \hspace{25pt}$\mathit{commitLength}, \mathit{entries})$ to $\mathit{followerId}$
         \EndFunction
         \State
     \end{algorithmic}
 \end{frame}
 \inlineslide{s:raft5}\label{l:raft5}
+
+The \textsc{ReplicateLog} function is shown on \autoref{l:raft5}.
+Its purpose is to send any new log entries from the leader to the follower node with ID $\mathit{followerId}$.
+It first sets the variable $\mathit{entries}$ to the suffix of the log starting with index $\mathit{sentLength}[\mathit{followerId}]$, if it exists.
+That is, if $\mathit{sentLength}[\mathit{followerId}]$ is the number of log entries already sent to $\mathit{followerId}$, then $\mathit{entries}$ contains the remaining entries that have not yet been sent.
+If $\mathit{sentLength}[\mathit{followerId}] = \mathit{log}.\mathsf{length}$, the variable $\mathit{entries}$ is set to the empty array.
+
+\textsc{ReplicateLog} then sends a $\mathsf{LogRequest}$ message to $\mathit{followerId}$ containing $\mathit{entries}$ as well as several other values: the ID of the leader; its current term; the length of the log prefix that precedes $\mathit{entries}$; the term of the last log entry preceding $\mathit{entries}$; and $\mathit{commitLength}$, which is the number of log entries that have been committed, as counted from the start of the log.
+More on committing log entries shortly.
+
+When a follower receives one of these $\mathsf{LogRequest}$ messages from the leader, it processes the message as shown on \autoref{l:raft6}.
+First, if the message is for a later term than the follower has previously seen, it updates its current term.
+
+Next, the follower checks if its log is consistent with that of the leader.
+$\mathit{logLength}$ is the number of log entries that precede the new $\mathit{entries}$ contained in the $\mathsf{LogRequest}$ message.
+The follower requires that its log is at least as long as $\mathit{logLength}$ (i.e.\ it is not missing any entries), and that the term of the last log entry in the $\mathit{logLength}$ prefix of the follower's log is the same as the term of the same log entry on the leader.
+If both of these checks pass, the $\mathit{logOk}$ variable is set to true.
+
+If the $\mathsf{LogRequest}$ message is for the expected term and if $\mathit{logOk}$, then the follower accepts the message.
+It recognises the sender of the message as its leader (if it has not already done this before), and it calls the \textsc{AppendEntries} function (defined on \autoref{l:raft7}) to add $\mathit{entries}$ to its own log.
+It then replies to the leader with a $\mathsf{LogResponse}$ message containing the follower's ID, the current term, an acknowledgement of the number of log entries received, and the value $\mathsf{true}$ indicating that the $\mathsf{LogRequest}$ was successful.
+If the message is from an outdated term or $\mathit{logOk}$ is false, the follower replies with a $\mathsf{LogResponse}$ containing $\mathsf{false}$ to indicate an error.
 
 \begin{frame}
     \label{s:raft6}
@@ -4383,7 +4418,7 @@ This has the effect of sending a message to each follower, informing them about 
                     \If{$\mathit{term} > \mathit{currentTerm}$}
                         \State $\mathit{currentTerm} := \mathit{term};\; \mathit{votedFor} := \mathsf{null}$
                     \EndIf
-                    \State $\mathit{logOk} := (\mathit{logLength} \le \mathit{log}.\mathsf{length})$
+                    \State $\mathit{logOk} := (\mathit{log}.\mathsf{length} \ge \mathit{logLength})$
                     \If{$\mathit{logOk} \wedge (\mathit{logLength} > 0)$}
                         \State $\mathit{logOk} := (\mathit{logTerm} = \mathit{log}[\mathit{logLength} - 1].\mathsf{term})$
                     \EndIf
@@ -4431,6 +4466,22 @@ This has the effect of sending a message to each follower, informing them about 
 \end{frame}
 \inlineslide{s:raft7}\label{l:raft7}
 
+\autoref{l:raft7} shows the \textsc{AppendEntries} function, which a follower calls to extend its log with entries received from the leader.
+$\mathit{logLength}$ is the number of log entries (counted from the beginning of the log) that precede the new $\mathit{entries}$.
+If the follower's log already contains entries at $\mathit{log}[\mathit{logLength}]$ and beyond, it compares the term of that existing entry with the term of the first new entry received from the leader.
+If they are inconsistent, the follower discards those existing entries by truncating the log.
+This happens if the existing log entries came from a previous leader, which has now been superseded by a new leader.
+
+Next, any new $\mathit{entries}$ that are not already present in the follower's log are appended to the log.
+In the case of message duplication, this operation is idempotent, since the new entries are understood to begin at index $\mathit{logLength}$ in the log.
+
+Finally, the follower checks whether the integer $\mathit{leaderCommit}$ in the $\mathsf{LogRequest}$ message is greater than its local variable $\mathit{commitLength}$.
+If so, this means that new records are ready to be committed and delivered to the application.
+The leader moves its $\mathit{commitLength}$ forward and performs the total order broadcast delivery of the messages in the appropriate log entries.
+
+This completes the algorithm from the followers' point of view.
+What remains is to switch back to the leader, and to show how it processes the $\mathsf{LogResponse}$ messages from followers (see \autoref{l:raft8}).
+
 \begin{frame}
     \label{s:raft8}
     \frametitle{Raft (8/9): leader receiving log acknowledgements}
@@ -4462,6 +4513,16 @@ This has the effect of sending a message to each follower, informing them about 
 \end{frame}
 \inlineslide{s:raft8}\label{l:raft8}
 
+A leader receiving a $\mathsf{LogResponse}$ message first checks the term in the message: if the sender's term is later than the recipient's term, that means a new leader election has been started, and so this node transitions from leader to follower.
+Messages with an outdated term are ignored.
+For messages with the correct term, we check the $\mathit{success}$ boolean field to see whether the follower accepted the log entries.
+
+If $\mathit{success} = \mathsf{true}$, the leader updates $\mathit{sentLength}$ and $\mathit{ackedLength}$ to reflect the number of log entries acknowledged by the follower, and then calls the \textsc{CommitLogEntries} function (\autoref{l:raft9}).
+If $\mathit{success} = \mathsf{false}$, we know that the follower did not accept the log entries because its $\mathit{logOk}$ variable was false.
+In this case, the leader decrements the $\mathit{sentLength}$ value for this follower, and calls \textsc{ReplicateLog} to retry sending the $\mathsf{LogRequest}$ message starting with an earlier log entry.
+This may happen multiple times, but eventually the leader will send the follower an array of entries that cleanly extends the follower's existing log, at which point the follower will accept the $\mathsf{LogRequest}$.
+(This algorithm could be optimised to require fewer retries, but in this course we will avoid making it more complex than needed.)
+
 \begin{frame}
     \label{s:raft9}
     \frametitle{Raft (9/9): leader committing log entries}
@@ -4485,6 +4546,16 @@ This has the effect of sending a message to each follower, informing them about 
     \end{algorithmic}
 \end{frame}
 \inlineslide{s:raft9}\label{l:raft9}
+
+Finally, \autoref{l:raft9} shows how the leader determines which log entries to commit.
+We define the function $\mathrm{acks}(\mathit{length})$ to take an integer, a number of log entries counted from the start of the log.
+This function returns the number of nodes that have acknowledged the receipt of $\mathit{length}$ log entries or more.
+
+\textsc{CommitLogEntries} uses this function to determine how many log entries have been acknowledged by a majority quorum of nodes or more.
+The variable $\mathit{ready}$ contains the set of log prefix lengths that are ready to commit, and if $\mathit{ready}$ is nonempty, $\max(\mathit{ready})$ is the maximum log prefix length that we can commit.
+If this exceeds the current value of $\mathit{commitLength}$, this means there are new log entries that are now ready to commit because they have been acknowledged by sufficiently many nodes.
+The message in each of these log entries is now delivered to the application on the leader, and the $\mathit{commitLength}$ variable is updated.
+On the next $\mathsf{LogRequest}$ message that the leader sends to followers, the new value of $\mathit{commitLength}$ will be included, causing the followers to commit and deliver the same log entries.
 
 % Differences between this formulation of the algorithm and that in Diego Ongaro's thesis:
 % - arrays (log, list of entries) use 0-based indexing
