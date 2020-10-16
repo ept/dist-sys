@@ -3878,7 +3878,7 @@ It is not sufficient to merely ensure that the state update is deterministic.
 
 For example, we can use causal broadcast, which ensures the same delivery order across replicas when one update happened before another, but which may deliver concurrent updates in any order.
 If we want to ensure that replicas end up in the same state, no matter in which order concurrent updates are delivered, we need to make those updates \emph{commutative}: that is, we have to ensure that the final result is the same, no matter in which order those updates are applied.
-This can be done, and we will see some techniques for commutativity in \autoref{sec:consistency}.
+This can be done, and we will see some techniques for commutativity later. % TODO in \autoref{sec:consistency}.
 
 \begin{frame}
     \label{s:causal-replication}
@@ -4563,6 +4563,8 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
 % - changed nextIndex to sentLength and reduced its value by 1, to match the name
 % - allow for replicating more than one log entry at a time
 
+% See http://wcl.cs.rpi.edu/pilots/library/papers/consensus/RAFTOngaroPhD.pdf for proof of Raft correctness
+
 % Define total order broadcast as:
 % 1. If a correct process delivers message m, then m was broadcast by a process in the system.
 % 2. No message is delivered more than once.
@@ -4574,7 +4576,9 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
 
 % also consider Byzantine agreement, 2-phase commit, virtual synchrony
 
-\section{Replica consistency}\label{sec:consistency}
+% TODO: exercises for Raft (e.g. how did the node log get into this state?)
+
+% \section{Replica consistency}\label{sec:consistency}
 
 % Replication: without broadcast (ABD, quorums); 2-phase commit; CRDTs
 % syllabus also lists multi-leader replication
@@ -4616,6 +4620,12 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
 % https://people.wou.edu/~beavers/LaTeX/beamer_guide.pdf
 % http://anorien.csc.warwick.ac.uk/mirrors/CTAN/macros/latex/contrib/beamer/doc/beameruserguide.pdf
 
+\section{Material for lectures 7 and 8}
+
+Material for the last two lectures was not ready before these notes went to print.
+Please see the course web page \url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/materials.html} for further notes and exercises.
+
+\footnotesize
 \bibliographystyle{plainnat}
 \bibliography{references}{}
 \end{document}
