@@ -37,6 +37,8 @@
 \def\subsectionautorefname{Section}%
 \def\subsubsectionautorefname{Section}%
 
+% TODO: table of contents
+
 \section{Introduction}\label{sec:introduction}
 
 \begin{frame}
@@ -142,8 +144,7 @@ This means that new mistakes may have crept in.
 If you notice anything wrong, or if anything is unclear, please let me know by email (\url{mk428@cst.cam.ac.uk})!
 
 As for other courses, past exam questions are available at \url{https://www.cl.cam.ac.uk/teaching/exams/pastpapers/t-ConcurrentandDistributedSystems.html}.
-Because of syllabus changes, some of the past exam questions are no longer applicable.
-TODO: details on which questions are obsolete.
+Because of syllabus changes, the following past exam questions are no longer applicable: 2018~P5~Q8; 2015~P5~Q8; 2014~P5~Q9~(a); 2013~P5~Q9; 2011~P5~Q8~(b).
 
 These notes also contain exercises, which are suggested material for discussion in supervisions.
 Solution notes for supervisors are available from the course web page.
@@ -3968,14 +3969,14 @@ It has been formally shown that consensus and total order broadcast are equivale
         \item \textbf{Paxos}: single-value consensus\\
             \textbf{Multi-Paxos}: generalisation to total order broadcast\pause
         \item \textbf{Raft}, \textbf{Viewstamped Replication}, \textbf{Zab}:\\
-            total order broadcast by default
+            FIFO-total order broadcast by default
     \end{itemize}
 \end{frame}
 \inlineslide{s:consensus-intro}\label{l:consensus-intro}
 
 The two best-known consensus algorithms are \emph{Paxos} \citep{Lamport:1998} and \emph{Raft} \citep{Ongaro:2014}.
-In its original formulation, Paxos provides only consensus on a single value, and the \emph{Multi-Paxos} algorithm is a generalisation of Paxos that provides total order broadcast.
-On the other hand, Raft is designed to provide total order broadcast ``out of the box''.
+In its original formulation, Paxos provides only consensus on a single value, and the \emph{Multi-Paxos} algorithm is a generalisation of Paxos that provides FIFO-total order broadcast.
+On the other hand, Raft is designed to provide FIFO-total order broadcast ``out of the box''.
 
 \begin{frame}
     \label{s:consensus-model}
@@ -4001,7 +4002,8 @@ We will focus on fair-loss, crash-recovery algorithms for now, which are useful 
 
 On the other hand, the assumption of partial synchrony cannot be weakened to asynchrony.
 The reason is that consensus requires a failure detector (\autoref{l:failure-detector}), which in turn requires a local clock to trigger timeouts \citep{Chandra:1996}.
-If we did not have any clocks, then even just a single crash-stop fault would be enough to make a deterministic consensus algorithm never terminate.
+If we did not have any clocks, then a deterministic consensus algorithm might never terminate.
+Indeed, it has been proved that no deterministic, asynchronous algorithm can solve the consensus problem with guaranteed termination.
 This fact is known as the \emph{FLP result}, one of the most important theorems of distributed computing, named after its three authors Fischer, Lynch, and Paterson \citep{Fischer:1985}.
 
 It is possible to get around the FLP result by using a nondeterministic (randomised) algorithm.
@@ -4130,7 +4132,7 @@ Therefore, even though multiple leaders may exist at the same time, the old lead
 
 \subsection{The Raft consensus algorithm}
 
-To make these ideas concrete, we will now walk through the full Raft algorithm for fault-tolerant total order broadcast.
+To make these ideas concrete, we will now walk through the full Raft algorithm for fault-tolerant FIFO-total order broadcast.
 It is by far the most complex algorithm that we look at in this course, with pseudocode spanning nine slides.
 (Paxos and other consensus algorithms are similarly complex, if not worse.)
 There is no need to memorise the whole algorithm for the exam, but it is worth studying carefully in order to understand the underlying principles.
@@ -4171,6 +4173,16 @@ On hearing about a higher term, the former leader steps down to become a followe
 \end{frame}
 \inlineslide{s:raft-states}\label{l:raft-states}
 
+% TODO: show examples of log consistency/invariants before going into the details of the code?
+
+% Differences between this formulation of the algorithm and that in Diego Ongaro's thesis:
+% - arrays (log, list of entries) use 0-based indexing
+% - rename "index" variable names to "length" to avoid confusion because indexes are now 1 lower
+% - changed nextIndex to sentLength and reduced its value by 1, to match the name
+% - allow for replicating more than one log entry at a time
+
+% See http://wcl.cs.rpi.edu/pilots/library/papers/consensus/RAFTOngaroPhD.pdf for proof of Raft correctness
+
 \autoref{l:raft1} shows the pseudocode for starting up, and for starting an election.
 The variables defined in the initialisation block constitute the state of a node.
 Four of the variables ($\mathit{currentTerm}$, $\mathit{votedFor}$, $\mathit{log}$, and $\mathit{commitLength}$) need to be maintained in stable storage (e.g.\ on disk), since their values must not be lost in the case of a crash.
@@ -4185,7 +4197,7 @@ The log grows by appending new entries to the end, and Raft replicates this log 
 When a log entry (and all of its predecessors) have been replicated to a quorum of nodes, it is \emph{committed}.
 At the moment when we commit a log entry, we also deliver its $\mathsf{msg}$ to the application.
 Before a log entry is committed, it may yet change, but Raft guarantees that once a log entry is committed, it is final, and all nodes will commit the same sequence of log entries.
-Therefore, delivering messages from committed log entries in their log order gives us total order broadcast.
+Therefore, delivering messages from committed log entries in their log order gives us FIFO-total order broadcast.
 
 When a node suspects a leader failure, it starts a leader election as follows: it increments $\mathit{currentTerm}$, it sets its own role to $\mathsf{candidate}$, and it votes for itself by setting $\mathit{votedFor}$ and $\mathit{votesReceived}$ to its own node ID.
 It then sends a $\mathsf{VoteRequest}$ message to each other node, asking it to vote on whether this candidate should be the new leader.
@@ -4325,7 +4337,7 @@ These assumptions might be wrong: for example, the follower might be missing som
 In this case, $\mathit{sentLength}[F]$ will be corrected through a process that we discuss on \autoref{l:raft8}.
 
 \autoref{l:raft4} shows how a new entry is added to the log when the application wishes to broadcast a message through total order broadcast.
-A leader can simply go ahead and append a new entry to its log, while any other node needs to ask the leader to do this on its behalf.
+A leader can simply go ahead and append a new entry to its log, while any other node needs to ask the leader to do this on its behalf, via a FIFO link (to ensure FIFO-total order broadcast).
 The leader then updates its own entry in $\mathit{ackedLength}$ to $\mathit{log}.\mathsf{length}$, indicating that it has acknowledged its own addition to the log, and calls \textsc{ReplicateLog} for each other node.
 
 Moreover, a leader also periodically calls \textsc{ReplicateLog} for each other node, even if there is no new message to broadcast.
@@ -4345,7 +4357,7 @@ This serves multiple purposes: it lets the followers know that the leader is sti
                     \State \Call{ReplicateLog}{$\mathit{nodeId}, \mathit{follower}$}
                 \EndFor
             \Else
-                \State forward the request to $\mathit{currentLeader}$
+                \State forward the request to $\mathit{currentLeader}$ via a FIFO link
             \EndIf
         \EndOn
         \State
@@ -4557,13 +4569,51 @@ If this exceeds the current value of $\mathit{commitLength}$, this means there a
 The message in each of these log entries is now delivered to the application on the leader, and the $\mathit{commitLength}$ variable is updated.
 On the next $\mathsf{LogRequest}$ message that the leader sends to followers, the new value of $\mathit{commitLength}$ will be included, causing the followers to commit and deliver the same log entries.
 
-% Differences between this formulation of the algorithm and that in Diego Ongaro's thesis:
-% - arrays (log, list of entries) use 0-based indexing
-% - rename "index" variable names to "length" to avoid confusion because indexes are now 1 lower
-% - changed nextIndex to sentLength and reduced its value by 1, to match the name
-% - allow for replicating more than one log entry at a time
+\supervision{
+    Three nodes are executing the Raft algorithm.
+    At one point in time, each node has the log shown below:
+    \begin{center}
+    \begin{tikzpicture}\rm
+        \tikzstyle{entry}=[rectangle split,rectangle split parts=2,draw,fill=green!10]
+        \node [entry] (entry1) at (0,0) {$m_1$\nodepart{second}1};
+        \node [entry] at (0.8,0) {$m_2$\nodepart{second}1};
+        \draw (entry1.west) node [left] {$\mathit{log}$ at node $A$:};
+        \node [entry] (entry2) at (4.2,0) {$m_1$\nodepart{second}1};
+        \node [entry] at (5.0,0) {$m_4$\nodepart{second}2};
+        \node [entry] at (5.8,0) {$m_5$\nodepart{second}2};
+        \node [entry] at (6.6,0) {$m_6$\nodepart{second}2};
+        \draw (entry2.west) node [left] {$\mathit{log}$ at node $B$:};
+        \node [entry] (entry3) at (10,0) {$m_1$\nodepart{second}1};
+        \node [entry] at (10.8,0) {$m_4$\nodepart{second}2};
+        \node [entry] (entry4) at (11.6,0) {$m_7$\nodepart{second}3};
+        \draw (entry3.west) node [left] {$\mathit{log}$ at node $C$:};
+        \draw [<-] (entry4.text east) -- node [at end,right] {$\mathsf{msg}$}  +(0.3,0);
+        \draw [<-] (entry4.two east)  -- node [at end,right] {$\mathsf{term}$} +(0.3,0);
+    \end{tikzpicture}
+    \end{center}
 
-% See http://wcl.cs.rpi.edu/pilots/library/papers/consensus/RAFTOngaroPhD.pdf for proof of Raft correctness
+    (a)~Explain what events may have occurred that caused the nodes to be in this state.
+    (b)~What are the possible values of the \emph{commitLength} variable at each node?
+    (c)~Node A starts a leader election in term 4, while the nodes are in the state above.
+    Is it possible for it to obtain a quorum of votes?
+    What if the election was instead started by one of the other nodes?
+}{
+    \begin{enumerate} \renewcommand{\theenumi}{\alph{enumi}} % enumitem package doesn't work for some reason
+        \item Node $A$ was leader in term 1; it successfully replicated $m_1$ to all nodes, then it appended $m_2$ to its own log, but message loss (or a crash of $A$) prevented $m_2$ from being replicated to nodes $B$ and $C$.
+            Node $B$ suspected $A$ as faulty, was elected leader in term 2 with a vote from $C$, appended $m_4$ to its log, and successfully replicated it to $C$ (but not $A$).
+            Node $B$ then also appended $m_5$ and $m_6$ to the log, but the replication requests were lost or $B$ crashed.
+            Finally, node $C$ suspected $B$ to be faulty, and started a leader elecion in term 3.
+            $A$ has now recovered, and $C$ becomes leader with a vote from $A$ ($B$ would not vote for $C$ in this case, because $B$'s log is more up-to-date than $C$'s).
+            $C$ then appends $m_7$ to its log and sends it to $A$ and $B$, but these messages have not arrived yet.
+        \item At $A$, $\mathit{commitLength}$ must be either 0 or 1, since only the first log entry has been replicated to a quorum of nodes.
+            At $B$ and $C$, it might be 0, 1, or 2, since the first two entries have been replicated to a quorum.
+            In all cases, the value might be 0 because the acknowledgement messages may not yet have arrived.
+        \item Nodes $B$ and $C$ would not vote for $A$ because the terms of their last log entries (2, 3) are higher than the term of $A$'s last log entry (1), and so $A$ would not be able to form a quorum.
+            Likewise, $C$ would not vote for $B$.
+            However, $A$ would vote for $B$, and both $A$ and $B$ would vote for $C$.
+            Thus, $B$ or $C$ would be able to form a quorum if it started an election.
+    \end{enumerate}
+}
 
 % Define total order broadcast as:
 % 1. If a correct process delivers message m, then m was broadcast by a process in the system.
