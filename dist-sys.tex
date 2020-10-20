@@ -4012,6 +4012,9 @@ Recall, however, that in a partially synchronous system, we cannot assume bounde
 For this reason, consensus algorithms need to guarantee their \emph{safety properties} (namely, that each node decides on the same messages in the same order) regardless of the timing in the system, even if messages are arbitrarily delayed.
 Only the \emph{liveness} (namely, that a message is eventually delivered) depends on clocks and timing.
 
+% TODO: introduce the concept of safety and liveness properties explicitly?
+% Make clearer that safety depends only on an asynchronous system model, and only liveness requires partial synchrony.
+
 \begin{frame}
     \label{s:leader-election}
     \frametitle{Leader election}
@@ -4624,11 +4627,163 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
 % Exercise: can't we combine properties 3 and 4 into one property, namely: if a correct process broadcasts a message m, then all correct processes eventually deliver m.
 % Answer: no, this is not equivalent. Say message m is broadcast by faulty process p, and delivered by correct process q. In the original properties, m must now be delivered by all correct processes because it was delivered by one correct process. In the revised property, other processes would not necessarily need to deliver m, because it was sent by a faulty process.
 
-% also consider Byzantine agreement, 2-phase commit, virtual synchrony
+\section{Replica consistency}\label{sec:consistency}
 
-% TODO: exercises for Raft (e.g. how did the node log get into this state?)
+\begin{frame}
+    \begin{center}
+        Lecture 7\\[2em]
+        \Large{\color{darkblue}{Replica consistency}}
+    \end{center}
+\end{frame}
 
-% \section{Replica consistency}\label{sec:consistency}
+We have seen how to perform replication using read/write quorums, and state machine replication using total order broadcast.
+In this context we have said that we want replicas to have ``consistent copies of the same data'', without defining exactly what we mean with \emph{consistent}.
+
+Unfortunately the word ``consistency'' means different things in different contexts.
+In the context of transactions, the C in ACID stands for consistency that is a property of a state: that is, we can say that a database is in a consistent or inconsistent state, meaning that the state satisfies or violates certain invariants defined by the application.
+On the other hand, in the context of replication, we have used ``consistency'' informally to refer to a relationship between replicas: we want one replica to be consistent with another replica.
+
+Since there is no one true definition of consistency, we speak instead about a variety of \emph{consistency models}.
+We have seen one particular example of a consistency model, namely read-after-write consistency (\autoref{l:read-after-write}), which restricts the values that a read operation may return when the same node previously writes to the same data item.
+We will see more models in this lecture.
+
+\begin{frame}
+    \label{s:consistency}
+    \frametitle{``Consistency''}
+    A word that means many different things in different contexts!\pause
+    \begin{itemize}
+        \item \textbf{ACID}: a transaction transforms the database from one ``consistent'' state to another\\[0.5em]\pause
+            Here, ``consistent'' = satisfying application-specific invariants\\[0.5em]
+            e.g. ``every course with students enrolled must have at least one lecturer''\\[0.5em]\pause
+        \item \textbf{Read-after-write consistency} (lecture 5)\\[0.5em]\pause
+        \item \textbf{Replication}: replica should be ``consistent'' with other replicas\\[0.5em]\pause
+            ``consistent'' = in the same state? (when exactly?)\\[0.5em]
+            ``consistent'' = read operations return same result?\\[0.5em]
+        \item \textbf{Consistency model}: many to choose from
+    \end{itemize}
+\end{frame}
+\inlineslide{s:consistency}\label{l:consistency}
+
+\subsection{Two-phase commit}
+
+Let's start with a consistency problem that arises when executing a transaction that reads or writes data on multiple nodes (a \emph{distributed transaction}).
+The data on those nodes may be replicas of the same dataset, or different parts of a larger dataset; a distributed transaction applies in both cases.
+
+Recall from the concurrent systems half of this course that a key property of a transaction is \emph{atomicity}.
+When a transaction spans multiple nodes, we still want atomicity for the transaction as a whole: that is, either all nodes must commit the transaction and make its updates durable, or all nodes must abort the transaction and discard or roll back its updates.
+
+We thus need \emph{agreement} among the nodes on whether the transaction should abort or commit.
+You might be wondering: is this agreement the same as \emph{consensus}, which we discussed in \autoref{sec:consensus}?
+The answer is no: although both are superficially about reaching agreement, the details differ significantly, as shown on \autoref{l:atomic-commit-consensus}.
+
+\begin{frame}
+    \label{s:atomic-commit}
+    \frametitle{Distributed transactions}
+    Recall \textbf{atomicity} in the context of ACID transactions:
+    \begin{itemize}
+        \item A transaction either \textbf{commits} or \textbf{aborts}\pause
+        \item If it commits, its updates are durable
+        \item If it aborts, it has no visible side-effects\pause
+        \item ACID consistency (preserving invariants) relies on atomicity\\[1em]\pause
+    \end{itemize}
+    If the transaction updates data on multiple nodes, this implies:
+    \begin{itemize}
+        \item Either all nodes must commit, or all must abort\pause
+        \item If any node crashes, all must abort\\[1em]
+    \end{itemize}
+    Ensuring this is the \textbf{atomic commitment} problem.\\
+    Looks a bit similar to consensus?
+\end{frame}
+\inlineslide{s:atomic-commit}\label{l:atomic-commit}
+
+\begin{frame}
+    \label{s:atomic-commit-consensus}
+    \frametitle{Atomic commit versus consensus}
+    \rowcolors[]{2}{}{blue!10}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{>{\raggedright}p{5cm}|>{\raggedright\arraybackslash}p{5cm}} % https://tex.stackexchange.com/a/2892
+        \textbf{Consensus} & \textbf{Atomic commit} \\\hline
+        One or more nodes propose a value & Every node votes whether to commit or abort \pause\\
+        Any one of the proposed values is decided & Must commit if all nodes vote to commit; must abort if $\ge 1$ nodes vote to abort \pause\\
+        Crashed nodes can be tolerated, as long as a quorum is working & Must abort if a participating node crashes
+    \end{tabular}
+\end{frame}
+\inlineslide{s:atomic-commit-consensus}\label{l:atomic-commit-consensus}
+
+The most common algorithm to ensure atomic commitment across multiple nodes is the \emph{two-phase commit} (2PC) protocol \citep{Gray:1978}.
+(Not to be confused with \emph{two-phase locking} (2PL), discussed in the first half of this course: 2PL ensures serialisable isolation, while 2PC ensures atomic commitment.)
+The communication flow of 2PC is illustrated on \autoref{l:2pc}.
+
+\begin{frame}
+    \label{s:2pc}
+    \frametitle{Two-phase commit (2PC)}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,7.4) {client};
+            \node [rectangle,fill=red!10,draw] (node2) at (3,7.4) {coordinator};
+            \node [rectangle,fill=red!10,draw] (node3) at (6,7.4) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$A$};
+            \node [rectangle,fill=red!10,draw] (node4) at (9,7.4) {\storageSymbol}; \node [yshift=-0.2cm] at (node4) {$B$};
+            \draw (node1) -- (0,0.3);
+            \draw (node2) -- (3,0.3);
+            \draw (node3) -- (6,0.3);
+            \draw (node4) -- (9,0.3);
+            \node<2-> [rectangle,fill=white,draw,text depth=4.6cm] (T1) at (6,3.3) {$T_1$};
+            \node<2-> [rectangle,fill=white,draw,text depth=3.7cm] (T2) at (9,2.9) {$T_1$};
+            \draw<2-> [bigarrow] (0,6.5) -- node [above,sloped,near start] {begin $T_1$} (T1.north west); % (5.65,5.9)
+            \draw<2-> [bigarrow] (0,6.4) .. controls (1,6.3) and (1,5.8) .. (2,5.7) -- (T2.north west); % (8.65,5.0)
+            \draw<3-> [blue,doublebigarrow] (0,4.5) -- node [above,blue,font=\footnotesize] {{\dots}usual transaction execution{\dots}} (5.65,4.5);
+            \draw<3-> [blue,bigarrow] (6.35,4.5) -- (8.65,4.5);
+            \draw<4-> [bigarrow] (0,3.9) -- node [above,sloped] {commit $T_1$} (3,3.6);
+            \draw<5-> [bigarrow] (3,3.4) -- node [above,sloped,near start] {prepare} (8.65,2.8);
+            \draw<5-> [bigarrow] (3,3.3) .. controls (4,3.2) and (4,3.0) .. (5,2.9) -- (5.65,2.83);
+            \draw<6-> [bigarrow] (5.65,2.5) -- node [above,sloped] {ok} (3,2.2);
+            \draw<6-> [bigarrow] (8.65,2.4) -- node [above,sloped,near start] {ok} (3,1.8);
+            \draw<7-> [bigarrow] (3,1.3) -- node [above,sloped,near start] {commit} (T2.south west); % (8.65,0.7)
+            \draw<7-> [bigarrow] (3,1.2) .. controls (4,1.1) and (4,0.9) .. (5,0.8) -- (T1.south west); % (5.65,0.73)
+            \node<8-> [circle,fill=green,semitransparent,inner sep=5pt] (decision) at (3,1.5) {};
+            \draw<8-> (decision.west) node [left,font=\scriptsize,text width=2.8cm,align=right,darkgreen] {decision whether to commit or abort};
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:2pc}\label{l:2pc}
+
+When using two-phase commit, a client first starts a regular single-node transaction on each replica that is participating in the transaction, and performs the usual reads and writes within those transactions.
+When the client is ready to commit the transaction, it sends a commit request to the \emph{transaction coordinator}, a designated node that manages the 2PC protocol.
+
+The coordinator first sends a \emph{prepare} message to each replica participating in the transaction, and each replica replies with a message indicating whether it is able to commit the transaction (this is the first phase of the protocol).
+The replicas do not actually commit the transaction yet, but they must ensure that they will definitely be able to commit the transaction in the second phase if instructed by the coordinator.
+This means, in particular, that the replica must write all of the transaction's updates to disk and check any integrity constraints before replying \emph{ok} to the \emph{prepare} message, while continuing to hold any locks for the transaction.
+
+The coordinator collects the responses, and decides whether or not to actually commit the transaction.
+If all nodes reply \emph{ok}, the coordinator decides to commit; if any node wants to abort, or if any node fails to reply within some timeout, the coordinator decides to abort.
+The coordinator then sends its decision to each of the replicas, who all commit or abort as instructed (this is the second phase).
+If the decision was to commit, each replica is guaranteed to be able to commit its transaction because the previous \emph{prepare} request laid the groundwork.
+If the decision was to abort, the replica rolls back the transaction.
+
+\begin{frame}
+    \label{s:2pc-coordinator}
+    \frametitle{The coordinator in two-phase commit}
+    What if the coordinator crashes between phases 1 and 2?
+    \begin{itemize}
+        \item 
+    \end{itemize}
+\end{frame}
+\inlineslide{s:2pc-coordinator}\label{l:2pc-coordinator}
+
+Use a consensus protocol to tolerate coordinator faults \citep{Gray:2006}.
+
+
+\subsection{Linearizability}
+
+\subsection{Optimistic replication}
+
+\begin{frame}
+    \label{s:calendar}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node at (current page.center) {\includegraphics[width=\paperwidth]{images/calendar.png}};
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:calendar}
 
 % Replication: without broadcast (ABD, quorums); 2-phase commit; CRDTs
 % syllabus also lists multi-leader replication
