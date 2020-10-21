@@ -4595,11 +4595,16 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
     \end{tikzpicture}
     \end{center}
 
-    (a)~Explain what events may have occurred that caused the nodes to be in this state.
-    (b)~What are the possible values of the \emph{commitLength} variable at each node?
-    (c)~Node A starts a leader election in term 4, while the nodes are in the state above.
+    \noindent (a)~Explain what events may have occurred that caused the nodes to be in this state.
+
+    \noindent (b)~What are the possible values of the \emph{commitLength} variable at each node?
+
+    \noindent (c)~Node A starts a leader election in term 4, while the nodes are in the state above.
     Is it possible for it to obtain a quorum of votes?
     What if the election was instead started by one of the other nodes?
+
+    \noindent (d)~Assume that node B is elected leader in term 4, while the nodes are in the state above.
+    Give the sequence of messages exchanged between B and C following this election.
 }{
     \begin{enumerate} \renewcommand{\theenumi}{\alph{enumi}} % enumitem package doesn't work for some reason
         \item Node $A$ was leader in term 1; it successfully replicated $m_1$ to all nodes, then it appended $m_2$ to its own log, but message loss (or a crash of $A$) prevented $m_2$ from being replicated to nodes $B$ and $C$.
@@ -4615,6 +4620,13 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
             Likewise, $C$ would not vote for $B$.
             However, $A$ would vote for $B$, and both $A$ and $B$ would vote for $C$.
             Thus, $B$ or $C$ would be able to form a quorum if it started an election.
+        \item $B$ sends to $C$: $(\mathsf{LogRequest}, B, 4, 4, 2, 1, \langle\rangle)$ \\
+            $C$ sends to $B$: $(\mathsf{LogResponse}, A, 4, 0, \mathsf{false})$ \\
+            $B$ sends to $C$: $(\mathsf{LogRequest}, B, 4, 3, 2, 1, \langle(m_6, 2)\rangle)$ \\
+            $C$ sends to $B$: $(\mathsf{LogResponse}, A, 4, 0, \mathsf{false})$ \\
+            $B$ sends to $C$: $(\mathsf{LogRequest}, B, 4, 2, 2, 1, \langle(m_5, 2), (m_6, 2)\rangle)$ \\
+            $C$ sends to $B$: $(\mathsf{LogResponse}, A, 4, 4, \mathsf{true})$ \\
+            (The $\mathit{commitLength}$ field could be 0, 1, or 2, as per part c.)
     \end{enumerate}
 }
 
@@ -4666,7 +4678,7 @@ We will see more models in this lecture.
 
 \subsection{Two-phase commit}
 
-Let's start with a consistency problem that arises when executing a transaction that reads or writes data on multiple nodes (a \emph{distributed transaction}).
+Let's start with a consistency problem that arises when executing a \emph{distributed transaction}, i.e.\ a transaction that reads or writes data on multiple nodes.
 The data on those nodes may be replicas of the same dataset, or different parts of a larger dataset; a distributed transaction applies in both cases.
 
 Recall from the concurrent systems half of this course that a key property of a transaction is \emph{atomicity}.
@@ -4674,7 +4686,7 @@ When a transaction spans multiple nodes, we still want atomicity for the transac
 
 We thus need \emph{agreement} among the nodes on whether the transaction should abort or commit.
 You might be wondering: is this agreement the same as \emph{consensus}, which we discussed in \autoref{sec:consensus}?
-The answer is no: although both are superficially about reaching agreement, the details differ significantly, as shown on \autoref{l:atomic-commit-consensus}.
+The answer is no: although both are superficially about reaching agreement, the details differ significantly.
 
 \begin{frame}
     \label{s:atomic-commit}
@@ -4749,6 +4761,7 @@ The communication flow of 2PC is illustrated on \autoref{l:2pc}.
 
 When using two-phase commit, a client first starts a regular single-node transaction on each replica that is participating in the transaction, and performs the usual reads and writes within those transactions.
 When the client is ready to commit the transaction, it sends a commit request to the \emph{transaction coordinator}, a designated node that manages the 2PC protocol.
+(In some systems, the coordinator is part of the client.)
 
 The coordinator first sends a \emph{prepare} message to each replica participating in the transaction, and each replica replies with a message indicating whether it is able to commit the transaction (this is the first phase of the protocol).
 The replicas do not actually commit the transaction yet, but they must ensure that they will definitely be able to commit the transaction in the second phase if instructed by the coordinator.
@@ -4763,17 +4776,92 @@ If the decision was to abort, the replica rolls back the transaction.
 \begin{frame}
     \label{s:2pc-coordinator}
     \frametitle{The coordinator in two-phase commit}
-    What if the coordinator crashes between phases 1 and 2?
+    What if the coordinator crashes?\pause
     \begin{itemize}
-        \item 
+        \item Coordinator writes its decision to disk
+        \item When it recovers, read decision from disk and send it to replicas
+            (or abort if no decision was made before crash)\pause
+        \item \textbf{Problem:} if coordinator crashes after prepare, but before broadcasting decision, other nodes do not know how it has decided\pause
+        \item Replicas participating in transaction cannot commit or abort after responding ``ok'' to the \emph{prepare} request (otherwise we risk violating atomicity)\pause
+        \item Algorithm is blocked until coordinator recovers\pause
     \end{itemize}
 \end{frame}
 \inlineslide{s:2pc-coordinator}\label{l:2pc-coordinator}
 
-Use a consensus protocol to tolerate coordinator faults \citep{Gray:2006}.
+The problem with two-phase commit is that the coordinator is a single point of failure.
+Crashes of the coordinator can be tolerated by having the coordinator write its commit/abort decisions to stable storage, but even so, there may be transactions that have prepared but not yet committed/aborted at the time of the coordinator crash (called \emph{in-doubt transactions}).
+Any in-doubt transactions must wait until the coordinator recovers to learn their fate; they cannot unilaterally decide to commit or abort, because that decision could end up being inconsistent with the coordinator and other nodes, which might violate atomicity.
 
+Fortunately it is possible to avoid the single point of failure of the coordinator by using a consensus algorithm or total order broadcast protocol.
+\autoref{l:paxos-commit} shows a fault-tolerant two-phase commit algorithm based on Paxos Commit \citep{Gray:2006}.
+The idea is that every node that is participating in the transaction uses total order broadcast to disseminate its vote on whether to commit or abort.
+Moreover, if node $A$ suspects that node $B$ has failed (because no vote from $B$ was received within some timeout), then $A$ may try to vote to abort on behalf of $B$.
+This introduces a race condition: if node $B$ is slow, it might be that node $B$ broadcasts its own vote to commit around the same time that node $A$ suspects $B$ to have failed and votes on $B$'s behalf.
+
+These votes are delivered to each node by total order broadcast, and each recipient independently counts the votes.
+In doing so, we count only the first vote from any given replica, and ignore any subsequent votes from the same replica.
+Since total order broadcast guarantees the same delivery order on each node, all nodes will agree on whether the first delivered vote from a given replica was a commit vote or an abort vote, even in the case of a race condition between multiple nodes broadcasting contradictory votes for the same replica.
+
+If a node observes that the first delivered vote from some replica is a vote to abort, then the transaction can immediately be aborted.
+Otherwise a node must wait until it has delivered at least one vote from each replica.
+Once these votes have been delivered, and none of the replicas vote to abort in their first delivered message, then the transaction can be committed.
+Thanks to total order broadcast, all nodes are guaranteed to make the same decision on whether to abort or to commit, which preserves atomicity.
+
+\begin{frame}
+    \label{s:paxos-commit1}
+    \frametitle{Fault-tolerant two-phase commit (1/2)}
+    \footnotesize
+    \begin{algorithmic}
+        \On{initialization for transaction $T$}
+            \State $\mathit{commitVotes}[T] := \{\};\; \mathit{replicas}[T] := \{\};\; \mathit{decided}[T] := \mathsf{false}$
+        \EndOn
+        \State
+        \On{request to commit transaction $T$ with participating nodes $R$}
+            \State \textbf{for each} $r \in R$ \textbf{do} send $(\mathsf{Prepare}, T, R)$ to $r$
+        \EndOn
+        \State
+        \On{receiving $(\mathsf{Prepare}, T, R)$ at node $\mathit{replicaId}$}
+            \State $\mathit{replicas}[T] := R$
+            \State $\mathit{ok} = $ ``is transaction $T$ able to commit on this replica?''
+            \State total order broadcast $(\mathsf{Vote}, T, \mathit{replicaId}, \mathit{ok})$ to $\mathit{replicas}[T]$
+        \EndOn
+        \State
+        \On{a node suspects node $\mathit{replicaId}$ to have crashed}
+            \For{each transaction $T$ in which $\mathit{replicaId}$ participated}
+                \State total order broadcast $(\mathsf{Vote}, T, \mathit{replicaId}, \mathsf{false})$ to $\mathit{replicas}[T]$
+            \EndFor
+        \EndOn
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:paxos-commit1}\label{l:paxos-commit1}
+
+\begin{frame}
+    \label{s:paxos-commit2}
+    \frametitle{Fault-tolerant two-phase commit (2/2)}
+    \footnotesize
+    \begin{algorithmic}
+        \On{delivering $(\mathsf{Vote}, T, \mathit{replicaId}, \mathit{ok})$ by total order broadcast}
+            \If{$\mathit{replicaId} \notin \mathit{commitVotes}[T] \;\wedge\; \mathit{replicaId} \in \mathit{replicas}[T] \;\wedge$\\\hspace{60pt}$\neg\mathit{decided}[T]$}
+                \If{$\mathit{ok} = \mathsf{true}$}
+                    \State $\mathit{commitVotes}[T] := \mathit{commitVotes}[T] \cup \{\mathit{replicaId}\}$
+                    \If{$\mathit{commitVotes}[T] = \mathit{replicas}[T]$}
+                        \State $\mathit{decided}[T] := \mathsf{true}$
+                        \State commit transaction $T$ at this node
+                    \EndIf
+                \Else
+                    \State $\mathit{decided}[T] := \mathsf{true}$
+                    \State abort transaction $T$ at this node
+                \EndIf
+            \EndIf
+        \EndOn
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:paxos-commit2}\label{l:paxos-commit2}
 
 \subsection{Linearizability}
+
+An atomic commitment protocol is a way of preserving consistency across multiple replicas in the face of faults, by ensuring that all participants of a transaction either commit or abort.
+However, when there are multiple nodes concurrently reading and modifying some shared data concurrently, 
 
 \subsection{Optimistic replication}
 
