@@ -337,6 +337,7 @@ In the web there are two main types of nodes: \emph{servers} host websites, and 
 When you load a web page, your web browser sends a \emph{HTTP request} message to the appropriate server.
 On receiving that request, the web server sends a \emph{response} message containing the page contents to the client that requested it.
 These messages are normally invisible, but we can capture and visualise the network traffic with a tool such as Charles (\url{https://www.charlesproxy.com/}), shown on \autoref{l:http-capture}.
+The lecture video includes a demo of this software in action.
 
 \begin{frame}[plain]
     \label{s:http-capture}
@@ -531,6 +532,8 @@ These principles include:
 The popularity of REST is due to the fact that JavaScript code running in a web browser can easily make this type of HTTP request, as shown in \autoref{l:javascript-rpc}.
 In modern websites it is very common to use JavaScript to make HTTP requests to a server without reloading the whole page.
 This technique is sometimes known as \emph{Ajax}.
+
+% TODO: give a live demo of RESTful API with Dropwizard, curl, and JavaScript client?
 
 \begin{frame}
     \label{s:javascript-rpc}
@@ -4143,13 +4146,15 @@ To make these ideas concrete, we will now walk through the full Raft algorithm f
 It is by far the most complex algorithm that we look at in this course, with pseudocode spanning nine slides.
 (Paxos and other consensus algorithms are similarly complex, if not worse.)
 There is no need to memorise the whole algorithm for the exam, but it is worth studying carefully in order to understand the underlying principles.
+For a graphical visualisation of the algorithm, see \url{http://thesecretlivesofdata.com/raft/}.
 
 In order to understand the algorithm, it is worth keeping in mind the state machine on \autoref{l:raft-states}.
 A node can be in one of three states: \emph{leader}, \emph{candidate}, or \emph{follower}.
 When a node first starts running, or when it crashes and recovers, it starts up in the follower state and awaits messages from other nodes.
-
 If it receives no messages from a leader or candidate for some period of time, the follower suspects that the leader is unavailable, and it may attempt to become leader itself.
-To this end, the node transitions to the candidate state, increments the term number, and starts a leader election in that term.
+The timeout for detecting leader failure is randomised, to reduce the probability of several nodes becoming candidates concurrently and competing to become leader.
+
+When a node suspects the leader to have failed, it transitions to the candidate state, increments the term number, and starts a leader election in that term.
 During this election, if the node hears from another candidate or leader with a higher term, it moves back into the follower state.
 But if the election succeeds and it receives votes from a quorum of nodes, the candidate transitions to leader state.
 If not enough votes are received within some period of time, the election times out, and the candidate restarts the election with a higher term.
@@ -5224,14 +5229,8 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
 \end{frame}
 \inlineslide{s:cas-2}\label{l:cas-2}
 
-% \item Every operation takes effect \textbf{atomically} sometime after it started and before it finished
-% \item All operations behave as if executed on a \textbf{single copy} of the data (even if there are in fact multiple replicas)
-% \item If operation A finished before operation B started (in \textbf{real time}), then A must take effect before B
-
-% Communication that happens outside of the computer system
 
 % CAP theorem
-% linearizable CAS operations
 
 \subsection{Optimistic replication}
 
@@ -5248,9 +5247,9 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
 
 % Calendar app supports offline reads and writes (short video in airplane mode).
 
-% ABD algorithm. Linearizability. Even shared memory on one machine is not linearisable!
 
 % CAP: consistent or available in the presence of a partition
+% multi-leader replication
 
 % Equivalence of consensus, CAS, abcast
 % Linearisable CAS requires consensus but ABD does not (works in asynchronous model)
@@ -5272,21 +5271,18 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
 % 8. Time and clocks
 % 9. Security (e.g. TLS), byzantine fault tolerance, and blockchains
 
-% Live demo of RESTful API with Dropwizard, curl, browser access
-
 % http://book.mixu.net/distsys/single-page.html
 % BaseDS: https://github.com/vaidehijoshi/baseds-series  /   https://medium.com/baseds
 % MIT graduate dist-sys course https://pdos.csail.mit.edu/6.824/schedule.html
-% Raft animations: http://thesecretlivesofdata.com/raft/
 
 % Beamer documentation:
 % https://people.wou.edu/~beavers/LaTeX/beamer_guide.pdf
 % http://anorien.csc.warwick.ac.uk/mirrors/CTAN/macros/latex/contrib/beamer/doc/beameruserguide.pdf
 
-\section{Material for lectures 7 and 8}
+\section{Material for lecture 8}
 
-Material for the last two lectures was not ready before these notes went to print.
-Please see the course web page \url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/materials.html} for further notes and exercises.
+Material for the last lecture is not yet ready.
+Please see the course web page \url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/materials.html} for updates.
 
 \footnotesize
 \bibliographystyle{plainnat}
