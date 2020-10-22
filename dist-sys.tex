@@ -4802,7 +4802,7 @@ Crashes of the coordinator can be tolerated by having the coordinator write its 
 Any in-doubt transactions must wait until the coordinator recovers to learn their fate; they cannot unilaterally decide to commit or abort, because that decision could end up being inconsistent with the coordinator and other nodes, which might violate atomicity.
 
 Fortunately it is possible to avoid the single point of failure of the coordinator by using a consensus algorithm or total order broadcast protocol.
-\autoref{l:paxos-commit} shows a fault-tolerant two-phase commit algorithm based on Paxos Commit \citep{Gray:2006}.
+\autoref{l:paxos-commit1} shows a fault-tolerant two-phase commit algorithm based on Paxos Commit \citep{Gray:2006}.
 The idea is that every node that is participating in the transaction uses total order broadcast to disseminate its vote on whether to commit or abort.
 Moreover, if node $A$ suspects that node $B$ has failed (because no vote from $B$ was received within some timeout), then $A$ may try to vote to abort on behalf of $B$.
 This introduces a race condition: if node $B$ is slow, it might be that node $B$ broadcasts its own vote to commit around the same time that node $A$ suspects $B$ to have failed and votes on $B$'s behalf.
@@ -4917,7 +4917,7 @@ We say that an operation \emph{starts} at the moment when it is requested by the
 Between the start and finish, various network communication steps may happen; for example, if quorums are used, an operation can finish when the client has received responses from a quorum of replicas.
 
 On \autoref{l:read-after-write-2} and the following slides we represent the client's view of a $\mathsf{get}$/$\mathsf{set}$ operation as a rectangle, where the top border represents starting and the bottom border represents finishing.
-Inside the rectangle we write the effect of the operation: $\mathsf{set}\; x=v$ means updating the data item $x$ to have the value $v$, and $\mathsf{get}\; x \rightarrow v$ means a read of $x$ that returns the value $v$.
+Inside the rectangle we write the effect of the operation: $\mathsf{set}(x,v)$ means updating the data item $x$ to have the value $v$, and $\mathsf{get}(x) \rightarrow v$ means a read of $x$ that returns the value $v$.
 
 \begin{frame}
     \label{s:read-after-write-2}
@@ -4932,13 +4932,13 @@ Inside the rectangle we write the effect of the operation: $\mathsf{set}\; x=v$ 
             \draw (node2) -- (3,-1.5);
             \draw (node3) -- (6,-1.5);
             \draw (node4) -- (9,-1.5);
-            \node<2-> [op,text width=2.2cm] (op1) at (0,3.4) {$\mathsf{set}\; x=v_1$};
-            \draw<2-> [bigarrow] (0.3,4.5) -- node [above,pos=0.15,sloped] {$(t_1, \mathsf{set}\; x=v_1)$} (9,3.6);
+            \node<2-> [op,text width=2.2cm] (op1) at (0,3.4) {$\mathsf{set}(x,v_1)$};
+            \draw<2-> [bigarrow] (0.3,4.5) -- node [above,pos=0.15,sloped] {$(t_1, \mathsf{set}(x,v_1))$} (9,3.6);
             \draw<2-> [bigarrow] (0.3,4.4) .. controls (1,4.33) and (1,4.0) .. (2,3.9) -- (6,3.5);
             \draw<2-> [messageloss] (0.3,4.3) .. controls (1,4.23) and (1,3.6) .. (2,3.5) -- (2.5,3.45);
             \draw<3-> [bigarrow] (6,3.2) -- node [above,sloped,pos=0.30] {ok} (0.3,2.6);
             \draw<3-> [bigarrow] (9,3.1) -- node [above,sloped,pos=0.17] {ok} (0.3,2.2);
-            \node<4-> [op,text width=2.0cm] (op2) at (0,0.3) {$\mathsf{get}\; x \rightarrow v_1$};
+            \node<4-> [op,text width=2.0cm] (op2) at (0,0.3) {$\mathsf{get}(x) \rightarrow v_1$};
             \draw<4-> [messageloss] (0.3,1.4) -- node [above,pos=0.2,sloped] {$\mathsf{read}\; x$} (8,0.6);
             \draw<4-> [bigarrow] (0.3,1.3) .. controls (1,1.23) and (1,0.9) .. (2,0.8) -- (6,0.4);
             \draw<4-> [bigarrow] (0.3,1.2) .. controls (1,1.13) and (1,0.5) .. (2,0.4) -- (3,0.3);
@@ -4974,15 +4974,15 @@ This has the advantage that if we prove a system to be linearizable, we can be s
                 \node<4-> [rectangle,fill=red!10,draw] (node2) at (3,7) {client 2};
                 \draw<1-> (node1) -- (0,0);
                 \draw<4-> (node2) -- (3,0);
-                \node<1-> [op,text width=2.2cm] (op1) at (0,4.9) {$\mathsf{set}\; x=v_1$};
+                \node<1-> [op,text width=2.2cm] (op1) at (0,4.9) {$\mathsf{set}(x,v_1)$};
                 \draw<2-> [bigarrow] (op1.north west) -- node [at end,right] {?} +(0.9,-0.3);
                 \draw<2-> [revbigarrow] (op1.north east) -- node [at end,right] {?} +(0.9,0.3);
-                \node<1-3> [op,text width=2.0cm] (op2) at (0,1.8) {$\mathsf{get}\; x \rightarrow v_1$};
+                \node<1-3> [op,text width=2.0cm] (op2) at (0,1.8) {$\mathsf{get}(x) \rightarrow v_1$};
                 \draw<2-3> [bigarrow] (op2.north west) -- +(0.9,-0.3);
                 \draw<2-3> [revbigarrow] (op2.north east) -- +(0.9,0.3);
                 \node<2-> at (1.5,2.6) {?};
                 \node<2-> at (1.5,1.0) {?};
-                \node<4-> [op,text width=2.0cm] (op3) at (3,1.8) {$\mathsf{get}\; x \rightarrow v_1$};
+                \node<4-> [op,text width=2.0cm] (op3) at (3,1.8) {$\mathsf{get}(x) \rightarrow v_1$};
                 \draw<4-> [bigarrow] (op3.south west) -- +(-0.9,-0.3);
                 \draw<4-> [revbigarrow] (op3.south east) -- +(-0.9,0.3);
                 \draw<3> (0.1,3.6) edge [-{Stealth},red,thick,densely dashed,out=330,in=50] node [pos=0.7,right,red,font=\scriptsize] {real time} (0.1,3.0);
@@ -5015,9 +5015,9 @@ This has the advantage that if we prove a system to be linearizable, we can be s
                 \draw (node1) -- (0,0);
                 \draw (node2) -- (2,0);
                 \draw (node3) -- (4,0);
-                \node [op,text width=2.5cm] (op1) at (0,3.5) {$\mathsf{set}\; x=v_1$};
-                \node<1-2> [op,text width=2.5cm] (op2) at (4,2.8) {$\mathsf{get}\; x \rightarrow v_1$};
-                \node<3-|handout:0> [op,text width=2.5cm] (op3) at (4,2.8) {$\mathsf{get}\; x \rightarrow v_0$};
+                \node [op,text width=2.5cm] (op1) at (0,3.5) {$\mathsf{set}(x,v_1)$};
+                \node<1-2> [op,text width=2.5cm] (op2) at (4,2.8) {$\mathsf{get}(x) \rightarrow v_1$};
+                \node<3-|handout:0> [op,text width=2.5cm] (op3) at (4,2.8) {$\mathsf{get}(x) \rightarrow v_0$};
                 \node [inner sep=0] (atomic1L) at (1.7,3.5) {}; \node [inner sep=0] (atomic1R) at (2.3,3.5) {};
                 \node [inner sep=0] (atomic2L) at (1.7,2.9) {}; \node [inner sep=0] (atomic2R) at (2.3,2.9) {};
                 \draw [blue,line width=4pt] (atomic1L) -- (atomic1R);
@@ -5069,20 +5069,20 @@ This behaviour is not allowed in a linearizable system.
         \draw (node4) -- (6,-1);
         \draw (node5) -- (8,-1);
         \draw (node6) -- (10,-1);
-        \node<2-> [op,text width=5.2cm] at (0,2.0) {$\mathsf{set}\; x=v_1$};
-        \draw<2-> [bigarrow] (0.3,4.7) -- node [above,sloped,font=\scriptsize,pos=0.4] {$(t_1, \mathsf{set}\; x=v_1)$} (2,4.5);
+        \node<2-> [op,text width=5.2cm] at (0,2.0) {$\mathsf{set}(x,v_1)$};
+        \draw<2-> [bigarrow] (0.3,4.7) -- node [above,sloped,font=\scriptsize,pos=0.4] {$(t_1, \mathsf{set}(x,v_1))$} (2,4.5);
         \draw<7-> [bigarrow] (0.3,4.6) .. controls (1.1,4.53) and (1.1,1.1) .. (2,1.0) -- (4,0.8);
         \draw<7-> [bigarrow] (0.3,4.5) .. controls (1,4.43) and (1,0.7) .. (2,0.6) -- (6,0.2);
         \draw<2-> [bigarrow] (2,4.2) -- node [above,sloped,font=\footnotesize] {ok} (0.3,4.0);
         \draw<8-> [bigarrow] (4,0.0) -- node [above,sloped,font=\footnotesize,near start] {ok} (0.3,-0.4);
         \draw<8-> [bigarrow] (6,-0.1) -- node [above,sloped,font=\footnotesize,pos=0.17] {ok} (0.3,-0.7);
-        \node<3-> [op,text width=1.8cm] at (8,3.5) {$\mathsf{get}\; x \rightarrow v_1$};
-        \draw<3-> [bigarrow] (7.7,4.5) -- node [above,pos=0.15,sloped,font=\footnotesize] {$\mathsf{get}\; x$} (2,3.9);
+        \node<3-> [op,text width=1.9cm] at (8,3.6) {$\mathsf{get}(x) \rightarrow v_1$};
+        \draw<3-> [bigarrow] (7.7,4.5) -- node [above,pos=0.15,sloped,font=\footnotesize] {$\mathsf{get}(x)$} (2,3.9);
         \draw<3-> [bigarrow] (7.7,4.4) .. controls (7,4.33) and (7,4.1) .. (6,4.0) -- (4,3.8);
         \draw<4-> [bigarrow] (2,3.6) -- node [above,sloped,pos=0.19,font=\footnotesize,yshift=-0.1cm] {$(t_1, v_1)$} (7.7,3.0);
         \draw<4-> [bigarrow] (4,3.0) -- node [below,sloped,pos=0.25,font=\footnotesize,yshift=0.1cm] {$(t_0, v_0)$} (7.7,2.6);
-        \node<5-> [op,text width=1.8cm] at (10,1.0) {$\mathsf{get}\; x \rightarrow v_0$};
-        \draw<5-> [bigarrow] (9.7,2.0) -- node [above,pos=0.15,sloped,font=\footnotesize] {$\mathsf{get}\; x$} (4,1.4);
+        \node<5-> [op,text width=1.9cm] at (10,1.0) {$\mathsf{get}(x) \rightarrow v_0$};
+        \draw<5-> [bigarrow] (9.7,2.0) -- node [above,pos=0.15,sloped,font=\footnotesize] {$\mathsf{get}(x)$} (4,1.4);
         \draw<5-> [bigarrow] (9.7,1.9) .. controls (9,1.83) and (9,1.6) .. (8,1.5) -- (6,1.3);
         \draw<6-> [bigarrow] (4,1.1) -- node [above,sloped,pos=0.19,font=\footnotesize,yshift=-0.1cm] {$(t_0, v_0)$} (9.7,0.5);
         \draw<6-> [bigarrow] (6,0.5) -- node [below,sloped,pos=0.25,font=\footnotesize,yshift=0.1cm] {$(t_0, v_0)$} (9.7,0.1);
@@ -5100,9 +5100,9 @@ This behaviour is not allowed in a linearizable system.
         \draw (node1) -- (0,-1);
         \draw (node5) -- (8,-1);
         \draw (node6) -- (10,-1);
-        \node [op,text width=5.2cm] at (0,2.0) {$\mathsf{set}\; x=v_1$};
-        \node [op,text width=1.8cm] at (8,3.5) {$\mathsf{get}\; x \rightarrow v_1$};
-        \node [op,text width=1.8cm] at (10,1.0) {$\mathsf{get}\; x \rightarrow v_0$};
+        \node [op,text width=5.2cm] at (0,2.0) {$\mathsf{set}(x,v_1)$};
+        \node [op,text width=1.9cm] at (8,3.6) {$\mathsf{get}(x) \rightarrow v_1$};
+        \node [op,text width=1.9cm] at (10,1.0) {$\mathsf{get}(x) \rightarrow v_0$};
         \draw<2-> (8.1,2.4) edge [-{Stealth},red,thick,densely dashed,out=340,in=160] node [above,red,font=\scriptsize] {real time} (9.9,2.1);
         \node<3-> at (4,2.5) {\begin{minipage}{6cm}
             \begin{itemize}
@@ -5142,23 +5142,23 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
         \draw (node4) -- (6,-1);
         \draw (node5) -- (8,-1);
         \draw (node6) -- (10,-1);
-        \node<1-> [op,text width=5.2cm] (op1) at (0,2.0) {$\mathsf{set}\; x=v_1$};
-        \draw<1-> [bigarrow] (0.3,4.7) -- node [above,sloped,font=\scriptsize,pos=0.4] {$(t_1, \mathsf{set}\; x=v_1)$} (2,4.5);
+        \node<1-> [op,text width=5.2cm] (op1) at (0,2.0) {$\mathsf{set}(x,v_1)$};
+        \draw<1-> [bigarrow] (0.3,4.7) -- node [above,sloped,font=\scriptsize,pos=0.4] {$(t_1, \mathsf{set}(x,v_1))$} (2,4.5);
         \draw<1-> [bigarrow] (0.3,4.6) .. controls (1.1,4.53) and (1.1,1.1) .. (2,1.0) -- (4,0.8);
         \draw<1-> [bigarrow] (0.3,4.5) .. controls (1,4.43) and (1,0.7) .. (2,0.6) -- (6,0.2);
         \draw<1-> [bigarrow] (2,4.2) -- node [above,sloped,font=\footnotesize] {ok} (0.3,4.0);
         \draw<6-> [bigarrow] (4,0.0) -- node [above,sloped,font=\footnotesize,near start] {ok} (0.3,-0.4);
         \draw<6-> [bigarrow] (6,-0.1) -- node [above,sloped,font=\footnotesize,pos=0.17] {ok} (0.3,-0.7);
-        \node<1-> [op,text width=3.6cm] (op2) at (8,2.6) {$\mathsf{get}\; x \rightarrow v_1$};
-        \draw<2-> [bigarrow] (7.7,4.5) -- node [above,pos=0.15,sloped,font=\footnotesize] {$\mathsf{get}\; x$} (2,3.9);
+        \node<1-> [op,text width=3.6cm] (op2) at (8,2.6) {$\mathsf{get}(x) \rightarrow v_1$};
+        \draw<2-> [bigarrow] (7.7,4.5) -- node [above,pos=0.15,sloped,font=\footnotesize] {$\mathsf{get}(x)$} (2,3.9);
         \draw<2-> [bigarrow] (7.7,4.4) .. controls (7,4.33) and (7,4.1) .. (6,4.0) -- (4,3.8);
         \draw<3-> [bigarrow] (2,3.6) -- node [above,sloped,pos=0.19,font=\footnotesize,yshift=-0.1cm] {$(t_1, v_1)$} (7.7,3.0);
         \draw<3-> [bigarrow] (4,3.0) -- node [below,sloped,pos=0.25,font=\footnotesize,yshift=0.1cm] {$(t_0, v_0)$} (7.7,2.6);
-        \draw<4-> [bigarrow] (7.7,2.1) -- node [above,pos=0.3,sloped,font=\footnotesize,yshift=-0.1cm] {$(t_1, \mathsf{set}\; x=v_1)$} (4,1.7);
+        \draw<4-> [bigarrow] (7.7,2.1) -- node [above,pos=0.32,sloped,font=\footnotesize,yshift=-0.1cm] {$(t_1, \mathsf{set}(x,v_1))$} (4,1.7);
         \draw<4-> [bigarrow] (7.7,2.0) .. controls (7,1.93) and (7,1.7) .. (6,1.6);
         \draw<5-> [bigarrow] (6,1.27) -- node [above,sloped,font=\footnotesize] {ok} (7.7,1.1);
         \draw<5-> [bigarrow] (4,1.2) -- node [above,sloped,near start,font=\footnotesize] {ok} (7.7,0.8);
-        \node<1-> [op,text width=1.8cm] (op3) at (10,1.0) {$\mathsf{get}\; x \rightarrow v_1$};
+        \node<1-> [op,text width=1.9cm] (op3) at (10,1.0) {$\mathsf{get}(x) \rightarrow v_1$};
         \draw<1-> [bigarrow] (op3.south west) -- node [at end,below,yshift=-0.2cm] {\dots} +(-0.7,-0.1);
         \draw<1-> [revbigarrow] (op3.south east) -- node [at end,above] {\dots} +(-0.7,0.1);
     \end{tikzpicture}
@@ -5229,6 +5229,85 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
 \end{frame}
 \inlineslide{s:cas-2}\label{l:cas-2}
 
+\supervision{
+    Is the following execution linearizable? If not, where does the violation occur?
+    \vspace*{0.5em}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,10) {node $A$};
+            \node [rectangle,fill=red!10,draw] (node2) at (3,10) {node $B$};
+            \node [rectangle,fill=red!10,draw] (node3) at (6,10) {node $C$};
+            \node [rectangle,fill=red!10,draw] (node4) at (9,10) {node $D$};
+            \draw (node1) -- (0,0);
+            \draw (node2) -- (3,0);
+            \draw (node3) -- (6,0);
+            \draw (node4) -- (9,0);
+            \node [op,text width=2.6cm] (a1) at (0,7.2) {$\mathsf{set}(x, 1)$};
+            \node [op,text width=1.5cm] (a2) at (0,3.5) {$\mathsf{get}(x) \rightarrow 4$};
+            \node [op,text width=1.6cm] (b1) at (3,8.5) {$\mathsf{get}(x) \rightarrow 1$};
+            \node [op,text width=2.6cm] (b2) at (3,6.0) {$\mathsf{cas}(x, 1, 2) \rightarrow \mathsf{true}$};
+            \node [op,text width=1.5cm] (b3) at (3,1.4) {$\mathsf{get}(x) \rightarrow 2$};
+            \node [op,text width=1.5cm] (c1) at (6,7.5) {$\mathsf{get}(x) \rightarrow 1$};
+            \node [op,text width=1.5cm] (c2) at (6,5.5) {$\mathsf{get}(x) \rightarrow 2$};
+            \node [op,text width=2.4cm] (c3) at (6,2.3) {$\mathsf{cas}(x, 2, 4) \rightarrow \mathsf{true}$};
+            \node [op,text width=2.8cm] (d1) at (9,7.6) {$\mathsf{set}(x, 0)$};
+            \node [op,text width=3cm] (d2) at (9,4) {$\mathsf{cas}(x, 0, 3) \rightarrow \mathsf{false}$};
+        \end{tikzpicture}
+    \end{center}
+}{
+    It is not linearizable.
+    The violation is the final read by $B$, which should have returned 4 rather than 2.
+    The value of $x$ was previously 2, but $C$'s $\mathsf{CAS}(x,2,4)$ changed it to 4, then $A$ read 4.
+    Because $B$'s final read started after $A$'s final read finished, $B$'s read should have returned a value no older than $A$'s.
+
+    The following diagram visualises the points in time at which each operation takes effect, and the resulting total order of atomic operations.
+    Example based on Figure~9-4 from \emph{Designing Data-Intensive Applications} (see suggested reading for this course).
+
+    \begin{tikzpicture}
+        \node [rectangle,fill=red!10,draw] (node1) at (0,10) {node $A$};
+        \node [rectangle,fill=red!10,draw] (node2) at (3,10) {node $B$};
+        \node [rectangle,fill=red!10,draw] (node3) at (6,10) {node $C$};
+        \node [rectangle,fill=red!10,draw] (node4) at (9,10) {node $D$};
+        \node [rectangle,fill=red!10,draw] (node5) at (12,10) {\storageSymbol};
+        \draw (node1) -- (0,0);
+        \draw (node2) -- (3,0);
+        \draw (node3) -- (6,0);
+        \draw (node4) -- (9,0);
+        \draw (node5) -- (12,0);
+        \draw [blue!30] (0.3,8.3) -- (11.7,8.3);
+        \draw [blue!30] (0.3,2.8) -- (11.7,2.8);
+        \draw [blue!30] (3.3,7.8) -- (11.7,7.8);
+        \draw [blue!30] (3.3,6.5) -- (11.7,6.5);
+        \draw [blue!30] (3.3,1.5) -- (11.7,1.5);
+        \draw [blue!30] (6.3,7.5) -- (11.7,7.5);
+        \draw [blue!30] (6.3,5.6) -- (11.7,5.6);
+        \draw [blue!30] (6.3,3.3) -- (11.7,3.3);
+        \draw [blue!30] (9.3,8.8) -- (11.7,8.8);
+        \draw [blue!30] (9.3,4.0) -- (11.7,4.0);
+        \tikzstyle{atomic}=[rectangle,fill=blue,nearly transparent,inner sep=2pt,minimum width=0.6cm]
+        \tikzstyle{rlabel}=[right,font=\footnotesize]
+        \node [op,text width=2.6cm] (a1op) at (0,7.2) {$\mathsf{set}(x, 1)$};                               \node [atomic] (a1) at (0,8.3) {};
+        \node [op,text width=1.5cm] (a2op) at (0,3.5) {$\mathsf{get}(x)       \rightarrow 4$};              \node [atomic] (a2) at (0,2.8) {};
+        \node [op,text width=1.6cm] (b1op) at (3,8.5) {$\mathsf{get}(x)       \rightarrow 1$};              \node [atomic] (b1) at (3,7.8) {};
+        \node [op,text width=2.6cm] (b2op) at (3,6.0) {$\mathsf{cas}(x, 1, 2) \rightarrow \mathsf{true}$};  \node [atomic] (b2) at (3,6.5) {};
+        \node [op,text width=1.5cm] (b3op) at (3,1.4) {$\mathsf{get}(x)       \rightarrow 2$};              \node [atomic] (b3) at (3,1.5) {};
+        \node [op,text width=1.5cm] (c1op) at (6,7.5) {$\mathsf{get}(x)       \rightarrow 1$};              \node [atomic] (c1) at (6,7.5) {};
+        \node [op,text width=1.5cm] (c2op) at (6,5.5) {$\mathsf{get}(x)       \rightarrow 2$};              \node [atomic] (c2) at (6,5.6) {};
+        \node [op,text width=2.4cm] (c3op) at (6,2.3) {$\mathsf{cas}(x, 2, 4) \rightarrow \mathsf{true}$};  \node [atomic] (c3) at (6,3.3) {};
+        \node [op,text width=2.8cm] (d1op) at (9,7.6) {$\mathsf{set}(x, 0)$};                               \node [atomic] (d1) at (9,8.8) {};
+        \node [op,text width=3.0cm] (d2op) at (9,4.0) {$\mathsf{cas}(x, 0, 3) \rightarrow \mathsf{false}$}; \node [atomic] (d2) at (9,4.0) {};
+        \node [atomic] (a1x) at (12,8.3) {}; \draw (a1x.east) node [rlabel] {write 1};
+        \node [atomic] (a2x) at (12,2.8) {}; \draw (a2x.east) node [rlabel] {read 4};
+        \node [atomic] (b1x) at (12,7.8) {}; \draw (b1x.east) node [rlabel] {read 1};
+        \node [atomic] (b2x) at (12,6.5) {}; \draw (b2x.east) node [rlabel] {write 2};
+        \node [atomic] (b3x) at (12,1.5) {}; \draw (b3x.east) node [rlabel] {read 2 -- wrong!};
+        \node [atomic] (c1x) at (12,7.5) {}; \draw (c1x.east) node [rlabel] {read 1};
+        \node [atomic] (c2x) at (12,5.6) {}; \draw (c2x.east) node [rlabel] {read 2};
+        \node [atomic] (c3x) at (12,3.3) {}; \draw (c3x.east) node [rlabel] {write 4};
+        \node [atomic] (d1x) at (12,8.8) {}; \draw (d1x.east) node [rlabel] {write 0};
+        \node [atomic] (d2x) at (12,4.0) {}; \draw (d2x.east) node [rlabel] {no-op};
+    \end{tikzpicture}
+}
 
 % CAP theorem
 
