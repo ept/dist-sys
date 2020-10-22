@@ -4,6 +4,8 @@
 \newcommand{\thisyear}{2020/21}
 \newcommand{\timestampexample}{2020-11-09T09:50:17+00:00}
 \newcommand{\whenissecurity}{Part IB Easter term}
+\newcommand{\ledgersystems}{https://www.cst.cam.ac.uk/teaching/2021/L47}
+\newcommand{\multicore}{https://www.cst.cam.ac.uk/teaching/2021/L304}
 
 % Lecture dates for 2020:
 % 2020-11-05
@@ -38,6 +40,7 @@
 \def\subsubsectionautorefname{Section}%
 
 % TODO: table of contents
+% TODO: have title slide with my name, course title, university crest for each video?
 
 \section{Introduction}\label{sec:introduction}
 
@@ -3999,6 +4002,7 @@ Paxos and Raft assume a system model with fair-loss links (\autoref{l:model-netw
 The assumptions on network and node behaviour can be weakened to Byzantine, and such algorithms are used in blockchains.
 However, Byzantine fault-tolerant consensus algorithms are significantly more complicated and less efficient than non-Byzantine ones.
 We will focus on fair-loss, crash-recovery algorithms for now, which are useful in many practical settings (such as datacenters with trusted private networks).
+The \href{\ledgersystems}{L47 unit in Part~III} goes into detail of Byzantine consensus.
 
 On the other hand, the assumption of partial synchrony cannot be weakened to asynchrony.
 The reason is that consensus requires a failure detector (\autoref{l:failure-detector}), which in turn requires a local clock to trigger timeouts \citep{Chandra:1996}.
@@ -4861,7 +4865,373 @@ Thanks to total order broadcast, all nodes are guaranteed to make the same decis
 \subsection{Linearizability}
 
 An atomic commitment protocol is a way of preserving consistency across multiple replicas in the face of faults, by ensuring that all participants of a transaction either commit or abort.
-However, when there are multiple nodes concurrently reading and modifying some shared data concurrently, 
+However, when there are multiple nodes concurrently reading and modifying some shared data concurrently, ensuring the same commit or abort outcome for all nodes is not sufficient.
+We also have to reason about the interaction that arises from concurrent activity.
+
+In this section we will introduce one particular consistency model for concurrent system that is called \emph{linearizability}.
+We will discuss linearizability informally; if you are interested in the details, \cite{Herlihy:1990} give a formal definition.
+People sometimes say \emph{strong consistency} when referring to linearizability, but the concept of ``strong consistency'' is rather vague and imprecise.
+We will stick to the term \emph{linearizability}, which has a precisely defined meaning.
+
+An informal definition of linearizability appears on \autoref{l:linearizability}.
+Over the following slides we will clarify what this means through examples.
+
+Linearizability is a useful concept not only in distributed systems, but also in the context of shared-memory concurrency on a single machine.
+Interestingly, on a computer with multiple CPU cores (pretty much all servers, laptops and smartphones nowadays), memory access is not linearizabile by default!
+This is because each CPU core has its own caches, and an update made by one core is not immediately reflected in another core's cache.
+Thus, even a single computer starts behaving a bit like a replicated system.
+The \href{\multicore}{L304 unit in Part~III} goes into detail of multicore memory behaviour.
+
+Don't confuse linearizability with serializability, even though both words seem to mean something like ``can be arranged into a sequential order''.
+Serializability means that transactions have the same effect as if they had been executed in \emph{some} serial order, but it does not define what that order should be.
+Linearizability defines the values that operations must return, depending on the concurrency and relative ordering of those operations.
+It is possible for a system to provide both serializability and linearizability: the combination of the two is called \emph{strict serializability} or \emph{one-copy serializability}.
+
+\begin{frame}
+    \label{s:linearizability}
+    \frametitle{Linearizability}
+    Multiple nodes concurrently accessing replicated data.\\
+    How do we define ``consistency'' here?\\[1em]\pause
+    The strongest option: \textbf{linearizability}\pause
+    \begin{itemize}
+        \item Informally: every operation takes effect \textbf{atomically} sometime after it started and before it finished\pause
+        \item All operations behave as if executed on a \textbf{single copy} of the data (even if there are in fact multiple replicas)\pause
+        \item Consequence: every operation returns an ``up-to-date'' value, a.k.a.\ ``strong consistency''\pause
+        \item Not just in distributed systems, also in shared-memory concurrency (memory on multi-core CPUs is not linearizable!)\pause
+    \end{itemize}
+    Note: linearizability $\neq$ serializability!
+\end{frame}
+\inlineslide{s:linearizability}\label{l:linearizability}
+
+The main purpose of linearizability is to guarantee that nodes observe the system in an ``up-to-date'' state; that is, they do not read \emph{stale} (outdated) values.
+We have previously seen this concept of reading an ``up-to-date'' value in the context of read-after-write consistency (\autoref{l:read-after-write}).
+However, while read-after-write consistency defines only a consistency model for reads and writes made by the same node, linearizability generalises this idea to operations made concurrently by different nodes.
+
+From the point of view of a client, every operation takes some amount of time.
+We say that an operation \emph{starts} at the moment when it is requested by the application, and it \emph{finishes} when the operation result is returned to the application.
+Between the start and finish, various network communication steps may happen; for example, if quorums are used, an operation can finish when the client has received responses from a quorum of replicas.
+
+On \autoref{l:read-after-write-2} and the following slides we represent the client's view of a $\mathsf{get}$/$\mathsf{set}$ operation as a rectangle, where the top border represents starting and the bottom border represents finishing.
+Inside the rectangle we write the effect of the operation: $\mathsf{set}\; x=v$ means updating the data item $x$ to have the value $v$, and $\mathsf{get}\; x \rightarrow v$ means a read of $x$ that returns the value $v$.
+
+\begin{frame}
+    \label{s:read-after-write-2}
+    \frametitle{Read-after-write consistency revisited}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,5.7) {client};
+            \node [rectangle,fill=red!10,draw] (node2) at (3,5.7) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
+            \node [rectangle,fill=red!10,draw] (node3) at (6,5.7) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
+            \node [rectangle,fill=red!10,draw] (node4) at (9,5.7) {\storageSymbol}; \node [yshift=-0.2cm] at (node4) {$C$};
+            \draw (node1) -- (0,-1.5);
+            \draw (node2) -- (3,-1.5);
+            \draw (node3) -- (6,-1.5);
+            \draw (node4) -- (9,-1.5);
+            \node<2-> [op,text width=2.2cm] (op1) at (0,3.4) {$\mathsf{set}\; x=v_1$};
+            \draw<2-> [bigarrow] (0.3,4.5) -- node [above,pos=0.15,sloped] {$(t_1, \mathsf{set}\; x=v_1)$} (9,3.6);
+            \draw<2-> [bigarrow] (0.3,4.4) .. controls (1,4.33) and (1,4.0) .. (2,3.9) -- (6,3.5);
+            \draw<2-> [messageloss] (0.3,4.3) .. controls (1,4.23) and (1,3.6) .. (2,3.5) -- (2.5,3.45);
+            \draw<3-> [bigarrow] (6,3.2) -- node [above,sloped,pos=0.30] {ok} (0.3,2.6);
+            \draw<3-> [bigarrow] (9,3.1) -- node [above,sloped,pos=0.17] {ok} (0.3,2.2);
+            \node<4-> [op,text width=2.0cm] (op2) at (0,0.3) {$\mathsf{get}\; x \rightarrow v_1$};
+            \draw<4-> [messageloss] (0.3,1.4) -- node [above,pos=0.2,sloped] {$\mathsf{read}\; x$} (8,0.6);
+            \draw<4-> [bigarrow] (0.3,1.3) .. controls (1,1.23) and (1,0.9) .. (2,0.8) -- (6,0.4);
+            \draw<4-> [bigarrow] (0.3,1.2) .. controls (1,1.13) and (1,0.5) .. (2,0.4) -- (3,0.3);
+            \draw<5-> [bigarrow] (3,0.0) -- node [above,sloped,pos=0.5,yshift=-0.1cm] {$(t_0, v_0)$} (0.3,-0.3);
+            \draw<5-> [bigarrow] (6,-0.1) -- node [above,sloped,near start,yshift=-0.1cm] {$(t_1, v_1)$} (0.3,-0.7);
+        \end{tikzpicture}
+    \end{center}%
+\end{frame}
+\inlineslide{s:read-after-write-2}\label{l:read-after-write-2}
+
+Linearizability is independent of the system implementation and communication protocols: all that matters is the timing of each operation's start and finish, and the outcome of the operation.
+We can therefore leave out all of the replicas and message-sending arrows, and look at the system's behaviour only from the client's point of view.
+
+The key thing that linearizability cares about is whether one operation finished before another operation started, regardless of the nodes on which they took place.
+On \autoref{l:read-after-write-3}, the two $\mathsf{get}$ operations both start after the $\mathsf{set}$ operation has finished, and therefore we expect the $\mathsf{get}$ operations to return the value $v_1$ written by $\mathsf{set}$.
+
+On the other hand, on \autoref{l:overlapping}, the $\mathsf{get}$ and $\mathsf{set}$ operation overlap in time: in this case we don't necessarily know in which order the operations take effect.
+$\mathsf{get}$ may return either the value $v_1$ written by $\mathsf{set}$, or $x$'s previous value $v_0$, and either result is acceptable.
+
+Note that ``operation A finished before operation B started'' is not the same as ``A happened before B''.
+The happens-before relation (\autoref{sec:causality}) is defined in terms of messages sent and received; it is possible to have two operations that do not overlap in time, but are still concurrent according to the happens-before relation, because no communication has occurred between those operations.
+On the other hand, linearizability is defined in terms of \emph{real time}: that is, a hypothetical global observer who can instantaneously see the state of all nodes (or, a perfectly synchronised clock on each node) determines the start and finish times of each operation.
+In reality, such a global observer or perfectly synchronised clock does not exist in a system with variable network latency, but we can nevertheless define linearizability in terms of such a hypothetical observer.
+This has the advantage that if we prove a system to be linearizable, we can be sure that its consistency guarantees hold regardless of whether some communication has taken place or not.
+
+\begin{frame}
+    \label{s:read-after-write-3}
+    \frametitle{From the client's point of view}
+    \begin{columns}
+        \begin{column}{0.4\textwidth}
+            \begin{tikzpicture}
+                \node<1-> [rectangle,fill=red!10,draw] (node1) at (0,7) {client 1};
+                \node<4-> [rectangle,fill=red!10,draw] (node2) at (3,7) {client 2};
+                \draw<1-> (node1) -- (0,0);
+                \draw<4-> (node2) -- (3,0);
+                \node<1-> [op,text width=2.2cm] (op1) at (0,4.9) {$\mathsf{set}\; x=v_1$};
+                \draw<2-> [bigarrow] (op1.north west) -- node [at end,right] {?} +(0.9,-0.3);
+                \draw<2-> [revbigarrow] (op1.north east) -- node [at end,right] {?} +(0.9,0.3);
+                \node<1-3> [op,text width=2.0cm] (op2) at (0,1.8) {$\mathsf{get}\; x \rightarrow v_1$};
+                \draw<2-3> [bigarrow] (op2.north west) -- +(0.9,-0.3);
+                \draw<2-3> [revbigarrow] (op2.north east) -- +(0.9,0.3);
+                \node<2-> at (1.5,2.6) {?};
+                \node<2-> at (1.5,1.0) {?};
+                \node<4-> [op,text width=2.0cm] (op3) at (3,1.8) {$\mathsf{get}\; x \rightarrow v_1$};
+                \draw<4-> [bigarrow] (op3.south west) -- +(-0.9,-0.3);
+                \draw<4-> [revbigarrow] (op3.south east) -- +(-0.9,0.3);
+                \draw<3> (0.1,3.6) edge [-{Stealth},red,thick,densely dashed,out=330,in=50] node [pos=0.7,right,red,font=\scriptsize] {real time} (0.1,3.0);
+                \draw<4-> (0.1,3.6) edge [-{Stealth},red,thick,densely dashed,out=330,in=150] node [above,red,font=\scriptsize] {real time} (2.9,3.0);
+            \end{tikzpicture}
+        \end{column}
+        \begin{column}{0.6\textwidth}
+            \begin{itemize}
+                \item<1-> Focus on client-observable behaviour: when and what an operation returns
+                \item<2-> Ignore how the replication system is implemented internally
+                \item<3-> Did operation $A$ finish before operation $B$ started?
+                \item<4-> Even if the operations are on different nodes?
+                \item<5-> \textbf{This is not happens-before}:\\
+                    we want client 2 to read value written by client 1, even if the clients have not communicated!
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+\inlineslide{s:read-after-write-3}\label{l:read-after-write-3}
+
+\begin{frame}
+    \label{s:overlapping}
+    \frametitle{Operations overlapping in time}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{tikzpicture}
+                \node [rectangle,fill=red!10,draw] (node1) at (0,7) {client 1};
+                \node [rectangle,fill=red!10,draw] (node2) at (2,7) {\storageSymbol};
+                \node [rectangle,fill=red!10,draw] (node3) at (4,7) {client 2};
+                \draw (node1) -- (0,0);
+                \draw (node2) -- (2,0);
+                \draw (node3) -- (4,0);
+                \node [op,text width=2.5cm] (op1) at (0,3.5) {$\mathsf{set}\; x=v_1$};
+                \node<1-2> [op,text width=2.5cm] (op2) at (4,2.8) {$\mathsf{get}\; x \rightarrow v_1$};
+                \node<3-|handout:0> [op,text width=2.5cm] (op3) at (4,2.8) {$\mathsf{get}\; x \rightarrow v_0$};
+                \node [inner sep=0] (atomic1L) at (1.7,3.5) {}; \node [inner sep=0] (atomic1R) at (2.3,3.5) {};
+                \node [inner sep=0] (atomic2L) at (1.7,2.9) {}; \node [inner sep=0] (atomic2R) at (2.3,2.9) {};
+                \draw [blue,line width=4pt] (atomic1L) -- (atomic1R);
+                \draw [blue,line width=4pt] (atomic2L) -- (atomic2R);
+                \draw<1-2> [bigarrow] (op1.north west) -- (atomic1L);
+                \draw<1-2> [bigarrow] (atomic1L) -- (op1.north east);
+                \draw<1-2> [bigarrow] (op2.south west) -- (atomic2R);
+                \draw<1-2> [bigarrow] (atomic2R) -- (op2.south east);
+                \draw<3-|handout:0> [bigarrow] (op1.north west) -- (atomic2L);
+                \draw<3-|handout:0> [bigarrow] (atomic2L) -- (op1.north east);
+                \draw<3-|handout:0> [bigarrow] (op2.south west) -- (atomic1R);
+                \draw<3-|handout:0> [bigarrow] (atomic1R) -- (op2.south east);
+            \end{tikzpicture}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item<1-> Client 2's get operation overlaps in time with client 1's set operation
+                \item<2-> Maybe the set operation takes effect first?
+                \item<3-> Just as likely, the get operation may be executed first
+                \item<4-> Either outcome is fine in this case
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+\inlineslide{s:overlapping}\label{l:overlapping}
+
+Linearizability is not only about the relationship of a $\mathsf{get}$ operation to a prior $\mathsf{set}$ operation, but it can also relate one $\mathsf{get}$ operation to another.
+\autoref{l:non-linearizable} shows an example of a system that uses quorum reads and writes, but is nevertheless non-linearizable.
+Here, client 1 sets $x$ to $v_1$, and due to a quirk of the network the update to replica $A$ happens quickly, while the updates to replicas $B$ and $C$ are delayed.
+Client 2 reads from a quorum of $\{A,B\}$, receives responses $\{v_0,v_1\}$, and determines $v_1$ to be the newer value based on the attached timestamp.
+After client 2's read has finished, client 3 starts a read from a quorum of $\{B,C\}$, receives $v_0$ from both replicas, and returns $v_0$ (since it is not aware of $v_1$).
+
+Thus, client 3 observes an older value than client 2, even though the real-time order of operations would require client 3's read to return a value that is no older than client 2's result.
+This behaviour is not allowed in a linearizable system.
+
+\begin{frame}
+    \label{s:non-linearizable}
+    \frametitle{Not linearizable, despite quorum reads/writes}
+    \begin{tikzpicture}
+        \node [rectangle,fill=red!10,draw] (node1) at (0,5.9) {client 1};
+        \node [rectangle,fill=red!10,draw] (node2) at (2,5.9) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
+        \node [rectangle,fill=red!10,draw] (node3) at (4,5.9) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
+        \node [rectangle,fill=red!10,draw] (node4) at (6,5.9) {\storageSymbol}; \node [yshift=-0.2cm] at (node4) {$C$};
+        \node [rectangle,fill=red!10,draw] (node5) at (8,5.9) {client 2};
+        \node [rectangle,fill=red!10,draw] (node6) at (10,5.9) {client 3};
+        \draw (node1) -- (0,-1);
+        \draw (node2) -- (2,-1);
+        \draw (node3) -- (4,-1);
+        \draw (node4) -- (6,-1);
+        \draw (node5) -- (8,-1);
+        \draw (node6) -- (10,-1);
+        \node<2-> [op,text width=5.2cm] at (0,2.0) {$\mathsf{set}\; x=v_1$};
+        \draw<2-> [bigarrow] (0.3,4.7) -- node [above,sloped,font=\scriptsize,pos=0.4] {$(t_1, \mathsf{set}\; x=v_1)$} (2,4.5);
+        \draw<7-> [bigarrow] (0.3,4.6) .. controls (1.1,4.53) and (1.1,1.1) .. (2,1.0) -- (4,0.8);
+        \draw<7-> [bigarrow] (0.3,4.5) .. controls (1,4.43) and (1,0.7) .. (2,0.6) -- (6,0.2);
+        \draw<2-> [bigarrow] (2,4.2) -- node [above,sloped,font=\footnotesize] {ok} (0.3,4.0);
+        \draw<8-> [bigarrow] (4,0.0) -- node [above,sloped,font=\footnotesize,near start] {ok} (0.3,-0.4);
+        \draw<8-> [bigarrow] (6,-0.1) -- node [above,sloped,font=\footnotesize,pos=0.17] {ok} (0.3,-0.7);
+        \node<3-> [op,text width=1.8cm] at (8,3.5) {$\mathsf{get}\; x \rightarrow v_1$};
+        \draw<3-> [bigarrow] (7.7,4.5) -- node [above,pos=0.15,sloped,font=\footnotesize] {$\mathsf{get}\; x$} (2,3.9);
+        \draw<3-> [bigarrow] (7.7,4.4) .. controls (7,4.33) and (7,4.1) .. (6,4.0) -- (4,3.8);
+        \draw<4-> [bigarrow] (2,3.6) -- node [above,sloped,pos=0.19,font=\footnotesize,yshift=-0.1cm] {$(t_1, v_1)$} (7.7,3.0);
+        \draw<4-> [bigarrow] (4,3.0) -- node [below,sloped,pos=0.25,font=\footnotesize,yshift=0.1cm] {$(t_0, v_0)$} (7.7,2.6);
+        \node<5-> [op,text width=1.8cm] at (10,1.0) {$\mathsf{get}\; x \rightarrow v_0$};
+        \draw<5-> [bigarrow] (9.7,2.0) -- node [above,pos=0.15,sloped,font=\footnotesize] {$\mathsf{get}\; x$} (4,1.4);
+        \draw<5-> [bigarrow] (9.7,1.9) .. controls (9,1.83) and (9,1.6) .. (8,1.5) -- (6,1.3);
+        \draw<6-> [bigarrow] (4,1.1) -- node [above,sloped,pos=0.19,font=\footnotesize,yshift=-0.1cm] {$(t_0, v_0)$} (9.7,0.5);
+        \draw<6-> [bigarrow] (6,0.5) -- node [below,sloped,pos=0.25,font=\footnotesize,yshift=0.1cm] {$(t_0, v_0)$} (9.7,0.1);
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:non-linearizable}\label{l:non-linearizable}
+
+\begin{frame}
+    \label{s:non-linearizable-2}
+    \frametitle{Not linearizable, despite quorum reads/writes}
+    \begin{tikzpicture}
+        \node [rectangle,fill=red!10,draw] (node1) at (0,5.7) {client 1};
+        \node [rectangle,fill=red!10,draw] (node5) at (8,5.7) {client 2};
+        \node [rectangle,fill=red!10,draw] (node6) at (10,5.7) {client 3};
+        \draw (node1) -- (0,-1);
+        \draw (node5) -- (8,-1);
+        \draw (node6) -- (10,-1);
+        \node [op,text width=5.2cm] at (0,2.0) {$\mathsf{set}\; x=v_1$};
+        \node [op,text width=1.8cm] at (8,3.5) {$\mathsf{get}\; x \rightarrow v_1$};
+        \node [op,text width=1.8cm] at (10,1.0) {$\mathsf{get}\; x \rightarrow v_0$};
+        \draw<2-> (8.1,2.4) edge [-{Stealth},red,thick,densely dashed,out=340,in=160] node [above,red,font=\scriptsize] {real time} (9.9,2.1);
+        \node<3-> at (4,2.5) {\begin{minipage}{6cm}
+            \begin{itemize}
+                \item Client 2's operation finishes before client 3's operation starts
+                \item Linearizability therefore requires client 3's operation to observe a state no older than client 2's operation
+                \item This example violates linearizability because $v_0$ is older than $v_1$
+            \end{itemize}
+        \end{minipage}};
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:non-linearizable-2}\label{l:non-linearizable-2}
+
+Fortunately, it is possible to make $\mathsf{get}$ and $\mathsf{set}$ operations linearizable using quorum reads and writes.
+$\mathsf{set}$ operations don't change: as before, they send the update to all replicas, and wait for acknowledgement from a quorum of replicas.
+
+For $\mathsf{get}$ operations, another step is required, as shown on \autoref{l:non-linearizable-3}.
+A client must first send the $\mathsf{get}$ request to replicas, and wait for responses from a quorum.
+If some responses include a more recent value than other responses, as indicated by their timestamps, then the client must write back the most recent value to all replicas that did not already respond with the most recent value, like in read repair (\autoref{l:read-repair}).
+The $\mathsf{get}$ operation finishes only after the client is sure that the most recent value is stored on a quorum of replicas: that is, after a quorum of replicas either responded $\mathsf{ok}$ to the read repair, or replied with the most recent value in the first place.
+
+This approach is known as the \emph{ABD algorithm}, after its authors Attiya, Bar-Noy, and Dolev \citep{Attiya:1995}.
+It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and $\mathsf{set}$ operation finishes, we know that the value read or written is present on a quorum of replicas, and therefore any subsequent quorum read is guaranteed to observe that value (or a later value).
+
+\begin{frame}
+    \label{s:non-linearizable-3}
+    \frametitle{Making quorum reads/writes linearizable}
+    \begin{tikzpicture}
+        \node [rectangle,fill=red!10,draw] (node1) at (0,5.9) {client 1};
+        \node [rectangle,fill=red!10,draw] (node2) at (2,5.9) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
+        \node [rectangle,fill=red!10,draw] (node3) at (4,5.9) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
+        \node [rectangle,fill=red!10,draw] (node4) at (6,5.9) {\storageSymbol}; \node [yshift=-0.2cm] at (node4) {$C$};
+        \node [rectangle,fill=red!10,draw] (node5) at (8,5.9) {client 2};
+        \node [rectangle,fill=red!10,draw] (node6) at (10,5.9) {client 3};
+        \draw (node1) -- (0,-1);
+        \draw (node2) -- (2,-1);
+        \draw (node3) -- (4,-1);
+        \draw (node4) -- (6,-1);
+        \draw (node5) -- (8,-1);
+        \draw (node6) -- (10,-1);
+        \node<1-> [op,text width=5.2cm] (op1) at (0,2.0) {$\mathsf{set}\; x=v_1$};
+        \draw<1-> [bigarrow] (0.3,4.7) -- node [above,sloped,font=\scriptsize,pos=0.4] {$(t_1, \mathsf{set}\; x=v_1)$} (2,4.5);
+        \draw<1-> [bigarrow] (0.3,4.6) .. controls (1.1,4.53) and (1.1,1.1) .. (2,1.0) -- (4,0.8);
+        \draw<1-> [bigarrow] (0.3,4.5) .. controls (1,4.43) and (1,0.7) .. (2,0.6) -- (6,0.2);
+        \draw<1-> [bigarrow] (2,4.2) -- node [above,sloped,font=\footnotesize] {ok} (0.3,4.0);
+        \draw<6-> [bigarrow] (4,0.0) -- node [above,sloped,font=\footnotesize,near start] {ok} (0.3,-0.4);
+        \draw<6-> [bigarrow] (6,-0.1) -- node [above,sloped,font=\footnotesize,pos=0.17] {ok} (0.3,-0.7);
+        \node<1-> [op,text width=3.6cm] (op2) at (8,2.6) {$\mathsf{get}\; x \rightarrow v_1$};
+        \draw<2-> [bigarrow] (7.7,4.5) -- node [above,pos=0.15,sloped,font=\footnotesize] {$\mathsf{get}\; x$} (2,3.9);
+        \draw<2-> [bigarrow] (7.7,4.4) .. controls (7,4.33) and (7,4.1) .. (6,4.0) -- (4,3.8);
+        \draw<3-> [bigarrow] (2,3.6) -- node [above,sloped,pos=0.19,font=\footnotesize,yshift=-0.1cm] {$(t_1, v_1)$} (7.7,3.0);
+        \draw<3-> [bigarrow] (4,3.0) -- node [below,sloped,pos=0.25,font=\footnotesize,yshift=0.1cm] {$(t_0, v_0)$} (7.7,2.6);
+        \draw<4-> [bigarrow] (7.7,2.1) -- node [above,pos=0.3,sloped,font=\footnotesize,yshift=-0.1cm] {$(t_1, \mathsf{set}\; x=v_1)$} (4,1.7);
+        \draw<4-> [bigarrow] (7.7,2.0) .. controls (7,1.93) and (7,1.7) .. (6,1.6);
+        \draw<5-> [bigarrow] (6,1.27) -- node [above,sloped,font=\footnotesize] {ok} (7.7,1.1);
+        \draw<5-> [bigarrow] (4,1.2) -- node [above,sloped,near start,font=\footnotesize] {ok} (7.7,0.8);
+        \node<1-> [op,text width=1.8cm] (op3) at (10,1.0) {$\mathsf{get}\; x \rightarrow v_1$};
+        \draw<1-> [bigarrow] (op3.south west) -- node [at end,below,yshift=-0.2cm] {\dots} +(-0.7,-0.1);
+        \draw<1-> [revbigarrow] (op3.south east) -- node [at end,above] {\dots} +(-0.7,0.1);
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:non-linearizable-3}\label{l:non-linearizable-3}
+
+\begin{frame}
+    \label{s:cas-1}
+    \frametitle{Linearizability for different types of operation}
+    This ensures linearizability of $\mathsf{get}$ (quorum read) and\\$\mathsf{set}$ (\textbf{blind write} to quorum)\pause
+    \begin{itemize}
+        \item When an operation finishes, the value read/written is stored on a quorum of replicas
+        \item Every subsequent quorum operation will see that value\pause
+        \item Multiple concurrent writes may overwrite each other\\[1em]\pause
+    \end{itemize}
+    What about an atomic \textbf{compare-and-swap} operation?
+    \begin{itemize}
+        \item $\mathsf{CAS}(x, \mathit{oldValue}, \mathit{newValue})$ sets $x$ to $\mathit{newValue}$
+            iff current value of $x$ is $\mathit{oldValue}$
+        \item Previously discussed in shared memory concurrency\pause
+        \item Can we implement \textbf{linearizable} compare-and-swap in a distributed system?\pause
+        \item \textbf{Yes:} total order broadcast to the rescue again!
+    \end{itemize}
+\end{frame}
+\inlineslide{s:cas-1}\label{l:cas-1}
+
+The $\mathsf{set}$ operation for which the ABD algorithm ensures linearizability is a so-called \emph{blind write} (unconditional write): it simply overwrites the value of a data item, regardless of its previous value.
+If multiple clients concurrently write to the same item, and if a last-writer-wins conflict resolution policy is used (\autoref{l:concurrent-writes}), then one of those writes will end up as the ``winner'' and the other values will be silently discarded.
+
+In some applications, we want to be more careful and overwrite a value only if it has not been concurrently modified by another node.
+This can be achieved with an \emph{atomic compare-and-swap} (CAS) operation.
+A CAS operation for concurrency between threads on a single node was discussed in the first half of this course.
+This raises the question: how can we implement a linearizable CAS operation in a distributed, replicated system?
+
+Recall that the purpose of linearizability is to make a system behave as if there was only a single copy of the data, and all operations on it happen atomically, even if the system is in fact replicated.
+This makes CAS a natural operation to want to support in a linearizable context.
+
+The ABD algorithm is not able to implement CAS, because different replicas may see the operations in a different order, and thus reach inconsistent conclusions about whether a particular CAS operation succeeded or not.
+However, it is possible to implement a linearizable, replicated CAS operation using total order broadcast, as shown on \autoref{l:cas-2}.
+We simply broadcast every operation we want to perform, and actually execute the operation when it is delivered.
+Like in state machine replication (\autoref{l:smr}), this algorithm ensures that an operation has the same effect and outcome on every replica.
+
+\begin{frame}
+    \label{s:cas-2}
+    \frametitle{Linearizable compare-and-swap (CAS)}
+    \footnotesize
+    \begin{algorithmic}
+        \On{request to perform $\mathsf{get}(x)$}
+            \State total order broadcast $(\mathsf{get}, x)$ and wait for delivery
+        \EndOn
+        \State
+        \On{request to perform $\mathsf{CAS}(x, \mathit{old}, \mathit{new})$}
+            \State total order broadcast $(\mathsf{CAS}, x, \mathit{old}, \mathit{new})$ and wait for delivery
+        \EndOn
+        \State
+        \On{delivering $(\mathsf{get}, x)$ by total order broadcast}
+            \State \textbf{return} $\mathit{localState}[x]$ as result of operation $\mathsf{get}(x)$
+        \EndOn
+        \State
+        \On{delivering $(\mathsf{CAS}, x, \mathit{old}, \mathit{new})$ by total order broadcast}
+            \State $\mathit{success} := \mathsf{false}$
+            \If{$\mathit{localState}[x] = \mathit{old}$}
+                \State $\mathit{localState}[x] := \mathit{new};\; \mathit{success} := \mathsf{true}$
+            \EndIf
+            \State \textbf{return} $\mathit{success}$ as result of operation $\mathsf{CAS}(x, \mathit{old}, \mathit{new})$
+        \EndOn
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:cas-2}\label{l:cas-2}
+
+% \item Every operation takes effect \textbf{atomically} sometime after it started and before it finished
+% \item All operations behave as if executed on a \textbf{single copy} of the data (even if there are in fact multiple replicas)
+% \item If operation A finished before operation B started (in \textbf{real time}), then A must take effect before B
+
+% Communication that happens outside of the computer system
+
+% CAP theorem
+% linearizable CAS operations
 
 \subsection{Optimistic replication}
 
