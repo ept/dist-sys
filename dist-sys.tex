@@ -3345,14 +3345,14 @@ In the second scenario a client tries to add $x$ to both replicas, but the reque
             \draw [crash] (node1) -- (0,1.6);
             \draw (node2) -- (4,1.5);
             \draw (node3) -- (8,1.5);
-            \draw<2-> [bigarrow] (0,4.0) -- node [above,near start,sloped] {add $x$} (8,3.2);
+            \draw<2-> [bigarrow] (0,4.0) -- node [above,near start,sloped,yshift=-0.1cm] {$\mathsf{add}(x)$} (8,3.2);
             \draw<2-> [bigarrow] (0,3.9)
                 .. controls (1,3.8) and (1,3.3) .. (2,3.2)
-                -- node [above,sloped] {add $x$} (4,3.0);
-            \draw<3-> [messageloss] (0,2.8) -- node [above,near start,sloped] {remove $x$} (6,2.2);
+                -- node [above,sloped,yshift=-0.1cm] {$\mathsf{add}(x)$} (4,3.0);
+            \draw<3-> [messageloss] (0,2.8) -- node [above,near start,sloped,yshift=-0.1cm] {$\mathsf{remove}(x)$} (6,2.2);
             \draw<3-> [bigarrow] (0,2.7)
                 .. controls (1,2.6) and (1,2.1) .. (2,2.0)
-                -- node [above,sloped] {remove $x$} (4,1.8);
+                -- node [above,sloped,yshift=-0.1cm,pos=0.4] {$\mathsf{remove}(x)$} (4,1.8);
         \end{tikzpicture}\\[1em]%
         \uncover<4->{Final state ($x \notin A,\; x \in B$) is the same as in this case:}\\[1em]%
         \begin{tikzpicture}
@@ -3363,10 +3363,10 @@ In the second scenario a client tries to add $x$ to both replicas, but the reque
             \draw<5-> [crash] (node1) -- (0,2.9);
             \draw<5-> (node2) -- (4,2.8);
             \draw<5-> (node3) -- (8,2.8);
-            \draw<5-> [bigarrow] (0,4.0) -- node [above,near start,sloped] {add $x$} (8,3.2);
+            \draw<5-> [bigarrow] (0,4.0) -- node [above,near start,sloped,yshift=-0.1cm] {$\mathsf{add}(x)$} (8,3.2);
             \draw<5-> [messageloss] (0,3.9)
                 .. controls (1,3.8) and (1,3.3) .. (2,3.2)
-                -- node [at start,above,sloped] {add $x$} (3.5,3.05);
+                -- node [at start,above,sloped,yshift=-0.1cm] {$\mathsf{add}(x)$} (3.5,3.05);
         \end{tikzpicture}
     \end{center}%
 \end{frame}
@@ -3395,22 +3395,22 @@ On \autoref{l:tombstones}, records containing $\mathsf{false}$ are tombstones.
             \draw (node3) -- (8,0.5);
             \draw [bigarrow] (0,4.0)
                 -- node [left,at start] {$t_1$}
-                   node [above,near start,sloped] {$(t_1, \mathsf{add}\; x)$}
+                   node [above,near start,sloped] {$(t_1, \mathsf{add}(x))$}
                    node [right,at end] {$\{x \mapsto (t_1, \mathsf{true})\}$} (8,3.2);
             \draw [bigarrow] (0,3.9)
                 .. controls (1,3.8) and (1,3.1) .. (2,3.0)
-                -- node [above,sloped,near start] {$(t_1, \mathsf{add}\; x)$}
+                -- node [above,sloped,near start] {$(t_1, \mathsf{add}(x))$}
                    node [right,at end] {$\{x \mapsto (t_1, \mathsf{true})\}$} (4,2.8);
             \draw<2-> [messageloss] (0,2.0)
                 -- node [left,at start] {$t_2$}
-                   node [above,near start,sloped] {$(t_2, \mathsf{remove}\; x)$} (6,1.4);
+                   node [above,near start,sloped] {$(t_2, \mathsf{remove}(x))$} (6,1.4);
             \draw<2-> [bigarrow] (0,1.9)
                 .. controls (1,1.8) and (1,1.1) .. (2,1.0)
-                -- node [above,sloped,near start] {$(t_2, \mathsf{remove}\; x)$}
+                -- node [above,sloped,near start] {$(t_2, \mathsf{remove}(x))$}
                    node [right,at end] {$\{x \mapsto (t_2, \mathsf{false})\}$} (4,0.8);
         \end{tikzpicture}
     \end{center}%
-    \uncover<3->{``$\mathsf{remove}\; x$'' doesn't actually remove $x$:
+    \uncover<3->{``$\mathsf{remove}(x)$'' doesn't actually remove $x$:
     it labels $x$ with ``$\mathsf{false}$'' to indicate it is invisible (a \textbf{tombstone})}\\[0.5em]%
     \uncover<4->{Every record has \textbf{logical timestamp} of last write}\\[1em]
 \end{frame}
@@ -3466,12 +3466,12 @@ To ensure that both replicas end up in the same state, we rely not on the order 
             \draw (node4) -- (9,0);
             \draw<2-> [bigarrow] (0,2.0)
                 -- node [left,at start] {$t_1$}
-                   node [above,near start,sloped] {$(t_1, \mathsf{set}\; x = v_1)$} (6,0.8);
+                   node [above,near start,sloped] {$(t_1, \mathsf{set}(x, v_1))$} (6,0.8);
             \draw<2-> [bigarrow] (0,1.9)
                 .. controls (1,1.7) and (1,0.7) .. (2,0.5) -- (3,0.3);
             \draw<3-> [bigarrow] (9,2.0)
                 -- node [right,at start] {$t_2$}
-                   node [above,near start,sloped] {$(t_2, \mathsf{set}\; x = v_2)$} (3,0.8);
+                   node [above,near start,sloped] {$(t_2, \mathsf{set}(x, v_2))$} (3,0.8);
             \draw<3-> [bigarrow] (9,1.9)
                 .. controls (8,1.7) and (8,0.7) .. (7,0.5) -- (6,0.3);
         \end{tikzpicture}
@@ -3620,10 +3620,10 @@ As a result, the read does not return the value $v_1$ previously written by the 
             \draw (node3) -- (8,0.5);
             \draw [bigarrow] (0,4.0)
                 -- node [left,at start] {$t_1$}
-                   node [above,near start,sloped] {$(t_1, \mathsf{set}\; x=v_1)$} (8,3.2);
+                   node [above,near start,sloped] {$(t_1, \mathsf{set}(x,v_1))$} (8,3.2);
             \draw [messageloss] (0,3.9) .. controls (1,3.8) and (1,3.3) .. (2,3.2) -- (3.5,3.05);
             \draw<2-> [messageloss] (0,2.5)
-                -- node [above,near start,sloped] {$\mathsf{read}\; x$} (6,1.9);
+                -- node [above,near start,sloped] {$\mathsf{get}(x)$} (6,1.9);
             \draw<2-> [bigarrow] (0,2.4) .. controls (1,2.3) and (1,1.8) .. (2,1.7) -- (4,1.5);
             \draw<2-> [bigarrow] (4,1.2) -- node [above,sloped,pos=0.7] {$(t_0, v_0)$} (0,0.8);
         \end{tikzpicture}
@@ -3663,13 +3663,13 @@ With a ``2 out of 3'' policy for both reads and writes, it is guaranteed that at
             \draw (node4) -- (9,-1);
             \draw<2-> [bigarrow] (0,4.0)
                 -- node [left,at start] {$t_1$}
-                   node [above,pos=0.15,sloped] {$(t_1, \mathsf{set}\; x=v_1)$} (9,3.1);
+                   node [above,pos=0.15,sloped] {$(t_1, \mathsf{set}(x,v_1))$} (9,3.1);
             \draw<2-> [bigarrow] (0,3.9) .. controls (1,3.8) and (1,3.5) .. (2,3.4) -- (6,3.0);
             \draw<2-> [messageloss] (0,3.8) .. controls (1,3.7) and (1,3.1) .. (2,3.0) -- (2.5,2.95);
             \draw<3-> [bigarrow] (6,2.7) -- node [above,sloped,pos=0.30] {ok} (0,2.1);
             \draw<3-> [bigarrow] (9,2.6) -- node [above,sloped,pos=0.17] {ok} (0,1.7);
             \draw<4-> [messageloss] (0,1.4)
-                -- node [above,pos=0.25,sloped] {$\mathsf{read}\; x$} (8,0.6);
+                -- node [above,pos=0.25,sloped,yshift=-0.1cm] {$\mathsf{get}(x)$} (8,0.6);
             \draw<4-> [bigarrow] (0,1.3) .. controls (1,1.2) and (1,0.9) .. (2,0.8) -- (6,0.4);
             \draw<4-> [bigarrow] (0,1.2) .. controls (1,1.1) and (1,0.5) .. (2,0.4) -- (3,0.3);
             \draw<5-> [bigarrow] (3,0.0) -- node [above,sloped,pos=0.5,yshift=-0.1cm] {$(t_0, v_0)$} (0,-0.3);
@@ -3747,12 +3747,12 @@ To bring replicas back in sync with each other, one approach is to rely on an an
             \draw (node2) -- (3,-0.3);
             \draw (node3) -- (6,-0.3);
             \draw (node4) -- (9,-0.3);
-            \draw<2-> [messageloss] (0,4.0) -- node [above,pos=0.2,sloped] {$\mathsf{read}\; x$} (8,3.2);
+            \draw<2-> [messageloss] (0,4.0) -- node [above,pos=0.2,sloped] {$\mathsf{get}(x)$} (8,3.2);
             \draw<2-> [bigarrow] (0,3.9) .. controls (1,3.8) and (1,3.5) .. (2,3.4) -- (6,3.0);
             \draw<2-> [bigarrow] (0,3.8) .. controls (1,3.7) and (1,3.1) .. (2,3.0) -- (3,2.9);
             \draw<3-> [bigarrow] (3,2.4) -- node [above,sloped] {$(t_0, v_0)$} (0,2.1);
             \draw<3-> [bigarrow] (6,2.3) -- node [above,sloped,near start] {$(t_1, v_1)$} (0,1.7);
-            \draw<4-> [bigarrow] (0,0.8) -- node [above,sloped,pos=0.17] {$(t_1, \mathsf{set}\; x=v_1)$} (9,-0.1);
+            \draw<4-> [bigarrow] (0,0.8) -- node [above,sloped,pos=0.17] {$(t_1, \mathsf{set}(x,v_1))$} (9,-0.1);
             \draw<4-> [bigarrow] (0,0.7) .. controls (1,0.6) and (1,0.3) .. (2,0.2) -- (3,0.1);
         \end{tikzpicture}
     \end{center}%
@@ -3796,9 +3796,10 @@ Let's first consider FIFO-total order broadcast, the strongest form of broadcast
 \end{frame}
 \inlineslide{s:smr}\label{l:smr}
 
-Using FIFO-total order broadcast it is very easy to build a replicated system: we simply package each update request as a message, broadcast it to the replicas, and replicas update their state based on each message as it is delivered.
-This approach is called \emph{state machine replication} (SMR), because it treats a replica as a state machine whose input is the sequence of broadcast message deliveries.
-We only require that the state change logic is deterministic: any two replicas that are in the same state, and are given the same input, must end up in the same next state.
+Using FIFO-total order broadcast it is easy to build a replicated system: we broadcast every update request to the replicas, which update their state based on each message as it is delivered.
+This is called \emph{state machine replication} (SMR), because a replica acts as a state machine whose inputs are message deliveries.
+We only require that the update logic is \emph{deterministic}: any two replicas that are in the same state, and are given the same input, must end up in the same next state.
+Even errors must be deterministic: if an update succeeds on one replica but fails on another, they would become inconsistent.
 
 An excellent feature of SMR is that the logic for moving from one state to the next can be arbitrarily complex, as long as it is deterministic.
 For example, an entire database transaction with arbitrary business logic can be executed, and this logic can depend both on the broadcast message and the current state of the database.
@@ -4547,6 +4548,23 @@ In this case, the leader decrements the $\mathit{sentLength}$ value for this fol
 This may happen multiple times, but eventually the leader will send the follower an array of entries that cleanly extends the follower's existing log, at which point the follower will accept the $\mathsf{LogRequest}$.
 (This algorithm could be optimised to require fewer retries, but in this course we will avoid making it more complex than needed.)
 
+% TODO: it might be nicer to write CommitLogEntries like this:
+%
+% while commitLength < log.length {
+%   acks := 0
+%   for each node in nodes {
+%     if ackedLength[node] > commitLength {
+%       acks := acks + 1
+%     }
+%   }
+%   if acks >= ceil((|nodes| + 1) / 2) {
+%     deliver log[commitLength].msg to the application
+%     commitLength := commitLength + 1
+%   } else {
+%     break
+%   }
+% }
+
 \begin{frame}
     \label{s:raft9}
     \frametitle{Raft (9/9): leader committing log entries}
@@ -4732,7 +4750,8 @@ The answer is no: although both are superficially about reaching agreement, the 
 \inlineslide{s:atomic-commit-consensus}\label{l:atomic-commit-consensus}
 
 The most common algorithm to ensure atomic commitment across multiple nodes is the \emph{two-phase commit} (2PC) protocol \citep{Gray:1978}.
-(Not to be confused with \emph{two-phase locking} (2PL), discussed in the first half of this course: 2PL ensures serialisable isolation, while 2PC ensures atomic commitment.)
+(Not to be confused with \emph{two-phase locking} (2PL), discussed in the first half of this course: 2PL ensures serialisable isolation, while 2PC ensures atomic commitment.
+There is also a \emph{three-phase commit} protocol, but it assumes the unrealistic synchronous system model, so we won't discuss it here.)
 The communication flow of 2PC is illustrated on \autoref{l:2pc}.
 
 \begin{frame}
@@ -4916,7 +4935,7 @@ From the point of view of a client, every operation takes some amount of time.
 We say that an operation \emph{starts} at the moment when it is requested by the application, and it \emph{finishes} when the operation result is returned to the application.
 Between the start and finish, various network communication steps may happen; for example, if quorums are used, an operation can finish when the client has received responses from a quorum of replicas.
 
-On \autoref{l:read-after-write-2} and the following slides we represent the client's view of a $\mathsf{get}$/$\mathsf{set}$ operation as a rectangle, where the top border represents starting and the bottom border represents finishing.
+On \autoref{l:read-after-write-2} and the following slides we represent the client's view of a $\mathsf{get}$/$\mathsf{set}$ operation as a rectangle covering the period of time from the start to finish of an operation.
 Inside the rectangle we write the effect of the operation: $\mathsf{set}(x,v)$ means updating the data item $x$ to have the value $v$, and $\mathsf{get}(x) \rightarrow v$ means a read of $x$ that returns the value $v$.
 
 \begin{frame}
@@ -4939,7 +4958,7 @@ Inside the rectangle we write the effect of the operation: $\mathsf{set}(x,v)$ m
             \draw<3-> [bigarrow] (6,3.2) -- node [above,sloped,pos=0.30] {ok} (0.3,2.6);
             \draw<3-> [bigarrow] (9,3.1) -- node [above,sloped,pos=0.17] {ok} (0.3,2.2);
             \node<4-> [op,text width=2.0cm] (op2) at (0,0.3) {$\mathsf{get}(x) \rightarrow v_1$};
-            \draw<4-> [messageloss] (0.3,1.4) -- node [above,pos=0.2,sloped] {$\mathsf{read}\; x$} (8,0.6);
+            \draw<4-> [messageloss] (0.3,1.4) -- node [above,pos=0.2,sloped] {$\mathsf{get}(x)$} (8,0.6);
             \draw<4-> [bigarrow] (0.3,1.3) .. controls (1,1.23) and (1,0.9) .. (2,0.8) -- (6,0.4);
             \draw<4-> [bigarrow] (0.3,1.2) .. controls (1,1.13) and (1,0.5) .. (2,0.4) -- (3,0.3);
             \draw<5-> [bigarrow] (3,0.0) -- node [above,sloped,pos=0.5,yshift=-0.1cm] {$(t_0, v_0)$} (0.3,-0.3);
@@ -5185,6 +5204,8 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
 \end{frame}
 \inlineslide{s:cas-1}\label{l:cas-1}
 
+% TODO exercise: write pseudocode for the ABD algorithm.
+
 The $\mathsf{set}$ operation for which the ABD algorithm ensures linearizability is a so-called \emph{blind write} (unconditional write): it simply overwrites the value of a data item, regardless of its previous value.
 If multiple clients concurrently write to the same item, and if a last-writer-wins conflict resolution policy is used (\autoref{l:concurrent-writes}), then one of those writes will end up as the ``winner'' and the other values will be silently discarded.
 
@@ -5359,6 +5380,8 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
 % http://anorien.csc.warwick.ac.uk/mirrors/CTAN/macros/latex/contrib/beamer/doc/beameruserguide.pdf
 
 \section{Material for lecture 8}
+
+% NFS close-to-open consistency
 
 Material for the last lecture is not yet ready.
 Please see the course web page \url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/materials.html} for updates.
