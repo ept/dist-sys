@@ -4811,7 +4811,7 @@ If the decision was to abort, the replica rolls back the transaction.
             (or abort if no decision was made before crash)\pause
         \item \textbf{Problem:} if coordinator crashes after prepare, but before broadcasting decision, other nodes do not know how it has decided\pause
         \item Replicas participating in transaction cannot commit or abort after responding ``ok'' to the \emph{prepare} request (otherwise we risk violating atomicity)\pause
-        \item Algorithm is blocked until coordinator recovers\pause
+        \item Algorithm is blocked until coordinator recovers
     \end{itemize}
 \end{frame}
 \inlineslide{s:2pc-coordinator}\label{l:2pc-coordinator}
@@ -4921,7 +4921,7 @@ It is possible for a system to provide both serializability and linearizability:
         \item Informally: every operation takes effect \textbf{atomically} sometime after it started and before it finished\pause
         \item All operations behave as if executed on a \textbf{single copy} of the data (even if there are in fact multiple replicas)\pause
         \item Consequence: every operation returns an ``up-to-date'' value, a.k.a.\ ``strong consistency''\pause
-        \item Not just in distributed systems, also in shared-memory concurrency (memory on multi-core CPUs is not linearizable!)\pause
+        \item Not just in distributed systems, also in shared-memory concurrency (memory on multi-core CPUs is not linearizable by default!)\pause
     \end{itemize}
     Note: linearizability $\neq$ serializability!
 \end{frame}
@@ -5176,7 +5176,7 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
         \draw<4-> [bigarrow] (7.7,2.1) -- node [above,pos=0.32,sloped,font=\footnotesize,yshift=-0.1cm] {$(t_1, \mathsf{set}(x,v_1))$} (4,1.7);
         \draw<4-> [bigarrow] (7.7,2.0) .. controls (7,1.93) and (7,1.7) .. (6,1.6);
         \draw<5-> [bigarrow] (6,1.27) -- node [above,sloped,font=\footnotesize] {ok} (7.7,1.1);
-        \draw<5-> [bigarrow] (4,1.2) -- node [above,sloped,near start,font=\footnotesize] {ok} (7.7,0.8);
+        \draw<5-> [bigarrow] (4,1.1) -- node [above,sloped,near start,font=\footnotesize] {ok} (7.7,0.7);
         \node<1-> [op,text width=1.9cm] (op3) at (10,1.0) {$\mathsf{get}(x) \rightarrow v_1$};
         \draw<1-> [bigarrow] (op3.south west) -- node [at end,below,yshift=-0.2cm] {\dots} +(-0.7,-0.1);
         \draw<1-> [revbigarrow] (op3.south east) -- node [at end,above] {\dots} +(-0.7,0.1);
@@ -5330,9 +5330,54 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
     \end{tikzpicture}
 }
 
-% CAP theorem
+\subsection{Eventual consistency}
 
-\subsection{Optimistic replication}
+Linearizability is a very convenient consistency model for distributed systems, because it guarantees that a system behaves as if there was only one copy of the data, even if it is in fact replicated.
+This allows applications to ignore some of the complexities of working with distributed systems.
+However, this strong guarantee also comes at cost, and therefore linearizability is not suitable for all applications.
+
+Part of the cost is performance: both the ABD algorithm and the linearizable CAS algorithm based on total order broadcast need to send a lot of messages over the network, and require significant amounts of waiting due to network latency.
+Part is scalability: in algorithms where all updates need to be sequenced through a leader, such as Raft, the leader can become a bottleneck that limits the number of operations that can be processed per second.
+
+Perhaps the biggest problem with linearizability is that every operation requires communication with a quorum of replicas.
+If a node is temporarily unable to communicate with sufficiently many replicas, it cannot perform any operations.
+Even though the node may be running, such a communication failure makes it effectively unavailable.
+
+\begin{frame}
+    \label{s:eventual-1}
+    \frametitle{Eventual consistency}
+    Linearizability advantages:
+    \begin{itemize}
+        \item Makes a distributed system behave as if it were non-distributed
+        \item Simple for applications to use\\[1em]\pause
+    \end{itemize}
+    Downsides:
+    \begin{itemize}
+        \item \textbf{Performance} cost: lots of messages and waiting for responses\pause
+        \item \textbf{Scalability} limits: leader can be a bottleneck\pause
+        \item \textbf{Availability} problems: if you can't contact a quorum of nodes, you can't process any operations\\[1em]\pause
+    \end{itemize}
+    \textbf{Eventual consistency}: a weaker model than linearizability.\\
+    Different trade-off choices.
+\end{frame}
+\inlineslide{s:eventual-1}\label{l:eventual-1}
+
+As an example, consider the calendar app that you can find on most phones, tablets, and computers.
+We would like the appointments and entries in this app to sync across all of our devices; in other words, we want it to be replicated such that each device is a replica.
+Moreover, we would like to be able to view, modify, and add calendar events even while a device is offline (e.g.\ due to poor mobile network coverage).
+If the calendar app's replication protocol was linearizable, this would not be possible, since an offline device cannot communicate with a quorum of replicas.
+
+Instead, calendar apps allow the user to read and write events in their calendar even while a device is offline, and they sync any updates between devices sometime later, in the background, when an internet connection is available.
+The video of this lecture includes a demonstration of offline updates to a calendar.
+
+% This is how to record a video of an iOS device and a macOS app side-by-side:
+% https://computers.tutsplus.com/tutorials/two-different-ways-to-mirror-an-ios-device-to-a-mac--cms-23533
+% Connect the iOS device to the mac with a cable, and say yes to the pop-up about trusting the device.
+% Open QuickTime player, go to File -> New Movie Recording. By default this captures video from the
+% computer's webcam, but you can change the input source to be a video feed from the iOS device, by
+% clicking the little drop-down next to the big red record button. Now you should have a QuickTime
+% window showing a live video feed from the iOS device. Next, place that QuickTime video side-by-side
+% with the other app, and back in QuickTime do File -> New Screen Recording.
 
 \begin{frame}
     \label{s:calendar}
@@ -5342,11 +5387,123 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
 \end{frame}
 \inlineslide{s:calendar}
 
-% Replication: without broadcast (ABD, quorums); 2-phase commit; CRDTs
-% syllabus also lists multi-leader replication
+This trade-off is known as the \emph{CAP theorem} (named after \emph{consistency}, \emph{availability}, and \emph{partition tolerance}), which states that if there is a network partition in a system, we must choose between one of the following options \citep{Gilbert:2002}:
+\begin{enumerate}
+    \item We can have linearizable consistency, but in this case, some replicas will not be able to respond to requests because they cannot communicate with a quorum.
+        Not being able to respond to requests makes those nodes effectively unavailable.
+    \item We can allow replicas to respond to requests even if they cannot communicate with other replicas.
+        In this case, they continue to be available, but we cannot guarantee linearizability.
+\end{enumerate}
+Sometimes the CAP theorem is formulated as a choice of ``pick 2 out of 3'', but that framing is misleading.
+A system can be both linearizable and available as long as there is no network partition, and the choice is forced only in the presence of a partition \citep{Kleppmann:2015}.
 
-% Calendar app supports offline reads and writes (short video in airplane mode).
+This trade-off is illustrated on \autoref{l:cap-theorem}, where node $C$ is unable to communicate with nodes $A$ and $B$.
+On $A$ and $B$'s side of the partition, linearizable operations can continue as normal, because $A$ and $B$ constitute a quorum.
+However, if $C$ wants to read the value of $x$, it must either wait (potentially indefinitely) until the network partition is repaired, or it must return its local value of $x$, which does not reflect the value previously written by $A$ on the other side of the partition.
 
+\begin{frame}
+    \label{s:cap-theorem}
+    \frametitle{The CAP theorem}
+    A system can be either strongly \textbf{Consistent} (linearizable) or \textbf{Available} in the presence of a network \textbf{Partition}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,5.7) {node $A$};
+            \node [rectangle,fill=red!10,draw] (node2) at (3,5.7) {node $B$};
+            \node [rectangle,fill=red!10,draw] (node3) at (7,5.7) {node $C$};
+            \draw (node1) -- (0,0.5);
+            \draw (node2) -- (3,0.5);
+            \draw (node3) -- (7,0.5);
+            \draw [red,very thick,dashed] (5,0.5) -- (5,6);
+            \node [rotate=270,red] at (4.7,3) {network partition};
+            \node [op,text width=1.5cm] (op1) at (0,4.2) {$\mathsf{set}(x,v_1)$};
+            \draw [bigarrow] (op1.north west) -- +(0.9,-0.3);
+            \draw [revbigarrow] (op1.north east) -- +(0.9,0.3);
+            \node [op,text width=1.9cm] (op2) at (0,1.8) {$\mathsf{get}(x) \rightarrow v_1$};
+            \draw [bigarrow] (op2.north west) -- +(0.9,-0.3);
+            \draw [revbigarrow] (op2.north east) -- +(0.9,0.3);
+            \node [op,text width=1.9cm] (op3) at (3,1.8) {$\mathsf{get}(x) \rightarrow v_1$};
+            \draw [bigarrow] (op3.south west) -- +(-0.9,-0.3);
+            \draw [revbigarrow] (op3.south east) -- +(-0.9,0.3);
+            \node [op,text width=1.9cm] (op4) at (7,1.8) {$\mathsf{get}(x) \rightarrow v_0$};
+            \draw [messageloss] (op4.south west) -- +(-0.9,-0.3);
+        \end{tikzpicture}
+    \end{center}%
+    $C$ must either wait indefinitely for the network to recover, or return a potentially stale value
+\end{frame}
+\inlineslide{s:cap-theorem}\label{l:cap-theorem}
+
+The calendar app chooses option 2: it forgoes linearizability in favour of allowing the user to continue performing operations while a device is offline.
+Many other systems similarly make this choice for various reasons.
+
+The approach of allowing each replica to process both reads and writes based only on its local state, and without waiting for communication with other replicas, is called \emph{optimistic replication}.
+A variety of consistency models have been proposed for optimistically replicated systems, with the best-known being \emph{eventual consistency}.
+
+Eventual consistency is defined as: ``if no new updates are made to an object, eventually all reads will return the last updated value'' \citep{Vogels:2009}.
+This is a very weak definition: what if the updates to an object never stop, so the premise of the statement is never true?
+A slightly stronger consistency model called \emph{strong eventual consistency}, defined on \autoref{l:eventual-2}, is often more appropriate \citep{Shapiro:2011}.
+It is based on the idea that as two replicas communicate, they \emph{converge} towards the same state.
+
+\begin{frame}
+    \label{s:eventual-2}
+    \frametitle{Eventual consistency}
+    Replicas process operations based only on their local state.\\[0.5em]
+    If there are no more updates, \textbf{eventually} all replicas will be in the same state.
+    (No guarantees how long it might take.)\\[0.5em]\pause
+    \textbf{Strong eventual consistency}:
+    \begin{itemize}
+        \item \textbf{Eventual delivery:} every update made to one non-faulty replica is eventually processed by every non-faulty replica.\pause
+        \item \textbf{Convergence:} any two replicas that have processed the same set of updates are in the same state\\
+            (even if updates were processed in a different order).\\[0.5em]\pause
+    \end{itemize}
+    Properties:
+    \begin{itemize}
+        \item Does not require waiting for network communication
+        \item Causal broadcast (or weaker) can disseminate updates\pause
+        \item Concurrent updates $\Longrightarrow$ \textbf{conflicts} need to be resolved
+    \end{itemize}
+\end{frame}
+\inlineslide{s:eventual-2}\label{l:eventual-2}
+
+In both eventual consistency and strong eventual consistency, there is the possibility of different nodes concurrently updating the same object, leading to conflicts (as previously discussed on \autoref{l:concurrent-writes}).
+Various algorithms have been developed to resolve those conflicts automatically \citep{Shapiro:2011}.
+
+The lecture video shows an example of a conflict in the eventually consistent calendar app: on one device, I update the time of an event, while concurrently on another device, I update the title of the same event.
+After the two devices synchronise, the update of the time is applied to both devices, while the update of the title is discarded.
+The state of the two devices therefore converges~-- at the cost of a small amount of data loss.
+This is the \emph{last writer wins} approach to conflict resolution that we have seen on \autoref{l:concurrent-writes} (assuming the update to the time is the ``last'' update in this example).
+A more refined approach to conflict resolution might merge the update to the time and the title into a calendar event that reflects both updates.
+
+This brings us to the end of our discussion of consistency models.
+\autoref{l:model-requirements} summarises some of the key properties of the models we have seen, in descending order of the minimum strength of assumptions that they must make about the system model.
+
+Atomic commit makes the strongest assumptions, since it must wait for communication with all nodes participating in a transaction (potentially all of the nodes in the system) in order to complete successfully.
+Consensus, total order broadcast, and linearizable algorithms make weaker assumptions since they only require waiting for communication with a quorum, so they can tolerate some unavailable nodes.
+The FLP result (\autoref{l:consensus-model}) showed us that consensus and total order broadcast require partial synchrony.
+It can be shown that a linearizable CAS operation is equivalent to consensus \citep{Herlihy:1991}, and thus also requires partial synchrony.
+On the other hand, the ABD algorithm for linearizable $\mathsf{get}$/$\mathsf{set}$ is asynchronous, since it does not require any clocks or timeouts.
+Finally, eventual consistency and strong eventual consistency make the weakest assumptions: operations can be processed without waiting for any communication with other nodes, and without any timing assumptions.
+Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, etc.), a node broadcasting a message can immediately deliver it to itself without waiting for communication with other nodes, as discussed in \autoref{sec:delivery-order}; this corresponds to a replica immediately processing its own operations without waiting for communication with other replicas.
+
+\begin{frame}
+    \label{s:model-requirements}
+    \frametitle{Summary of minimum system model requirements}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node (highest) [xshift=5.3cm,yshift=1.5cm] at (current page.center) {};
+        \node (lowest)  [xshift=5.3cm,yshift=-3cm] at (current page.center) {};
+        \node [xshift=5.7cm,yshift=-0.75cm,rotate=90,blue,font=\footnotesize] at (current page.center) {strength of assumptions};
+        \draw [-Stealth,very thick,blue] (lowest) -- (highest);
+    \end{tikzpicture}%
+    \rowcolors[]{2}{}{blue!10}%
+    \renewcommand{\arraystretch}{1.5}%
+    \begin{tabular}{>{\raggedright}p{3.7cm}|>{\raggedright}p{3cm}|>{\raggedright\arraybackslash}p{2.4cm}} % https://tex.stackexchange.com/a/2892
+        \textbf{Problem} & \textbf{Must wait for communication} & \textbf{Requires synchrony} \\\hline
+        atomic commit & all participating nodes & partially synchronous\pause\\
+        consensus,\newline total order broadcast,\newline linearizable CAS & quorum & partially synchronous\pause\\
+        linearizable get/set & quorum & asynchronous\pause\\
+        eventual consistency,\newline causal broadcast,\newline FIFO broadcast & local replica only & asynchronous \\\hline
+    \end{tabular}
+\end{frame}
+\inlineslide{s:model-requirements}\label{l:model-requirements}
 
 % CAP: consistent or available in the presence of a partition
 % multi-leader replication
