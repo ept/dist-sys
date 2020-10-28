@@ -3256,7 +3256,7 @@ However, if we are not careful, the retry could lead to the request being proces
 \end{frame}
 \inlineslide{s:negative-followers}\label{l:negative-followers}
 
-Lest you think this is a purely hypthetical problem, consider \autoref{l:negative-followers}, a genuine (I promise!) screenshot of Twitter that I made in 2014, which shows the profile of a user who is apparently following a negative number of people.
+Lest you think this is a purely hypothetical problem, consider \autoref{l:negative-followers}, a genuine (I promise!) screenshot of Twitter that I made in 2014, which shows the profile of a user who is apparently following a negative number of people.
 I don't have insight into Twitter's internals to know exactly what happened here, but my guess is that this person used to follow several people, then unfollowed them, and due to a network problem during the unfollowing process, the decrement of the follow counter was retried, resulting in more decrements than the user was originally following.
 
 If following a negative number of people seems like a trivial problem, then instead of decrementing a follow counter, consider the act of deducting {\textsterling}1,000 from your bank account balance.
@@ -4637,7 +4637,7 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
         \item Node $A$ was leader in term 1; it successfully replicated $m_1$ to all nodes, then it appended $m_2$ to its own log, but message loss (or a crash of $A$) prevented $m_2$ from being replicated to nodes $B$ and $C$.
             Node $B$ suspected $A$ as faulty, was elected leader in term 2 with a vote from $C$, appended $m_4$ to its log, and successfully replicated it to $C$ (but not $A$).
             Node $B$ then also appended $m_5$ and $m_6$ to the log, but the replication requests were lost or $B$ crashed.
-            Finally, node $C$ suspected $B$ to be faulty, and started a leader elecion in term 3.
+            Finally, node $C$ suspected $B$ to be faulty, and started a leader election in term 3.
             $A$ has now recovered, and $C$ becomes leader with a vote from $A$ ($B$ would not vote for $C$ in this case, because $B$'s log is more up-to-date than $C$'s).
             $C$ then appends $m_7$ to its log and sends it to $A$ and $B$, but these messages have not arrived yet.
         \item At $A$, $\mathit{commitLength}$ must be either 0 or 1, since only the first log entry has been replicated to a quorum of nodes.
@@ -4750,7 +4750,7 @@ The answer is no: although both are superficially about reaching agreement, the 
 \inlineslide{s:atomic-commit-consensus}\label{l:atomic-commit-consensus}
 
 The most common algorithm to ensure atomic commitment across multiple nodes is the \emph{two-phase commit} (2PC) protocol \citep{Gray:1978}.
-(Not to be confused with \emph{two-phase locking} (2PL), discussed in the first half of this course: 2PL ensures serialisable isolation, while 2PC ensures atomic commitment.
+(Not to be confused with \emph{two-phase locking} (2PL), discussed in the first half of this course: 2PL ensures serializable isolation, while 2PC ensures atomic commitment.
 There is also a \emph{three-phase commit} protocol, but it assumes the unrealistic synchronous system model, so we won't discuss it here.)
 The communication flow of 2PC is illustrated on \autoref{l:2pc}.
 
@@ -4840,7 +4840,7 @@ Thanks to total order broadcast, all nodes are guaranteed to make the same decis
     \frametitle{Fault-tolerant two-phase commit (1/2)}
     \footnotesize
     \begin{algorithmic}
-        \On{initialization for transaction $T$}
+        \On{initialisation for transaction $T$}
             \State $\mathit{commitVotes}[T] := \{\};\; \mathit{replicas}[T] := \{\};\; \mathit{decided}[T] := \mathsf{false}$
         \EndOn
         \State
@@ -4901,7 +4901,7 @@ An informal definition of linearizability appears on \autoref{l:linearizability}
 Over the following slides we will clarify what this means through examples.
 
 Linearizability is a useful concept not only in distributed systems, but also in the context of shared-memory concurrency on a single machine.
-Interestingly, on a computer with multiple CPU cores (pretty much all servers, laptops and smartphones nowadays), memory access is not linearizabile by default!
+Interestingly, on a computer with multiple CPU cores (pretty much all servers, laptops and smartphones nowadays), memory access is not linearizable by default!
 This is because each CPU core has its own caches, and an update made by one core is not immediately reflected in another core's cache.
 Thus, even a single computer starts behaving a bit like a replicated system.
 The \href{\multicore}{L304 unit in Part~III} goes into detail of multicore memory behaviour.
