@@ -18,6 +18,15 @@
 % 2020-12-01
 % Instructions for editing course web page: https://www.cl.cam.ac.uk/teaching/2021/instructions.html
 
+% Video durations:
+% Lecture 1: 47.5 min
+% Lecture 2: 51.4 min
+% Lecture 3: 53.2 min
+% Lecture 4: 54.1 min
+% Lecture 5: 45.2 min
+% Lecture 6: 55.7 min
+% Lecture 7: 52.5 min
+
 \fancypagestyle{plain}{%
   \renewcommand{\headrulewidth}{0pt}%
   \fancyhf{}%
@@ -29,7 +38,11 @@
 
 \begin{document}
 \title{Distributed Systems}
-\subtitle{University of Cambridge\\Computer Science Tripos, Part IB\\Michaelmas term \thisyear\\\courseurl}
+\subtitle{University of Cambridge\\%
+Computer Science Tripos, Part IB\\%
+Michaelmas term \thisyear\\[1em]%
+Course web page: \courseurl\\%
+Lecture videos: \url{https://www.youtube.com/playlist?list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB}}
 
 \author{Dr.\ Martin Kleppmann\\mk428@cst.cam.ac.uk}
 \date{}
@@ -94,7 +107,7 @@ In this course we don't distinguish them: a node can be any type of communicatin
     \end{itemize}
     \hfill\includegraphics<1>[height=4cm]{images/lamport.jpg}
 \end{frame}
-\inlineslide{s:dist-sys-definition}\label{l:dist-sys-definition}
+\inlineslide{s:dist-sys-definition}{\href{https://www.youtube.com/watch?v=UEAMfLPZZhE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=1}{Start of video section 1.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/09.1_Distributed_systems_introduction.mp4}{mp4 download})}\label{l:dist-sys-definition}
 % reference for Lamport quote: https://www.microsoft.com/en-us/research/publication/distribution/
 % License for photo: https://commons.wikimedia.org/wiki/File:Leslie_Lamport.jpg
 
@@ -140,7 +153,7 @@ However, only material covered in the lecture notes and videos is examinable.
         \item Bacon \& Harris.\\ ``\textbf{Operating Systems: Concurrent and Distributed Software Design}'', Addison-Wesley 2003
     \end{itemize}
 \end{frame}
-\inlineslide{s:reading}
+\inlineslide{s:reading}{}
 
 The syllabus, slides, and lecture notes for this course have been substantially revised for 2020/21.
 This means that new mistakes may have crept in.
@@ -174,7 +187,7 @@ This course is related to several other courses in the tripos, as shown on \auto
             (distributed systems for processing large amounts of data)
     \end{itemize}
 \end{frame}
-\inlineslide{s:other-courses}\label{l:other-courses}
+\inlineslide{s:other-courses}{}\label{l:other-courses}
 
 
 There are a number of reasons for creating distributed systems.
@@ -200,7 +213,7 @@ For example, the Large Hadron Collider at CERN is supported by a worldwide compu
         \item \textbf{To solve bigger problems:}\\e.g. huge amounts of data, can't fit on one machine
     \end{itemize}
 \end{frame}
-\inlineslide{s:why-distribute}\label{l:why-distribute}
+\inlineslide{s:why-distribute}{}\label{l:why-distribute}
 
 However, there are also downsides to distributed systems, because things can go wrong, and the system needs to deal with such faults.
 The network may fail, leaving the nodes unable to communicate.
@@ -209,7 +222,7 @@ The network may fail, leaving the nodes unable to communicate.
     \label{s:no-internet}
     \includegraphics[height=\paperheight]{images/no-internet.png}
 \end{frame}
-\inlineslide{s:no-internet}
+\inlineslide{s:no-internet}{}
 
 Another thing that can go wrong is that a node may crash, or run much slower than usual, or misbehave in some other way (perhaps due to a software bug or a hardware failure).
 If we want one node to take over when another node crashes, we need to detect that a crash has happened; as we shall see, even that is not straightforward.
@@ -238,7 +251,7 @@ Though, in fairness to our colleagues in other areas of computer science, this i
     This is hard.\\[1em]
     Writing a program to run on a single computer is comparatively easy?!
 \end{frame}
-\inlineslide{s:why-not}
+\inlineslide{s:why-not}{}
 
 
 \subsection{Distributed systems and computer networking}\label{sec:networking}
@@ -263,7 +276,7 @@ When studying distributed systems, we usually work with a high-level abstraction
         \item \textbf{Physical communication:}\\ electric current, radio waves, laser, hard drives in a van\dots
     \end{itemize}
 \end{frame}
-\inlineslide{s:networking}
+\inlineslide{s:networking}{\href{https://www.youtube.com/watch?v=1F3DEq8ML1U&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=2}{Start of video section 1.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/09.2_Computer_networking.mp4}{mp4 download})}
 
 In this course, we just assume that there is some way for one node to send a message to another node.
 We don't particularly care how that message is physically represented or encoded~-- the network protocols, informally known as the \emph{bytes on the wire}~-- because the basic principle of sending and receiving messages remains the same, even as particular networking technologies come and go.
@@ -278,7 +291,7 @@ The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's
         High latency, high bandwidth!
     \end{center}
 \end{frame}
-\inlineslide{s:snowball}
+\inlineslide{s:snowball}{}
 
 Indeed, if you want to send a very large message (think tens of terabytes), it would be slow to send that data over the Internet, and it is in fact faster to write that data to a bunch of hard drives, load them into a van, and to drive them to their destination.
 But from a distributed systems point of view, the method of delivering the message is not important: we only see an abstract communication channel with a certain \emph{latency} (delay from the time a message is sent until it is received) and \emph{bandwidth} (the volume of data that can be transferred per unit time).
@@ -304,7 +317,7 @@ The design of distributed algorithms is about deciding what messages to send, an
     \end{itemize}
     (Very rough numbers, vary hugely in practice!)
 \end{frame}
-\inlineslide{s:latency-bandwidth}
+\inlineslide{s:latency-bandwidth}{}
 
 The web is an example of a distributed system that you use every day.
 
@@ -314,7 +327,7 @@ The web is an example of a distributed system that you use every day.
         \node at (current page.center) {\includegraphics[height=\paperheight]{images/website.png}};
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:website}
+\inlineslide{s:website}{}
 
 \begin{frame}
     \label{s:client-server}
@@ -331,7 +344,7 @@ The web is an example of a distributed system that you use every day.
         \end{tikzpicture}
     \end{center}
 \end{frame}
-\inlineslide{s:client-server}
+\inlineslide{s:client-server}{}
 
 In the web there are two main types of nodes: \emph{servers} host websites, and \emph{clients} (web browsers) display them.
 When you load a web page, your web browser sends a \emph{HTTP request} message to the appropriate server.
@@ -349,7 +362,7 @@ The lecture video includes a demo of this software in action.
         \draw<2> [-Stealth,red,line width=4pt] (response) -- (0,-1.2);
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:http-capture}\label{l:http-capture}
+\inlineslide{s:http-capture}{}\label{l:http-capture}
 
 In a URL, the part between the \verb|//| and the following \verb|/| is the hostname of the server to which the client is going to send the request (e.g.\ \texttt{www.cst.cam.ac.uk}), and the rest (e.g.\ \texttt{\coursepath}) is the path that the client asks for in its request message.
 Besides the path, the request also contains some extra information, such as the HTTP method (e.g.\ \texttt{GET} to load a page, or \texttt{POST} to submit a form), the version of the client software (the \emph{user-agent}), and a list of file formats that the client understands (the \emph{accept header}).
@@ -366,7 +379,7 @@ This keeps things independent of the underlying networking technology.
         \node at (current page.center) {\includegraphics[height=\paperheight]{images/wireshark.png}};
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:wireshark}\label{l:wireshark}
+\inlineslide{s:wireshark}{}\label{l:wireshark}
 
 \subsection{Example: Remote Procedure Calls (RPC)}\label{sec:rpc}
 
@@ -387,7 +400,7 @@ When you enter your card number in some online shop, that shop will send a payme
         \end{tikzpicture}
     \end{center}
 \end{frame}
-\inlineslide{s:payment-example}
+\inlineslide{s:payment-example}{\href{https://www.youtube.com/watch?v=S2osKiqQG9s&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=3}{Start of video section 1.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/09.3_Remote_Procedure_Call.mp4}{mp4 download})}
 
 The payments service in turn communicates with a card network such as Visa or MasterCard, which communicates with the bank that issued your card in order to take the payment.
 
@@ -403,7 +416,7 @@ For the programmers who are implementing the online shop, the code for processin
         \draw<2> [-Stealth,red,line width=4pt] (label) -- (call);
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:payment-rpc}\label{l:payment-rpc}
+\inlineslide{s:payment-rpc}{}\label{l:payment-rpc}
 
 Calling the \verb|processPayment| function looks like calling any other function, but in fact, what is happening behind the scenes is that the shop is sending a request to the payments service, waiting for a response, and then returning the response it received.
 The actual implementation of \verb|processPayment|~-- the logic that communicates with the card network and the banks~-- does not exist in the code of the shop: it is part of the payments service, which is another program running on another node belonging to a different company.
@@ -457,7 +470,7 @@ In the example on \autoref{l:payment-json}, a JSON encoding is used for marshall
         }
     }
 \end{frame}
-\inlineslide{s:payment-json}\label{l:payment-json}
+\inlineslide{s:payment-json}{}\label{l:payment-json}
 
 The sending of the message from the RPC client to the RPC server may happen over HTTP (in which case this is also called a \emph{web service}), or one of a range of different network protocols may be used.
 On the server side, the RPC framework unmarshals (decodes) the message and calls the desired function with the provided arguments.
@@ -477,7 +490,7 @@ Thus, to the caller of the stub, it looks as if the function had executed locall
         \item if something goes wrong, is it safe to retry?
     \end{itemize}
 \end{frame}
-\inlineslide{s:rpc-problems}
+\inlineslide{s:rpc-problems}{}
 
 \supervision{
     Networks and nodes might fail.
@@ -519,7 +532,7 @@ However, the underlying distributed systems challenges have remained the same \c
         \item Ajax in web browsers
     \end{itemize}
 \end{frame}
-\inlineslide{s:rpc-history}
+\inlineslide{s:rpc-history}{}
 
 Today, the most common form of RPC is implemented using JSON data sent over HTTP.
 A popular set of design principles for such HTTP-based APIs is known as \emph{representational state transfer} or \emph{REST} \citep{Fielding:2000}, and APIs that adhere to these principles are called \emph{RESTful}.
@@ -540,7 +553,7 @@ This technique is sometimes known as \emph{Ajax}.
     \frametitle{RPC/REST in JavaScript}
     \inputminted{js}{code/payment-rpc.js}
 \end{frame}
-\inlineslide{s:javascript-rpc}\label{l:javascript-rpc}
+\inlineslide{s:javascript-rpc}{}\label{l:javascript-rpc}
 
 The code on \autoref{l:javascript-rpc} takes the arguments \verb|args|, marshals them to JSON using \verb|JSON.stringify()|, and then sends them to the URL \verb|https://example.com/payments| using a HTTP POST request.
 There are three possible outcomes: either the server returns a status code indicating success (in which case we unmarshal the response using \verb|response.json()|), or the server returns a status code indicating an error, or the request fails because no response was received from the server (most likely due to a network interruption).
@@ -560,7 +573,7 @@ Even though RESTful APIs and HTTP-based RPC originated on the web (where the cli
         \item \textbf{Interface Definition Language} (IDL): language-independent API specification
     \end{itemize}
 \end{frame}
-\inlineslide{s:rpc-discussion}
+\inlineslide{s:rpc-discussion}{}
 
 Such server-to-server RPC is especially common in large enterprises, whose software systems are too large and complex to run in a single process on a single machine.
 To manage this complexity, the system is broken down into multiple services, which are developed and administered by different teams and which may even be implemented in different programming languages.
@@ -577,7 +590,7 @@ The details of the language are not important for this course.
     \frametitle{gRPC IDL example}
     \inputminted[fontsize=\scriptsize]{protobuf}{code/payment-rpc.proto}
 \end{frame}
-\inlineslide{s:rpc-idl}\label{l:rpc-idl}
+\inlineslide{s:rpc-idl}{}\label{l:rpc-idl}
 
 % If the client sends the RPC request but receives no response, it doesn't know whether or not the server received and processed the request.
 % It could resend the request if it doesn't hear back for a while, but that might cause the request to be performed more than once (e.g.\ charging a credit card twice), unless we take care to make the request idempotent.
@@ -631,7 +644,7 @@ However, if both armies attack at the same time, they will successfully capture 
         \textbf{Desired:} army 1 attacks \emph{if and only if} army 2 attacks
     \end{center}
 \end{frame}
-\inlineslide{s:two-generals}\label{l:two-generals}
+\inlineslide{s:two-generals}{\href{https://www.youtube.com/watch?v=MDuWnzVnfpI&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=4}{Start of video section 2.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.1_Two_generals_problem.mp4}{mp4 download})}\label{l:two-generals}
 
 Thus, the two generals need to coordinate their attack plan.
 This is made difficult by the fact that the two armies are camped some distance apart, and they can only communicate by messenger.
@@ -661,7 +674,7 @@ If a general does not receive any messages, it is impossible to tell whether thi
         \end{tikzpicture}
     \end{center}
 \end{frame}
-\inlineslide{s:two-generals-comms}
+\inlineslide{s:two-generals-comms}{}
 
 What protocol should the two generals use to agree on a plan?
 For each general there are two options: either the general promises to go ahead with the attack in any case (even if no response is received), or the general waits for an acknowledgement before committing to attack.
@@ -686,7 +699,7 @@ In the second case, the general who awaits acknowledgement shifts the problem to
     \end{enumerate}
     \textbf{No common knowledge}: the only way of knowing something is to communicate it
 \end{frame}
-\inlineslide{s:two-generals-proto}
+\inlineslide{s:two-generals-proto}{}
 
 The problem is that no matter how many messages are exchanged, neither general can ever be certain that the other army will also turn up at the same time.
 A repeated sequence of back-and-forth acknowledgements can build up gradually increasing confidence that the generals are in agreement, but it can be proved that they cannot reach certainty by exchanging any finite number of messages.
@@ -724,7 +737,7 @@ Nevertheless, the shop wants to ensure that it dispatches the goods only if they
         \textbf{Desired:} online shop dispatches \emph{if and only if} payment made
     \end{center}
 \end{frame}
-\inlineslide{s:two-generals-applied}\label{l:two-generals-applied}
+\inlineslide{s:two-generals-applied}{}\label{l:two-generals-applied}
 
 In practice, the online shopping example does not exactly match the two generals problem: in this scenario, it is safe for the payments service to always go ahead with a payment, because if the shop ends up not being able to dispatch the goods, it can refund the payment.
 The fact that a payment is something that can be undone (unlike an army being defeated) makes the problem solvable.
@@ -755,7 +768,7 @@ Again generals communicate by messengers, although this time we assume that if a
         \textbf{Problem:} some of the generals might be traitors
     \end{center}
 \end{frame}
-\inlineslide{s:byzantine-generals}\label{l:byzantine-generals}
+\inlineslide{s:byzantine-generals}{\href{https://www.youtube.com/watch?v=LoGx_ldRBU0&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=5}{Start of video section 2.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.2_Byzantine_generals_problem.mp4}{mp4 download})}\label{l:byzantine-generals}
 
 The challenge in the Byzantine setting is that some generals might be ``traitors'': that is, they might try to deliberately and maliciously mislead and confuse the other generals.
 One example of such malicious behaviour is shown on \autoref{l:byzantine-generals-comms}: here, general 3 receives two contradictory messages from generals 1 and 2.
@@ -791,7 +804,7 @@ It is impossible for general 3 to determine whether general 2 is lying (the firs
         \end{tikzpicture}
     \end{center}
 \end{frame}
-\inlineslide{s:byzantine-generals-comms}\label{l:byzantine-generals-comms}
+\inlineslide{s:byzantine-generals-comms}{}\label{l:byzantine-generals-comms}
 
 The honest generals don't know who the malicious generals are, but the malicious generals may collude and secretly coordinate their actions.
 We might even assume that all of the malicious generals are controlled by an evil adversary.
@@ -814,7 +827,7 @@ For example, a system with 4 generals can tolerate $f=1$ malicious general, and 
         \item Cryptography (digital signatures) helps~-- but problem remains hard\\[0.5em]
     \end{itemize}
 \end{frame}
-\inlineslide{s:byzantine-discussion}
+\inlineslide{s:byzantine-discussion}{}
 
 The problem is made somewhat easier if generals use cryptography (\emph{digital signatures}) to prove who said what: for example, this would allow general 2 to prove to general 3 what general 1's order was, and thus demonstrate general 2's honesty.
 We will not go into details of digital signatures in this course, as they are covered in the Security course (\whenissecurity).
@@ -849,7 +862,7 @@ The Byzantine generals problem is a simplification of such complex trust relatio
         Who can trust whom?
     \end{center}
 \end{frame}
-\inlineslide{s:byzantine-payment}\label{l:byzantine-payment}
+\inlineslide{s:byzantine-payment}{}\label{l:byzantine-payment}
 
 Before we move on, a brief digression about the origin of the word ``Byzantine''.
 The term comes from the Byzantine empire, named after its capital city Byzantium or Constantinople, which is now Istanbul in Turkey.
@@ -868,7 +881,7 @@ Rather, the word \emph{Byzantine} had been used in the sense of ``excessively co
     {\scriptsize Source: \url{https://commons.wikimedia.org/wiki/File:Byzantiumby650AD.svg}}\\[1em]
     \textbf{``Byzantine''} has long been used for ``excessively complicated, bureaucratic, devious'' (e.g.\ \emph{``the Byzantine tax law''})
 \end{frame}
-\inlineslide{s:byzantine-empire}\label{l:byzantine-empire}
+\inlineslide{s:byzantine-empire}{}\label{l:byzantine-empire}
 
 \subsection{Describing nodes and network behaviour}\label{sec:system-behaviour}
 
@@ -891,7 +904,7 @@ When designing a distributed algorithm, a \emph{system model} is how we specify 
     \end{itemize}
     Choice of models for each of these parts.
 \end{frame}
-\inlineslide{s:system-model}\label{l:system-model}
+\inlineslide{s:system-model}{\href{https://www.youtube.com/watch?v=y8f7ZG_UnGI&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=6}{Start of video section 2.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.3_System_models.mp4}{mp4 download})}\label{l:system-model}
 
 \begin{frame}
     \label{s:shark-bite}
@@ -905,7 +918,7 @@ When designing a distributed algorithm, a \emph{system model} is how we specify 
     On land, cows step on the cables \\
     {\scriptsize\url{https://twitter.com/uhoelzle/status/1263333283107991558}}
 \end{frame}
-\inlineslide{s:shark-bite}\label{l:shark-bite}
+\inlineslide{s:shark-bite}{}\label{l:shark-bite}
 
 Let's start with the network.
 No network is perfectly reliable: even in carefully engineered systems with redundant network links, things can go wrong \citep{Bailis:2014jx}.
@@ -945,7 +958,7 @@ Most algorithms assume one of the three choices listed on \autoref{l:model-netwo
             node [right,red,align=left] {TLS} (fairloss.south);
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:model-network}\label{l:model-network}
+\inlineslide{s:model-network}{}\label{l:model-network}
 
 Interestingly, it is possible to convert some types of link into others.
 For example, if we have a fair-loss link, we can turn it into a reliable link by continually retransmitting lost messages until they are finally received, and by filtering out duplicated messages on the recipient side.
@@ -988,7 +1001,7 @@ This brings us to the topic of node crashes.
     \end{itemize}
     A node that is not faulty is called \textbf{``correct''}
 \end{frame}
-\inlineslide{s:model-nodes}\label{l:model-nodes}
+\inlineslide{s:model-nodes}{}\label{l:model-nodes}
 
 In the \emph{crash-stop} model, we assume that after a node crashes, it never recovers.
 This is a reasonable model for an unrecoverable hardware fault, or for the situation where a person drops their phone in the toilet, after which it is permanently out of order.
@@ -1023,7 +1036,7 @@ For instance, an algorithm designed for a crash-recovery system model may look v
     \end{itemize}
     \textbf{Note}: other parts of computer science use the terms ``synchronous'' and ``asynchronous'' differently.
 \end{frame}
-\inlineslide{s:model-synchrony}\label{l:model-synchrony}
+\inlineslide{s:model-synchrony}{}\label{l:model-synchrony}
 
 The third part of a system model is the synchrony assumption, which is about timing.
 The three choices we can make here are \emph{synchronous}, \emph{asynchronous}, or \emph{partially synchronous} \citep{Dwork:1988dr}.
@@ -1060,7 +1073,7 @@ The partially synchronous model is good for many practical systems, but using it
     \end{itemize}
     Real-time operating systems (RTOS) provide scheduling guarantees, but most distributed systems do not use RTOS
 \end{frame}
-\inlineslide{s:timing-violations}\label{l:timing-violations}
+\inlineslide{s:timing-violations}{}\label{l:timing-violations}
 
 There are many reasons why a system may violate synchrony assumptions.
 We have already talked about latency increasing without bound if messages are lost and retransmitted, especially if we have to wait for a network partition to be repaired before the messages can get through.
@@ -1097,7 +1110,7 @@ Most distributed algorithms need to be designed for the asynchronous or partiall
     This is the basis for any distributed algorithm.\\
     If your assumptions are wrong, all bets are off!
 \end{frame}
-\inlineslide{s:model-summary}\label{l:model-summary}
+\inlineslide{s:model-summary}{}\label{l:model-summary}
 
 \subsection{Fault tolerance and high availability}\label{sec:fault-tolerance}
 
@@ -1129,7 +1142,7 @@ An hour?
     \textbf{Service-Level Objective} (SLO):\\ e.g. ``99.9\% of requests in a day get a response in 200~ms''\\[1em]
     \textbf{Service-Level Agreement} (SLA):\\ contract specifying some SLO, penalties for violation
 \end{frame}
-\inlineslide{s:availability}\label{l:availability}
+\inlineslide{s:availability}{\href{https://www.youtube.com/watch?v=43TDfUNsM3E&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=7}{Start of video section 2.4}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.4_Fault_tolerance.mp4}{mp4 download})}\label{l:availability}
 
 Typically, the availability expectations of a service are formalised as a \emph{service-level objective} (SLO), which typically specifies the percentage of requests that need to return a correct response within a specified timeout, as measured by a certain client over a certain period of time.
 A \emph{service-level agreement} (SLA) is a contract that specifies some SLO, as well as the consequences if the SLO is not met (for example, the service provider may need to offer a refund to its customers).
@@ -1152,7 +1165,7 @@ Instead, fault tolerance is the approach taken by many distributed systems.
     (some maximum number of faults assumed)\\[1em]
     \textbf{Single point of failure} (SPOF):\\ node/network link whose fault leads to failure
 \end{frame}
-\inlineslide{s:fault-tolerance}\label{l:fault-tolerance}
+\inlineslide{s:fault-tolerance}{}\label{l:fault-tolerance}
 
 If all nodes crash and don't recover, then no algorithm will be able to get any work done, so it does not make sense to tolerate arbitrary numbers of faults.
 Rather, an algorithm is designed to tolerate some specified number of faults: for example, some distributed algorithms are able to make progress provided that fewer than half of the nodes have crashed.
@@ -1176,7 +1189,7 @@ Byzantine faults are not always detectable, although in some cases Byzantine beh
     \textbf{Problem}:\\cannot tell the difference between crashed node, temporarily
     unresponsive node, lost message, and delayed message\\[1em]
 \end{frame}
-\inlineslide{s:failure-detector}\label{l:failure-detector}
+\inlineslide{s:failure-detector}{}\label{l:failure-detector}
 
 In most cases, a failure detector works by periodically sending messages to other nodes, and labelling a node as crashed if no response is received within the expected time.
 Ideally, we would like a timeout to occur if and only if the node really has crashed (this is called a \emph{perfect failure detector}).
@@ -1198,7 +1211,7 @@ However, there is a useful failure detector that exists in partially synchronous
     \end{itemize}
     Reflects fact that detection is not instantaneous, and we may have spurious timeouts
 \end{frame}
-\inlineslide{s:eventual-detector}\label{l:eventual-detector}
+\inlineslide{s:eventual-detector}{}\label{l:eventual-detector}
 
 We will see later how to use such a failure detector to design fault-tolerance mechanisms and to automatically recover from node crashes.
 Using such algorithms it is possible to build systems that are highly available.
@@ -1210,7 +1223,7 @@ Being able to roll out software upgrades in this way, without clients noticing a
     %\frametitle{High availability costs and benefits}
     % TODO: visualise a rolling software upgrade?
 %\end{frame}
-%\inlineslide{s:availability-discuss}\label{l:availability-discuss}
+%\inlineslide{s:availability-discuss}{}\label{l:availability-discuss}
 
 For safety-critical applications, such as air-traffic control systems, it is undoubtedly important to invest in good fault-tolerance mechanisms.
 However, it is not the case that higher availability is always better.
@@ -1279,7 +1292,7 @@ Let's start with a riddle, which will be resolved later in this lecture.
     Some airlines could not process any reservations or check-ins for several hours.\\[1em]
     What happened?
 \end{frame}
-\inlineslide{s:mystery}\label{l:mystery}
+\inlineslide{s:mystery}{\href{https://www.youtube.com/watch?v=FQ_2N3AQu0M&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=8}{Start of video section 3.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/11.1_Physical_time.mp4}{mp4 download})}\label{l:mystery}
 
 In this lecture we will look at the concept of time in distributed systems.
 We have already seen that our assumptions about timing form a key part of the system model that distributed algorithms rely on.
@@ -1306,7 +1319,7 @@ All of these require more or less accurate measurements of time.
     \end{itemize}\pause
     \textbf{NB.} Clock in digital electronics (oscillator)\\$\neq$ clock in distributed systems (source of \textbf{timestamps})
 \end{frame}
-\inlineslide{s:clocks-intro}\label{l:clocks-intro}
+\inlineslide{s:clocks-intro}{}\label{l:clocks-intro}
 
 % Demo: load www.cst.cam.ac.uk in browser, open developer tools and view certificate expiry date
 % Also run `dig www.cst.cam.ac.uk` in a terminal and see how the TTL counts down
@@ -1336,7 +1349,7 @@ Quartz clocks are found in most wristwatches, in every computer and mobile phone
         \end{column}
     \end{columns}
 \end{frame}
-\inlineslide{s:quartz-clocks}\label{l:quartz-clocks}
+\inlineslide{s:quartz-clocks}{}\label{l:quartz-clocks}
 % Crystal image: https://pixabay.com/photos/rock-crystal-clear-to-white-gem-top-1603480/ (no attribution required)
 % Tuning fork: https://commons.wikimedia.org/wiki/File:Inside_QuartzCrystal-Tuningfork.jpg (public domain)
 
@@ -1366,7 +1379,7 @@ The rate by which a clock runs fast or slow is called \emph{drift}.
         \end{column}
     \end{columns}
 \end{frame}
-\inlineslide{s:quartz-drift}\label{l:quartz-drift}
+\inlineslide{s:quartz-drift}{}\label{l:quartz-drift}
 
 \begin{frame}
     \label{s:atomic-clocks}
@@ -1387,7 +1400,7 @@ The rate by which a clock runs fast or slow is called \emph{drift}.
         \end{column}
     \end{columns}
 \end{frame}
-\inlineslide{s:atomic-clocks}\label{l:atomic-clocks}
+\inlineslide{s:atomic-clocks}{}\label{l:atomic-clocks}
 
 When greater accuracy is required, atomic clocks are used.
 These clocks are based on quantum-mechanical properties of certain atoms, such as caesium or rubidium.
@@ -1412,7 +1425,7 @@ In fact, the time unit of \emph{one second} in the International System of Units
         \end{column}
     \end{columns}
 \end{frame}
-\inlineslide{s:gps-time}\label{l:gps-time}
+\inlineslide{s:gps-time}{}\label{l:gps-time}
 
 Another high-accuracy method of obtaining the time is to rely on the GPS satellite positioning system, or similar systems such as Galileo or GLONASS.
 These systems work by having several satellites orbiting the Earth and broadcasting the current time at very high resolution.
@@ -1441,7 +1454,7 @@ In fact, the speed of rotation of the planet is not even constant: it fluctuates
         \end{column}
     \end{columns}
 \end{frame}
-\inlineslide{s:utc}\label{l:utc}
+\inlineslide{s:utc}{}\label{l:utc}
 % Image source: https://commons.wikimedia.org/wiki/File:Britannica_Figure_of_the_Earth.jpg (public domain)
 
 The solution is \emph{Coordinated Universal Time} (UTC), which is based on atomic time, but includes corrections to account for variations in the Earth's rotation.
@@ -1469,7 +1482,7 @@ The difference between UTC and TAI is that UTC includes \emph{leap seconds}, whi
         \scriptsize\url{http://leapsecond.com/notes/leap-watch.htm}
     \end{center}
 \end{frame}
-\inlineslide{s:leap-seconds}\label{l:leap-seconds}
+\inlineslide{s:leap-seconds}{}\label{l:leap-seconds}
 
 Due to leap seconds, it is not true that an hour always as 3600 seconds, and a day always has 86,400 seconds.
 In the UTC timescale, a day can be 86,399 seconds, 86,400 seconds, or 86,401 seconds long due to a leap second.
@@ -1497,7 +1510,7 @@ There are minor variations: for example, Java's \verb|System.currentTimeMillis()
         \item Knowledge of past and future leap seconds\dots?!
     \end{itemize}
 \end{frame}
-\inlineslide{s:time-representation}\label{l:time-representation}
+\inlineslide{s:time-representation}{}\label{l:time-representation}
 
 To be correct, software that works with timestamps needs to know about leap seconds.
 For example, if you want to calculate how many seconds elapsed between two timestamps, you need to know how many leap seconds were inserted between those two dates.
@@ -1537,7 +1550,7 @@ Even a reboot did not fix the problem instead, but setting the system clock rese
         \end{column}
     \end{columns}
 \end{frame}
-\inlineslide{s:leap-second-handling}\label{l:leap-second-handling}
+\inlineslide{s:leap-second-handling}{}\label{l:leap-second-handling}
 
 Today, some software handles leap seconds explicitly, while other programs continue to ignore them.
 A pragmatic solution that is widely used today is that when a positive leap second occurs, rather than inserting it between 23:59:59 and 00:00:00, the extra second is spread out over several hours before and after that time by deliberately slowing down the clocks during that time (or speeding up in the case of a negative leap second).
@@ -1577,7 +1590,7 @@ However, it is a pragmatic alternative to making all software aware of and robus
     accurate time source (atomic clock or GPS receiver)\\[1em]
     Protocols: Network Time Protocol (\textbf{NTP}),\\ Precision Time Protocol (\textbf{PTP})
 \end{frame}
-\inlineslide{s:clock-sync}\label{l:clock-sync}
+\inlineslide{s:clock-sync}{\href{https://www.youtube.com/watch?v=mAyW-4LeXZo&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=9}{Start of video section 3.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/11.2_Clock_synchronisation.mp4}{mp4 download})}\label{l:clock-sync}
 
 Atomic clocks are too expensive and bulky to build into every computer and phone, so quartz clocks are used.
 As discussed on \autoref{l:quartz-drift}, these clocks drift, and need adjustment from time to time.
@@ -1588,7 +1601,7 @@ All mainstream operating systems have NTP clients built in; for example, \autore
     \label{s:ntp-config}
     \includegraphics[height=\paperheight]{images/ntp-config.png}
 \end{frame}
-\inlineslide{s:ntp-config}\label{l:ntp-config}
+\inlineslide{s:ntp-config}{}\label{l:ntp-config}
 
 \begin{frame}
     \label{s:ntp}
@@ -1604,7 +1617,7 @@ All mainstream operating systems have NTP clients built in; for example, \autore
     Makes multiple requests to the same server, use statistics to reduce random error due to variations in network latency\\[1em]
     Reduces clock skew to a few milliseconds in good network conditions, but can be much worse!
 \end{frame}
-\inlineslide{s:ntp}\label{l:ntp}
+\inlineslide{s:ntp}{}\label{l:ntp}
 
 Time synchronisation over a network is made difficult by unpredictable latency.
 As discussed on \autoref{l:timing-violations}, both network latency and nodes' processing speed can vary considerably.
@@ -1649,7 +1662,7 @@ Unfortunately, most networks do not give nodes any indication of the actual late
     \uncover<5->{ \[ \text{Estimated server time when client receives response: } t_3 + \frac{\delta}{2} \] }
     \uncover<6->{ \[ \text{Estimated clock skew: }\theta = t_3 + \frac{\delta}{2} - t_4 = \frac{t_2 - t_1 + t_3 - t_4}{2} \] }
 \end{frame}
-\inlineslide{s:ntp-calculation}\label{l:ntp-calculation}
+\inlineslide{s:ntp-calculation}{}\label{l:ntp-calculation}
 
 \supervision{
     What is the maximum possible error in the NTP client's estimate of skew with regard to one particular server, assuming that both nodes correctly follow the protocol?
@@ -1689,7 +1702,7 @@ For this reason, any system that depends on clock synchronisation needs to be ca
     \end{itemize}
     Systems that rely on clock sync need to monitor clock skew!
 \end{frame}
-\inlineslide{s:ntp-slew}\label{l:ntp-slew}
+\inlineslide{s:ntp-slew}{}\label{l:ntp-slew}
 
 \begin{frame}
     \label{s:ntp-graph}
@@ -1698,7 +1711,7 @@ For this reason, any system that depends on clock synchronisation needs to be ca
         \scriptsize\url{http://www.ntp.org/ntpfaq/NTP-s-algo.htm}
     \end{center}
 \end{frame}
-\inlineslide{s:ntp-graph}\label{l:ntp-graph}
+\inlineslide{s:ntp-graph}{}\label{l:ntp-graph}
 
 The fact that clocks may be stepped by NTP, i.e.\ suddenly moved forwards or backwards, has an important implication for any software that needs to measure elapsed time.
 \autoref{l:monotonic-clock} shows an example in Java, in which we want to measure the running time of a function \verb|doSomething()|.
@@ -1728,7 +1741,7 @@ It does not make sense to compare monotonic clock timestamps across different no
     \end{tikzpicture}
     \uncover<3->{\inputminted{java}{code/monotonic.java}}
 \end{frame}
-\inlineslide{s:monotonic-clock}\label{l:monotonic-clock}
+\inlineslide{s:monotonic-clock}{}\label{l:monotonic-clock}
 
 Most operating systems and programming languages provide both a time-of-day clock and a monotonic clock, since both are useful for different purposes.
 
@@ -1752,7 +1765,7 @@ Most operating systems and programming languages provide both a time-of-day cloc
         \item<4-> Linux: \texttt{clock\char`_gettime(CLOCK\char`_MONOTONIC)}
     \end{itemize}
 \end{frame}
-\inlineslide{s:monotonic-comparison}\label{l:monotonic-comparison}
+\inlineslide{s:monotonic-comparison}{}\label{l:monotonic-comparison}
 
 \subsection{Causality and happens-before}\label{sec:causality}
 
@@ -1794,7 +1807,7 @@ The database instructions only make sense if $m_1$ is processed before $m_2$.
     \uncover<2->{$m_2 = $ ``B says: Oh no it isn't!''}\\[1em]%
     \uncover<3->{C sees $m_2$ first, $m_1$ second,\\even though logically $m_1$ \textbf{happened before} $m_2$.}
 \end{frame}
-\inlineslide{s:moon-cheese}\label{l:moon-cheese}
+\inlineslide{s:moon-cheese}{\href{https://www.youtube.com/watch?v=OKHIdpOAxto&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=10}{Start of video section 3.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/11.3_Causality_and_happens-before.mp4}{mp4 download})}\label{l:moon-cheese}
 
 How can C determine the correct order in which it should put the messages?
 A monotonic clock won't work since its timestamps are not comparable across nodes.
@@ -1834,7 +1847,7 @@ Thus, if we order messages based on their timestamps from time-of-day clocks, we
     \uncover<2->{\textbf{Problem}: even with synced clocks, $t_2 < t_1$ is possible.\\
     Timestamp order is inconsistent with expected order!}
 \end{frame}
-\inlineslide{s:physical-order}\label{l:physical-order}
+\inlineslide{s:physical-order}{}\label{l:physical-order}
 
 To formalise what we mean with the ``correct'' order in this type of scenario, we use the \emph{happens-before relation} as defined on \autoref{l:happens-before}.
 This definition assumes that each node has only a single thread of execution, so for any two execution steps of a node, it is clear which one happened first.
@@ -1864,7 +1877,7 @@ Note that here, ``concurrent'' does not mean literally ``at the same time'', but
     it is possible that neither $a \rightarrow b$ nor $b \rightarrow a$.
     In that case, $a$ and $b$ are \textbf{concurrent} (written $a \parallel b$).
 \end{frame}
-\inlineslide{s:happens-before}\label{l:happens-before}
+\inlineslide{s:happens-before}{}\label{l:happens-before}
 
 \begin{frame}
     \label{s:hb-example}
@@ -1896,7 +1909,7 @@ Note that here, ``concurrent'' does not mean literally ``at the same time'', but
         \item $a \parallel e$, $b \parallel e$, $c \parallel e$, and $d \parallel e$
     \end{itemize}
 \end{frame}
-\inlineslide{s:hb-example}\label{l:hb-example}
+\inlineslide{s:hb-example}{}\label{l:hb-example}
 
 \supervision{\label{q:strict-partial-order}
     A relation $R$ is a \emph{strict partial order} if it is irreflexive ($\nexists a.\; (a,a) \in R$) and transitive ($\forall a,b,c.\; (a,b) \in R \wedge (b,c) \in R \Longrightarrow (a,c) \in R$).
@@ -1980,7 +1993,7 @@ Whether one event truly ``caused'' another is a philosophical question that we d
     (or: $\prec$ is ``consistent with causality'').\\
     NB. ``causal'' $\neq$ ``casual''!}
 \end{frame}
-\inlineslide{s:causality}\label{l:causality}
+\inlineslide{s:causality}{}\label{l:causality}
 
 The notion of causality is borrowed from physics, where it is generally believed that it is not possible for information to travel faster than the speed of light.
 Thus, if you have two events $a$ and $b$ that occur sufficiently far apart in space, but close together in time, then it is impossible for a signal sent from $a$ to arrive at $b$'s location before event $b$, and vice versa.
@@ -2035,7 +2048,7 @@ In contrast, \emph{logical clocks} focus on correctly capturing the order of eve
         \item Vector clocks
     \end{itemize}
 \end{frame}
-\inlineslide{s:logical-clocks}\label{l:logical-clocks}
+\inlineslide{s:logical-clocks}{\href{https://www.youtube.com/watch?v=x-D8iFU1d-o&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=11}{Start of video section 4.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/12.1_Logical_time.mp4}{mp4 download})}\label{l:logical-clocks}
 
 The first type of logical clock we will examine is the Lamport clock, introduced by \citet{Lamport:1978} in one of the seminal papers of distributed computing.
 
@@ -2061,7 +2074,7 @@ The first type of logical clock we will examine is the Lamport clock, introduced
         \EndOn
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:lamport-definition}\label{l:lamport-definition}
+\inlineslide{s:lamport-definition}{}\label{l:lamport-definition}
 
 \begin{frame}
     \label{s:lamport-description}
@@ -2079,7 +2092,7 @@ The first type of logical clock we will examine is the Lamport clock, introduced
         \item Possible that $L(a) = L(b)$ for $a \neq b$
     \end{itemize}
 \end{frame}
-\inlineslide{s:lamport-description}\label{l:lamport-description}
+\inlineslide{s:lamport-description}{}\label{l:lamport-description}
 
 A Lamport timestamp is essentially an integer that counts the number of events that have occurred.
 As such, it has no direct relationship to physical time.
@@ -2141,7 +2154,7 @@ Within the scope of a single node, each event is assigned a unique timestamp; th
     \[ (a \prec b) \Longleftrightarrow (L(a) < L(b) \;\vee\; (L(a) = L(b) \;\wedge\; N(a) < N(b))) \]
     This order is \textbf{causal}: $(a \rightarrow b) \Longrightarrow (a \prec b)$}
 \end{frame}
-\inlineslide{s:lamport-example}\label{l:lamport-example}
+\inlineslide{s:lamport-example}{}\label{l:lamport-example}
 
 Recall that the happens-before relation is a partial order (\autoref{l:happens-before}).
 Using Lamport timestamps we can extend this partial order into a \emph{total order}.
@@ -2301,7 +2314,7 @@ In a vector $T = \langle t_1, t_2, \dots, t_n \rangle$ we refer to element $t_i$
         \item Recipient merges message vector into its local vector
     \end{itemize}
 \end{frame}
-\inlineslide{s:vector-clocks}\label{l:vector-clocks}
+\inlineslide{s:vector-clocks}{}\label{l:vector-clocks}
 
 Apart from the difference between a scalar and a vector, the vector clock algorithm is very similar to a Lamport clock (compare \autoref{l:lamport-definition} and \autoref{l:vector-definition}).
 A node initialises its vector clock to contain a zero for each node in the system.
@@ -2332,7 +2345,7 @@ Finally, when a message is received, the recipient merges the vector timestamp i
         \EndOn
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:vector-definition}\label{l:vector-definition}
+\inlineslide{s:vector-definition}{}\label{l:vector-definition}
 
 \autoref{l:vector-example} shows an example of this algorithm in action.
 Note that when $C$ receives message $m_2$ from $B$, the vector entry for $A$ is also updated to 2 because this event has an indirect causal dependency on the two events that happened at $A$.
@@ -2373,7 +2386,7 @@ In this way, the vector timestamps mirror the transitivity of the happens-before
     $ \{e\} \cup \{a \mid a \rightarrow e\} $\\[1em]
     For example, $\langle 2, 2, 0\rangle$ represents the first two events from A, the first two events from B, and no events from C.
 \end{frame}
-\inlineslide{s:vector-example}\label{l:vector-example}
+\inlineslide{s:vector-example}{}\label{l:vector-example}
 
 \begin{frame}[label=vector-ordering]
     \label{s:vector-ordering}
@@ -2393,7 +2406,7 @@ In this way, the vector timestamps mirror the transitivity of the happens-before
         \item $(V(a) \parallel V(b)) \Longleftrightarrow (a \parallel b)$
     \end{itemize}
 \end{frame}
-\inlineslide{s:vector-ordering}\label{l:vector-ordering}
+\inlineslide{s:vector-ordering}{}\label{l:vector-ordering}
 
 We then define a partial order over vector timestamps as shown on \autoref{l:vector-ordering}.
 We say that one vector is less than or equal to another vector if every element of the first vector is less than or equal to the corresponding element of the second vector.
@@ -2518,7 +2531,7 @@ The system model assumptions about node behaviour (\autoref{l:model-nodes}) and 
             $\Longrightarrow$ \textbf{no upper bound} on message latency
     \end{itemize}
 \end{frame}
-\inlineslide{s:broadcast-intro}\label{l:broadcast-intro}
+\inlineslide{s:broadcast-intro}{\href{https://www.youtube.com/watch?v=A8oamrHf_cQ&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=12}{Start of video section 4.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/12.2_Broadcast_delivery_order.mp4}{mp4 download})}\label{l:broadcast-intro}
 
 Before we go into the details, we should clarify some terminology.
 When an application wants to send a message to all nodes in the group, it uses an algorithm to \emph{broadcast} it.
@@ -2548,7 +2561,7 @@ As we shall see shortly, there is sometimes a delay between the time when a mess
     \uncover<4->{After broadcast algorithm \textbf{\color{violet}receives} message from network,
     it may buffer/queue it before \textbf{\color{blue}delivering} to the application}
 \end{frame}
-\inlineslide{s:receive-deliver}\label{l:receive-deliver}
+\inlineslide{s:receive-deliver}{}\label{l:receive-deliver}
 
 We will examine three different forms of broadcast.
 All of these are \emph{reliable}: every message is eventually delivered to every non-faulty node, with no timing guarantees.
@@ -2567,7 +2580,7 @@ It turns out that this difference in ordering has very fundamental consequences 
     \textbf{FIFO-total order broadcast}:\\
     Combination of FIFO broadcast and total order broadcast
 \end{frame}
-\inlineslide{s:broadcast-order}\label{l:broadcast-order}
+\inlineslide{s:broadcast-order}{}\label{l:broadcast-order}
 
 The weakest type of broadcast is called \emph{FIFO broadcast}, which is closely related to FIFO links (see \autoref{q:fifo-links}).
 In this model, messages sent by the same node are delivered in the order they were sent.
@@ -2616,7 +2629,7 @@ This may seem unnecessary at first~-- after all, a node knows what messages it h
     Messages sent by different nodes can be delivered in any order.}\\%
     \uncover<5->{Valid orders: $(m_2, m_1, m_3)$ or $(m_1, m_2, m_3)$ or $(m_1, m_3, m_2)$}
 \end{frame}
-\inlineslide{s:fifo-broadcast}\label{l:fifo-broadcast}
+\inlineslide{s:fifo-broadcast}{}\label{l:fifo-broadcast}
 
 The example execution on \autoref{l:fifo-broadcast} is valid FIFO broadcast, but it violates causality: node $C$ delivers $m_2$ before $m_1$, even though $B$ broadcast $m_2$ after delivering $m_1$.
 \emph{Causal broadcast} provides a stricter ordering property than FIFO broadcast.
@@ -2667,7 +2680,7 @@ Either of these delivery orders is acceptable, since they are both consistent wi
     and $\mathsf{broadcast}(m_1) \rightarrow \mathsf{broadcast}(m_3)$\\
     $\Longrightarrow$ valid orders are: $(m_1, m_2, m_3)$ or $(m_1, m_3, m_2)$}
 \end{frame}
-\inlineslide{s:causal-broadcast}\label{l:causal-broadcast}
+\inlineslide{s:causal-broadcast}{}\label{l:causal-broadcast}
 
 The third type of broadcast is \emph{total order broadcast}, sometimes also known as \emph{atomic broadcast}.
 While FIFO and causal broadcast allow different nodes to deliver messages in different orders, total order broadcast enforces consistency across the nodes, ensuring that all nodes deliver messages in the same order.
@@ -2721,7 +2734,7 @@ Likewise, on \autoref{l:total-order2}, node $B$'s delivery of $m_2$ to itself mu
     \uncover<4->{All nodes must deliver messages in \textbf{the same} order\\(here: $m_1, m_2, m_3$)}\\[1em]%
     \uncover<5->{This includes a node's deliveries to itself!}
 \end{frame}
-\inlineslide{s:total-order1}\label{l:total-order1}
+\inlineslide{s:total-order1}{}\label{l:total-order1}
 
 \begin{frame}
     \label{s:total-order2}
@@ -2760,7 +2773,7 @@ Likewise, on \autoref{l:total-order2}, node $B$'s delivery of $m_2$ to itself mu
     All nodes must deliver messages in \textbf{the same} order\\(here: $m_1, m_3, m_2$)\\[1em]
     This includes a node's deliveries to itself!
 \end{frame}
-\inlineslide{s:total-order2}\label{l:total-order2}
+\inlineslide{s:total-order2}{}\label{l:total-order2}
 
 \begin{frame}
     \label{s:broadcast-hierarchy}
@@ -2785,7 +2798,7 @@ Likewise, on \autoref{l:total-order2}, node $B$'s delivery of $m_2$ to itself mu
         \end{tikzpicture}
     \end{center}
 \end{frame}
-\inlineslide{s:broadcast-hierarchy}\label{l:broadcast-hierarchy}
+\inlineslide{s:broadcast-hierarchy}{}\label{l:broadcast-hierarchy}
 
 Finally, \emph{FIFO-total order broadcast} is like total order broadcast, but with the additional FIFO requirement that any messages broadcast by the same node are delivered in the order they were sent.
 The examples on \autoref{l:total-order1} and \ref{l:total-order2} are in fact valid FIFO-total order broadcast executions, since $m_1$ is delivered before $m_3$ in both.
@@ -2856,7 +2869,7 @@ In this situation, one of the nodes will never receive that message.
         \end{tikzpicture}
     \end{center}%
 \end{frame}
-\inlineslide{s:broadcast-alg}\label{l:broadcast-alg}
+\inlineslide{s:broadcast-alg}{\href{https://www.youtube.com/watch?v=77qpCahU3fo&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=13}{Start of video section 4.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/12.3_Broadcast_algorithms.mp4}{mp4 download})}\label{l:broadcast-alg}
 
 To improve the reliability, we can enlist the help of the other nodes.
 For example, we could say that the first time a node receives a particular message, it forwards it to every other node (this is called \emph{eager reliable broadcast}).
@@ -2894,7 +2907,7 @@ This means it uses a large amount of redundant network traffic.
     \end{center}%
     \uncover<5->{Reliable, but\dots{} up to $O(n^2)$ messages for $n$ nodes!}
 \end{frame}
-\inlineslide{s:eager-broadcast}\label{l:eager-broadcast}
+\inlineslide{s:eager-broadcast}{}\label{l:eager-broadcast}
 
 Many variants of this algorithm have been developed, optimising along various dimensions such as the fault tolerance, the time until all nodes receive a message, and the network bandwidth used.
 One particularly common family of broadcast algorithms are \emph{gossip protocols} (also known as \emph{epidemic protocols}).
@@ -3047,7 +3060,7 @@ Gossip protocols are appealing because, with the right parameters, they are very
     \end{center}%
     \uncover<7>{Eventually reaches all nodes (with high probability).}
 \end{frame}
-\inlineslide{s:gossip}\label{l:gossip}
+\inlineslide{s:gossip}{}\label{l:gossip}
 
 % what state must a recipient maintain in order to eliminate duplicates?
 % the entire message? a unique message ID? a sequence number? (what assumptions does this require making about the sender?)
@@ -3084,7 +3097,7 @@ Let's start with FIFO broadcast.
         \EndOn
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:fifo-algorithm}\label{l:fifo-algorithm}
+\inlineslide{s:fifo-algorithm}{}\label{l:fifo-algorithm}
 
 Each FIFO broadcast message sent by node $N_i$ is tagged with the sending node number $i$ and a sequence number that is 0 for the first message sent by $N_i$, 1 for the second message, and so on.
 The local state at each node consists of the sequence number \emph{sendSeq} (counting the number of messages broadcast by this node), \emph{delivered} (a vector with one entry per node, counting the number of messages from each sender that this node has delivered), and \emph{buffer} (a buffer for holding back messages until they are ready to be delivered).
@@ -3115,7 +3128,7 @@ The algorithm checks for messages from any sender that match the expected next s
         \EndOn
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:causal-algorithm}\label{l:causal-algorithm}
+\inlineslide{s:causal-algorithm}{}\label{l:causal-algorithm}
 
 \againframe<1>{vector-ordering}
 
@@ -3152,7 +3165,7 @@ Any messages that are causally ready are then delivered to the application and r
             Need to use FIFO links and wait for message with timestamp $\ge T$ from \emph{every} node
     \end{itemize}
 \end{frame}
-\inlineslide{s:total-bcast-alg}\label{l:total-bcast-alg}
+\inlineslide{s:total-bcast-alg}{}\label{l:total-bcast-alg}
 
 Finally, total order broadcast (and FIFO-total order broadcast) are trickier.
 Two simple approaches are outlined on \autoref{l:total-bcast-alg}, one based on a designated leader node, and a leaderless algorithm using Lamport timestamps.
@@ -3163,7 +3176,7 @@ We will return to the problem of fault-tolerant total order broadcast in \autore
 \supervision{
     Give pseudocode for an algorithm that implements FIFO-total order broadcast using Lamport clocks.
     You may assume that each node has a unique ID, and that the set of all node IDs is known.
-    Further assume that the underlying network provides reliable FIFO broadcast. [2020 Paper 5 Question 8]
+    Further assume that the underlying network provides reliable FIFO broadcast. [\href{https://www.cl.cam.ac.uk/teaching/exams/pastpapers/y2020p5q8.pdf}{2020 Paper 5 Question 8}]
 }{
     Each node maintains its state in the following variables:
     \begin{itemize}
@@ -3207,7 +3220,7 @@ It is one of the main mechanisms we have for achieving \emph{fault tolerance}: i
         \item Replicas can be distributed around the world, near users
     \end{itemize}
 \end{frame}
-\inlineslide{s:replication-intro}\label{l:replication-intro}
+\inlineslide{s:replication-intro}{\href{https://www.youtube.com/watch?v=mBUCF1WGI_I&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=14}{Start of video section 5.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/13.1_Replication.mp4}{mp4 download})}\label{l:replication-intro}
 
 \subsection{Manipulating remote state}
 
@@ -3239,7 +3252,7 @@ Before we get into the details of replication, let's look at how data changes ha
     \end{center}%
     \uncover<4->{Deduplicating requests requires that the database tracks which requests it has already seen (in stable storage)}
 \end{frame}
-\inlineslide{s:retry-increment}\label{l:retry-increment}
+\inlineslide{s:retry-increment}{}\label{l:retry-increment}
 
 Let's consider as example the act of ``liking'' a status update on a social network.
 When you click the ``like'' button, the fact that you have liked it, and the number of people who have liked it, need to be stored somewhere so that they can be displayed to you and to other users.
@@ -3254,7 +3267,7 @@ However, if we are not careful, the retry could lead to the request being proces
     \label{s:negative-followers}
     \includegraphics[width=12cm]{images/negative-followers.png}
 \end{frame}
-\inlineslide{s:negative-followers}\label{l:negative-followers}
+\inlineslide{s:negative-followers}{}\label{l:negative-followers}
 
 Lest you think this is a purely hypothetical problem, consider \autoref{l:negative-followers}, a genuine (I promise!) screenshot of Twitter that I made in 2014, which shows the profile of a user who is apparently following a negative number of people.
 I don't have insight into Twitter's internals to know exactly what happened here, but my guess is that this person used to follow several people, then unfollowed them, and due to a network problem during the unfollowing process, the decrement of the follow counter was retried, resulting in more decrements than the user was originally following.
@@ -3286,7 +3299,7 @@ An alternative to recording requests for deduplication is to make requests \emph
             retry + idempotence or deduplication
     \end{itemize}
 \end{frame}
-\inlineslide{s:idempotence}\label{l:idempotence}
+\inlineslide{s:idempotence}{}\label{l:idempotence}
 
 Incrementing a counter is not idempotent, but adding an element to a set is.
 Therefore, if a counter is required (as in the number of likes), it might be better to actually maintain the set of elements in the database, and to derive the counter value from the set by computing its cardinality.
@@ -3327,7 +3340,7 @@ In this case, the fact that adding an element to a set is idempotent is not suff
     \uncover<4->{$g(\mathit{likes}) = \mathit{likes} \setminus \{\mathit{userID}\}$}\\%
     \uncover<6->{\textbf{Idempotent?} $f(f(x)) = f(x)$ but $f(g(f(x)) \neq g(f(x))$}
 \end{frame}
-\inlineslide{s:retry-union}\label{l:retry-union}
+\inlineslide{s:retry-union}{}\label{l:retry-union}
 
 A similar problem occurs on \autoref{l:add-remove}, in which we have two replicas.
 In the first scenario a client first adds $x$ to both replicas of the database, then tries to remove $x$ again from both.
@@ -3370,7 +3383,7 @@ In the second scenario a client tries to add $x$ to both replicas, but the reque
         \end{tikzpicture}
     \end{center}%
 \end{frame}
-\inlineslide{s:add-remove}\label{l:add-remove}
+\inlineslide{s:add-remove}{}\label{l:add-remove}
 
 In both scenarios the outcome is the same: $x$ is present on replica $B$, and absent from replica $A$.
 Yet the intended effect is different: in the first scenario, the client wanted $x$ to be removed from both replicas, whereas in the second scenario, the client wanted $x$ to be present on both replicas.
@@ -3414,7 +3427,7 @@ On \autoref{l:tombstones}, records containing $\mathsf{false}$ are tombstones.
     it labels $x$ with ``$\mathsf{false}$'' to indicate it is invisible (a \textbf{tombstone})}\\[0.5em]%
     \uncover<4->{Every record has \textbf{logical timestamp} of last write}\\[1em]
 \end{frame}
-\inlineslide{s:tombstones}\label{l:tombstones}
+\inlineslide{s:tombstones}{}\label{l:tombstones}
 
 In many replicated systems, replicas run a protocol to detect and reconcile any differences (this is called \emph{anti-entropy}), so that the replicas eventually hold consistent copies of the same data.
 Thanks to tombstones, the anti-entropy process can tell the difference between a record that has been deleted and a record that has not yet been created.
@@ -3444,7 +3457,7 @@ This approach also helps address the problem on \autoref{l:retry-union}: a retri
         \uncover<4->{Propagate the record with the latest timestamp,\\discard the records with earlier timestamps\\(for a given key).}
     \end{center}%
 \end{frame}
-\inlineslide{s:reconcile}\label{l:reconcile}
+\inlineslide{s:reconcile}{}\label{l:reconcile}
 
 The technique of attaching a timestamp to every update is also useful for handling concurrent updates.
 On \autoref{l:concurrent-writes}, client~1 wants to set key $x$ to the value $v_1$ (with timestamp $t_1$), while concurrently client~2 wants to set the same key $x$ to the value $v_2$ (with timestamp $t_2$).
@@ -3488,7 +3501,7 @@ To ensure that both replicas end up in the same state, we rely not on the order 
         \end{itemize}
     \end{uncoverenv}
 \end{frame}
-\inlineslide{s:concurrent-writes}\label{l:concurrent-writes}
+\inlineslide{s:concurrent-writes}{}\label{l:concurrent-writes}
 
 The details of this approach depend on the type of timestamps used.
 If we use Lamport clocks (with the total order defined on \autoref{l:lamport-example}), two concurrent updates will be ordered arbitrarily, depending on how the timestamps happen to get assigned.
@@ -3576,7 +3589,7 @@ However, if the system continues working despite some faulty replicas, then reli
         100 & 0.63 & $6 \cdot 10^{-74}$ & $10^{-200}$ \\\hline
     \end{tabular}
 \end{frame}
-\inlineslide{s:fault-probability}\label{l:fault-probability}
+\inlineslide{s:fault-probability}{\href{https://www.youtube.com/watch?v=uNxl3BFcKSA&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=15}{Start of video section 5.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/13.2_Quorums.mp4}{mp4 download})}\label{l:fault-probability}
 
 % Python 3 code to compute the failure probabilities above
 % (using arbitrary-precision integer arithmetic to avoid floating-point error):
@@ -3631,7 +3644,7 @@ As a result, the read does not return the value $v_1$ previously written by the 
     \uncover<3->{Writing to one replica, reading from another: client does not read back the value it has read}\\[1em]%
     \uncover<4->{Require writing to/reading from both replicas $\Longrightarrow$ cannot write/read if one replica is unavailable}
 \end{frame}
-\inlineslide{s:read-after-write}\label{l:read-after-write}
+\inlineslide{s:read-after-write}{}\label{l:read-after-write}
 
 This scenario is problematic, since from the client's point of view it looks as if the value it has written has been lost.
 Imagine you post an update on a social network, then refresh the page, and don't see the update you have just posted.
@@ -3679,7 +3692,7 @@ With a ``2 out of 3'' policy for both reads and writes, it is guaranteed that at
     \uncover<3->{Write succeeds on $B$ and $C$}\uncover<5->{; read succeeds on $A$ and $B$}\\%
     \uncover<6->{Choose between $(t_0, v_0)$ and $(t_1, v_1)$ based on timestamp}
 \end{frame}
-\inlineslide{s:quorum-example}\label{l:quorum-example}
+\inlineslide{s:quorum-example}{}\label{l:quorum-example}
 
 Different replicas may return different responses to the same read request: on \autoref{l:quorum-example}, the read at $A$ returns the initial value $(t_0, v_0)$, while the read at $B$ returns the value $(t_1, v_1)$ previously written by this client.
 Using the timestamps, the client can tell which response is the more recent one, and return $v_1$ to the application.
@@ -3726,7 +3739,7 @@ However, other quorum constructions besides majorities are also possible.
         \end{center}
     \end{uncoverenv}
 \end{frame}
-\inlineslide{s:quorum}\label{l:quorum}
+\inlineslide{s:quorum}{}\label{l:quorum}
 
 A system that requires $w$ acknowledgements for writes (i.e.\ a write quorum of size $w$) can continue processing updates as long as no more than $n-w$ replicas are unavailable, and a system that requires $r$ responses for reads can continue reading as long as no more than $n-r$ replicas are unavailable.
 With majority quorums, this means that a system of three replicas can tolerate one replica being unavailable, a system of five replicas can tolerate two being unavailable, and so on.
@@ -3759,7 +3772,7 @@ To bring replicas back in sync with each other, one approach is to rely on an an
     \uncover<3->{Update $(t_1, v_1)$ is more recent than $(t_0, v_0)$ since $t_0 < t_1$.}\\%
     \uncover<4->{Client helps \textbf{propagate} $(t_1, v_1)$ to other replicas.}
 \end{frame}
-\inlineslide{s:read-repair}\label{l:read-repair}
+\inlineslide{s:read-repair}{}\label{l:read-repair}
 
 Another option is to get clients to help with the process of disseminating updates.
 For example, on \autoref{l:read-repair}, the client reads $(t_1, v_1)$ from $B$, but it receives an older value $(t_0, v_0)$ from $A$, and no response from $C$.
@@ -3794,7 +3807,7 @@ Let's first consider FIFO-total order broadcast, the strongest form of broadcast
             $\Longrightarrow$ all replicas end up in the same state
     \end{itemize}
 \end{frame}
-\inlineslide{s:smr}\label{l:smr}
+\inlineslide{s:smr}{\href{https://www.youtube.com/watch?v=mlWOQuO55PE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=16}{Start of video section 5.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/13.3_State_machine_replication.mp4}{mp4 download})}\label{l:smr}
 
 Using FIFO-total order broadcast it is easy to build a replicated system: we broadcast every update request to the replicas, which update their state based on each message as it is delivered.
 This is called \emph{state machine replication} (SMR), because a replica acts as a state machine whose inputs are message deliveries.
@@ -3836,7 +3849,7 @@ A ``smart contract'' is just a deterministic program that a replica executes whe
         \item Need fault-tolerant total order broadcast: see lecture 6
     \end{itemize}
 \end{frame}
-\inlineslide{s:smr2}\label{l:smr2}
+\inlineslide{s:smr2}{}\label{l:smr2}
 
 The downsides of state machine replication are the limitations of total order broadcast.
 As discussed in \autoref{sec:delivery-order}, when a node wants to broadcast a message through a total order broadcast, it cannot immediately deliver that message to itself.
@@ -3870,7 +3883,7 @@ Nevertheless, replication based on total order broadcast is widely used.
     \end{center}%
     \uncover<4->{Follower $F$ applies transaction log in commit order}
 \end{frame}
-\inlineslide{s:leader-database}\label{l:leader-database}
+\inlineslide{s:leader-database}{}\label{l:leader-database}
 
 Recall from \autoref{l:total-bcast-alg} that one way of implementing total order broadcast is to designate one node as the \emph{leader}, and to route all broadcast messages through it in order to impose a delivery order.
 This principle is also widely used for database replication: many database systems designate one replica as \emph{leader}, \emph{primary}, or \emph{master}.
@@ -3906,7 +3919,7 @@ This can be done, and we will see some techniques for commutativity later. % TOD
         best-effort & deterministic, commutative, idempotent,\newline tolerates message loss \\\hline
     \end{tabular}
 \end{frame}
-\inlineslide{s:causal-replication}\label{l:causal-replication}
+\inlineslide{s:causal-replication}{}\label{l:causal-replication}
 
 \section{Consensus}\label{sec:consensus}
 
@@ -3946,7 +3959,7 @@ The answer is yes, and this is exactly what consensus algorithms do.
         \item Can we \textbf{automatically choose a new leader}?
     \end{itemize}
 \end{frame}
-\inlineslide{s:failover}\label{l:failover}
+\inlineslide{s:failover}{\href{https://www.youtube.com/watch?v=rN6ma561tak&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=17}{Start of video section 6.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/14.1_Consensus.mp4}{mp4 download})}\label{l:failover}
 
 \subsection{Introduction to consensus}
 
@@ -3979,7 +3992,7 @@ It has been formally shown that consensus and total order broadcast are equivale
             FIFO-total order broadcast by default
     \end{itemize}
 \end{frame}
-\inlineslide{s:consensus-intro}\label{l:consensus-intro}
+\inlineslide{s:consensus-intro}{}\label{l:consensus-intro}
 
 The two best-known consensus algorithms are \emph{Paxos} \citep{Lamport:1998} and \emph{Raft} \citep{Ongaro:2014}.
 In its original formulation, Paxos provides only consensus on a single value, and the \emph{Multi-Paxos} algorithm is a generalisation of Paxos that provides FIFO-total order broadcast.
@@ -3998,7 +4011,7 @@ On the other hand, Raft is designed to provide FIFO-total order broadcast ``out 
     \end{itemize}
     There are also consensus algorithms for a partially synchronous \textbf{Byzantine} system model (used in blockchains)
 \end{frame}
-\inlineslide{s:consensus-model}\label{l:consensus-model}
+\inlineslide{s:consensus-model}{}\label{l:consensus-model}
 
 The design of a consensus algorithm depends crucially on the system model, as discussed in \autoref{sec:system-behaviour}.
 Paxos and Raft assume a system model with fair-loss links (\autoref{l:model-network}), crash-recovery behaviour of nodes (\autoref{l:model-nodes}), and partial synchrony (\autoref{l:model-synchrony}).
@@ -4053,7 +4066,7 @@ Only the \emph{liveness} (namely, that a message is eventually delivered) depend
         \end{tikzpicture}
     \end{uncoverenv}
 \end{frame}
-\inlineslide{s:leader-election}\label{l:leader-election}
+\inlineslide{s:leader-election}{}\label{l:leader-election}
 
 At the core of most consensus algorithms is a process for electing a new leader when the existing leader becomes unavailable for whatever reason.
 The details differ between the algorithms; in this lecture we will concentrate on the approach taken by Raft, but many of the lessons from Raft are equally relevant to other consensus algorithms.
@@ -4093,7 +4106,7 @@ Different terms may have different leaders.
     Nodes 2 and 3 may elect a new leader in term $t+1$.\\[1em]\pause
     Node 1 may not even know that a new leader has been elected!
 \end{frame}
-\inlineslide{s:leader-uniqueness}\label{l:leader-uniqueness}
+\inlineslide{s:leader-uniqueness}{}\label{l:leader-uniqueness}
 
 However, recall from \autoref{l:eventual-detector} that in a partially synchronous system, a timeout-based failure detector may be inaccurate: it may suspect a node has having crashed when in fact the node is functioning fine, for example due to a spike in network latency.
 For example, on \autoref{l:leader-uniqueness}, node 1 is the leader in term $t$, but the network between it and nodes 2 and 3 is temporarily interrupted.
@@ -4127,7 +4140,7 @@ Thus, we end up with two nodes both believing to be the leader.
         \end{tikzpicture}
     \end{center}
 \end{frame}
-\inlineslide{s:leader-two-phase}\label{l:leader-two-phase}
+\inlineslide{s:leader-two-phase}{}\label{l:leader-two-phase}
 
 For this reason, even after a node has been elected leader, it must act carefully, since at any moment the system might contain be another leader with a later term that it has not yet heard about.
 It is not safe for a leader to act unilaterally.
@@ -4184,7 +4197,7 @@ On hearing about a higher term, the former leader steps down to become a followe
         \end{tikzpicture}
     \end{center}%
 \end{frame}
-\inlineslide{s:raft-states}\label{l:raft-states}
+\inlineslide{s:raft-states}{\href{https://www.youtube.com/watch?v=IPnesACYRck&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=18}{Start of video section 6.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/14.2_Raft.mp4}{mp4 download})}\label{l:raft-states}
 
 % TODO: show examples of log consistency/invariants before going into the details of the code?
 
@@ -4256,7 +4269,7 @@ The message contains the $\mathit{nodeId}$ of the candidate, its $\mathit{curren
         \draw<2-> [<-] (entry3.south) -- node [at end,below] {$\mathit{log}[2]$} +(0,-0.3);
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:raft1}\label{l:raft1}
+\inlineslide{s:raft1}{}\label{l:raft1}
 
 \begin{frame}
     \label{s:raft2}
@@ -4288,7 +4301,7 @@ The message contains the $\mathit{nodeId}$ of the candidate, its $\mathit{curren
             at (current page.center) {$c$ for candidate};
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:raft2}\label{l:raft2}
+\inlineslide{s:raft2}{}\label{l:raft2}
 
 \autoref{l:raft2} shows what happens when a node receives a $\mathsf{VoteRequest}$ message from a candidate.
 A node will only vote for a candidate if the candidate's log is at least as up-to-date as the voter's log; this prevents a candidate with an outdated log from becoming leader, which could lead to the loss of committed log entries.
@@ -4332,7 +4345,7 @@ Besides the flag for success or failure, the response message contains the $\mat
         \State
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:raft3}\label{l:raft3}
+\inlineslide{s:raft3}{}\label{l:raft3}
 
 Back on the candidate, \autoref{l:raft3} shows the code for processing the $\mathsf{VoteResponse}$ messages.
 We ignore any responses relating to earlier terms (which could arrive late due to network delays).
@@ -4384,7 +4397,7 @@ This serves multiple purposes: it lets the followers know that the leader is sti
         \State
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:raft4}\label{l:raft4}
+\inlineslide{s:raft4}{}\label{l:raft4}
 
 \begin{frame}
     \label{s:raft5}
@@ -4407,7 +4420,7 @@ This serves multiple purposes: it lets the followers know that the leader is sti
         \State
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:raft5}\label{l:raft5}
+\inlineslide{s:raft5}{}\label{l:raft5}
 
 The \textsc{ReplicateLog} function is shown on \autoref{l:raft5}.
 Its purpose is to send any new log entries from the leader to the follower node with ID $\mathit{followerId}$.
@@ -4461,7 +4474,7 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
         \end{minipage}%
     }%
 \end{frame}
-\inlineslide{s:raft6}\label{l:raft6}
+\inlineslide{s:raft6}{}\label{l:raft6}
 
 \begin{frame}
     \label{s:raft7}
@@ -4489,7 +4502,7 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
         \State
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:raft7}\label{l:raft7}
+\inlineslide{s:raft7}{}\label{l:raft7}
 
 \autoref{l:raft7} shows the \textsc{AppendEntries} function, which a follower calls to extend its log with entries received from the leader.
 $\mathit{logLength}$ is the number of log entries (counted from the beginning of the log) that precede the new $\mathit{entries}$.
@@ -4536,7 +4549,7 @@ What remains is to switch back to the leader, and to show how it processes the $
         \end{minipage}%
     }%
 \end{frame}
-\inlineslide{s:raft8}\label{l:raft8}
+\inlineslide{s:raft8}{}\label{l:raft8}
 
 A leader receiving a $\mathsf{LogResponse}$ message first checks the term in the message: if the sender's term is later than the recipient's term, that means a new leader election has been started, and so this node transitions from leader to follower.
 Messages with an outdated term are ignored.
@@ -4587,7 +4600,7 @@ This may happen multiple times, but eventually the leader will send the follower
         \State
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:raft9}\label{l:raft9}
+\inlineslide{s:raft9}{}\label{l:raft9}
 
 Finally, \autoref{l:raft9} shows how the leader determines which log entries to commit.
 We define the function $\mathrm{acks}(\mathit{length})$ to take an integer, a number of log entries counted from the start of the log.
@@ -4701,7 +4714,7 @@ We will see more models in this lecture.
         \item \textbf{Consistency model}: many to choose from
     \end{itemize}
 \end{frame}
-\inlineslide{s:consistency}\label{l:consistency}
+\inlineslide{s:consistency}{\href{https://www.youtube.com/watch?v=-_rdWB9hN1c&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=19}{Start of video section 7.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/15.1_Two-phase_commit.mp4}{mp4 download})}\label{l:consistency}
 
 \subsection{Two-phase commit}
 
@@ -4733,7 +4746,7 @@ The answer is no: although both are superficially about reaching agreement, the 
     Ensuring this is the \textbf{atomic commitment} problem.\\
     Looks a bit similar to consensus?
 \end{frame}
-\inlineslide{s:atomic-commit}\label{l:atomic-commit}
+\inlineslide{s:atomic-commit}{}\label{l:atomic-commit}
 
 \begin{frame}
     \label{s:atomic-commit-consensus}
@@ -4747,7 +4760,7 @@ The answer is no: although both are superficially about reaching agreement, the 
         Crashed nodes can be tolerated, as long as a quorum is working & Must abort if a participating node crashes
     \end{tabular}
 \end{frame}
-\inlineslide{s:atomic-commit-consensus}\label{l:atomic-commit-consensus}
+\inlineslide{s:atomic-commit-consensus}{}\label{l:atomic-commit-consensus}
 
 The most common algorithm to ensure atomic commitment across multiple nodes is the \emph{two-phase commit} (2PC) protocol \citep{Gray:1978}.
 (Not to be confused with \emph{two-phase locking} (2PL), discussed in the first half of this course: 2PL ensures serializable isolation, while 2PC ensures atomic commitment.
@@ -4785,7 +4798,7 @@ The communication flow of 2PC is illustrated on \autoref{l:2pc}.
         \end{tikzpicture}
     \end{center}
 \end{frame}
-\inlineslide{s:2pc}\label{l:2pc}
+\inlineslide{s:2pc}{}\label{l:2pc}
 
 When using two-phase commit, a client first starts a regular single-node transaction on each replica that is participating in the transaction, and performs the usual reads and writes within those transactions.
 When the client is ready to commit the transaction, it sends a commit request to the \emph{transaction coordinator}, a designated node that manages the 2PC protocol.
@@ -4814,7 +4827,7 @@ If the decision was to abort, the replica rolls back the transaction.
         \item Algorithm is blocked until coordinator recovers
     \end{itemize}
 \end{frame}
-\inlineslide{s:2pc-coordinator}\label{l:2pc-coordinator}
+\inlineslide{s:2pc-coordinator}{}\label{l:2pc-coordinator}
 
 The problem with two-phase commit is that the coordinator is a single point of failure.
 Crashes of the coordinator can be tolerated by having the coordinator write its commit/abort decisions to stable storage, but even so, there may be transactions that have prepared but not yet committed/aborted at the time of the coordinator crash (called \emph{in-doubt transactions}).
@@ -4861,7 +4874,7 @@ Thanks to total order broadcast, all nodes are guaranteed to make the same decis
         \EndOn
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:paxos-commit1}\label{l:paxos-commit1}
+\inlineslide{s:paxos-commit1}{}\label{l:paxos-commit1}
 
 \begin{frame}
     \label{s:paxos-commit2}
@@ -4884,7 +4897,7 @@ Thanks to total order broadcast, all nodes are guaranteed to make the same decis
         \EndOn
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:paxos-commit2}\label{l:paxos-commit2}
+\inlineslide{s:paxos-commit2}{}\label{l:paxos-commit2}
 
 \subsection{Linearizability}
 
@@ -4925,7 +4938,7 @@ It is possible for a system to provide both serializability and linearizability:
     \end{itemize}
     Note: linearizability $\neq$ serializability!
 \end{frame}
-\inlineslide{s:linearizability}\label{l:linearizability}
+\inlineslide{s:linearizability}{\href{https://www.youtube.com/watch?v=noUNH3jDLC0&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=20}{Start of video section 7.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/15.2_Linearizability.mp4}{mp4 download})}\label{l:linearizability}
 
 The main purpose of linearizability is to guarantee that nodes observe the system in an ``up-to-date'' state; that is, they do not read \emph{stale} (outdated) values.
 We have previously seen this concept of reading an ``up-to-date'' value in the context of read-after-write consistency (\autoref{l:read-after-write}).
@@ -4966,7 +4979,7 @@ Inside the rectangle we write the effect of the operation: $\mathsf{set}(x,v)$ m
         \end{tikzpicture}
     \end{center}%
 \end{frame}
-\inlineslide{s:read-after-write-2}\label{l:read-after-write-2}
+\inlineslide{s:read-after-write-2}{}\label{l:read-after-write-2}
 
 Linearizability is independent of the system implementation and communication protocols: all that matters is the timing of each operation's start and finish, and the outcome of the operation.
 We can therefore leave out all of the replicas and message-sending arrows, and look at the system's behaviour only from the client's point of view.
@@ -5020,7 +5033,7 @@ This has the advantage that if we prove a system to be linearizable, we can be s
         \end{column}
     \end{columns}
 \end{frame}
-\inlineslide{s:read-after-write-3}\label{l:read-after-write-3}
+\inlineslide{s:read-after-write-3}{}\label{l:read-after-write-3}
 
 \begin{frame}
     \label{s:overlapping}
@@ -5061,7 +5074,7 @@ This has the advantage that if we prove a system to be linearizable, we can be s
         \end{column}
     \end{columns}
 \end{frame}
-\inlineslide{s:overlapping}\label{l:overlapping}
+\inlineslide{s:overlapping}{}\label{l:overlapping}
 
 Linearizability is not only about the relationship of a $\mathsf{get}$ operation to a prior $\mathsf{set}$ operation, but it can also relate one $\mathsf{get}$ operation to another.
 \autoref{l:non-linearizable} shows an example of a system that uses quorum reads and writes, but is nevertheless non-linearizable.
@@ -5107,7 +5120,7 @@ This behaviour is not allowed in a linearizable system.
         \draw<6-> [bigarrow] (6,0.5) -- node [below,sloped,pos=0.25,font=\footnotesize,yshift=0.1cm] {$(t_0, v_0)$} (9.7,0.1);
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:non-linearizable}\label{l:non-linearizable}
+\inlineslide{s:non-linearizable}{}\label{l:non-linearizable}
 
 \begin{frame}
     \label{s:non-linearizable-2}
@@ -5132,7 +5145,7 @@ This behaviour is not allowed in a linearizable system.
         \end{minipage}};
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:non-linearizable-2}\label{l:non-linearizable-2}
+\inlineslide{s:non-linearizable-2}{}\label{l:non-linearizable-2}
 
 Fortunately, it is possible to make $\mathsf{get}$ and $\mathsf{set}$ operations linearizable using quorum reads and writes.
 $\mathsf{set}$ operations don't change: as before, they send the update to all replicas, and wait for acknowledgement from a quorum of replicas.
@@ -5182,7 +5195,7 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
         \draw<1-> [revbigarrow] (op3.south east) -- node [at end,above] {\dots} +(-0.7,0.1);
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:non-linearizable-3}\label{l:non-linearizable-3}
+\inlineslide{s:non-linearizable-3}{}\label{l:non-linearizable-3}
 
 \begin{frame}
     \label{s:cas-1}
@@ -5202,7 +5215,7 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
         \item \textbf{Yes:} total order broadcast to the rescue again!
     \end{itemize}
 \end{frame}
-\inlineslide{s:cas-1}\label{l:cas-1}
+\inlineslide{s:cas-1}{}\label{l:cas-1}
 
 % TODO exercise: write pseudocode for the ABD algorithm.
 
@@ -5248,7 +5261,7 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
         \EndOn
     \end{algorithmic}
 \end{frame}
-\inlineslide{s:cas-2}\label{l:cas-2}
+\inlineslide{s:cas-2}{}\label{l:cas-2}
 
 \supervision{
     Is the following execution linearizable? If not, where does the violation occur?
@@ -5360,7 +5373,7 @@ Even though the node may be running, such a communication failure makes it effec
     \textbf{Eventual consistency}: a weaker model than linearizability.\\
     Different trade-off choices.
 \end{frame}
-\inlineslide{s:eventual-1}\label{l:eventual-1}
+\inlineslide{s:eventual-1}{\href{https://www.youtube.com/watch?v=9uCP3qHNbWw&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=21}{Start of video section 7.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/15.3_Eventual_consistency.mp4}{mp4 download})}\label{l:eventual-1}
 
 As an example, consider the calendar app that you can find on most phones, tablets, and computers.
 We would like the appointments and entries in this app to sync across all of our devices; in other words, we want it to be replicated such that each device is a replica.
@@ -5385,7 +5398,7 @@ The video of this lecture includes a demonstration of offline updates to a calen
         \node at (current page.center) {\includegraphics[width=\paperwidth]{images/calendar.png}};
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:calendar}
+\inlineslide{s:calendar}{}
 
 This trade-off is known as the \emph{CAP theorem} (named after \emph{consistency}, \emph{availability}, and \emph{partition tolerance}), which states that if there is a network partition in a system, we must choose between one of the following options \citep{Gilbert:2002}:
 \begin{enumerate}
@@ -5430,7 +5443,7 @@ However, if $C$ wants to read the value of $x$, it must either wait (potentially
     \end{center}%
     $C$ must either wait indefinitely for the network to recover, or return a potentially stale value
 \end{frame}
-\inlineslide{s:cap-theorem}\label{l:cap-theorem}
+\inlineslide{s:cap-theorem}{}\label{l:cap-theorem}
 
 The calendar app chooses option 2: it forgoes linearizability in favour of allowing the user to continue performing operations while a device is offline.
 Many other systems similarly make this choice for various reasons.
@@ -5462,7 +5475,7 @@ It is based on the idea that as two replicas communicate, they \emph{converge} t
         \item Concurrent updates $\Longrightarrow$ \textbf{conflicts} need to be resolved
     \end{itemize}
 \end{frame}
-\inlineslide{s:eventual-2}\label{l:eventual-2}
+\inlineslide{s:eventual-2}{}\label{l:eventual-2}
 
 In both eventual consistency and strong eventual consistency, there is the possibility of different nodes concurrently updating the same object, leading to conflicts (as previously discussed on \autoref{l:concurrent-writes}).
 Various algorithms have been developed to resolve those conflicts automatically \citep{Shapiro:2011}.
@@ -5503,34 +5516,12 @@ Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, et
         eventual consistency,\newline causal broadcast,\newline FIFO broadcast & local replica only & asynchronous \\\hline
     \end{tabular}
 \end{frame}
-\inlineslide{s:model-requirements}\label{l:model-requirements}
-
-% CAP: consistent or available in the presence of a partition
-% multi-leader replication
-
-% Equivalence of consensus, CAS, abcast
-% Linearisable CAS requires consensus but ABD does not (works in asynchronous model)
-% CRDT works in asynchronous model without quorum
+\inlineslide{s:model-requirements}{}\label{l:model-requirements}
 
 % Distributed systems are fascinating because we have to work with partial knowledge and uncertain
 % truths. We never have certainty about the state of the system, because by the time we hear about
 % something, that state may already be outdated. In this way it resembles real life more than most of
 % computing! In real life you need to often make decisions with incomplete information.
-
-
-% 1. Network communication basics: JSON, TCP, HTTP/REST, UDP. Hands-on: using things like tcpdump?
-% 2. Faults and failures; failure detection; split brain
-% 3. Architectures: client-server, local networks (multicast), peer-to-peer (distributed hash tables, NAT traversal)
-% 4. Programming models: services, RPC, message brokers, actors, map-reduce, stream processing, tuple spaces?
-% 5. Replication
-% 6. Consensus
-% 7. Convergence
-% 8. Time and clocks
-% 9. Security (e.g. TLS), byzantine fault tolerance, and blockchains
-
-% http://book.mixu.net/distsys/single-page.html
-% BaseDS: https://github.com/vaidehijoshi/baseds-series  /   https://medium.com/baseds
-% MIT graduate dist-sys course https://pdos.csail.mit.edu/6.824/schedule.html
 
 % Beamer documentation:
 % https://people.wou.edu/~beavers/LaTeX/beamer_guide.pdf
@@ -5538,7 +5529,12 @@ Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, et
 
 \section{Material for lecture 8}
 
-% NFS close-to-open consistency
+% NFS (including close-to-open consistency)
+% CRDTs
+% peer-to-peer systems
+% MapReduce [covered in Part II cloud computing module], Spanner
+% Byzantine fault tolerance
+% Distributed mutual exclusion / locking
 
 Material for the last lecture is not yet ready.
 Please see the course web page \url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/materials.html} for updates.

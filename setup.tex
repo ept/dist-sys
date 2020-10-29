@@ -39,17 +39,23 @@
 \urlstyle{sf}
 \newcounter{inlineslides}
 
-\newcommand{\inlineslide}[1]{
+\newcommand{\inlineslide}[2]{
     \refstepcounter{inlineslides}
     \pagebreak[3]\vspace{1em}\noindent
     \fbox{
-      \begin{minipage}[t]{9cm}
+      \begin{minipage}{9cm}
         \begin{center}
           \includeslide[width=9cm,page=0]{#1} \\
         \end{center}
       \end{minipage}
     }
-    \hspace{1em}\textsf{Slide \theinlineslides} \par\vspace{1em}\pagebreak[3]
+    \hfill
+    \begin{minipage}{6cm}
+        \vbox to 5.5cm {\raggedright{#2}\vfil}%
+        \vspace{1cm}%
+        \textsf{Slide \theinlineslides}%
+    \end{minipage}
+    \par\vspace{1em}\pagebreak[3]
 }
 \def\inlineslidesautorefname{Slide}%
 
