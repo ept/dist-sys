@@ -4530,7 +4530,7 @@ What remains is to switch back to the leader, and to show how it processes the $
             \begin{algorithmic}
                 \On{receiving $(\mathsf{LogResponse}, \mathit{follower}, \mathit{term}, \mathit{ack}, \mathit{success})$ at $\mathit{nodeId}$}
                     \If{$\mathit{term} = \mathit{currentTerm} \;\wedge\; \mathit{currentRole} = \mathsf{leader}$}
-                        \If{$\mathit{success} = \mathsf{true}$}
+                        \If{$\mathit{success} = \mathsf{true} \;\wedge\; \mathit{ack} \ge \mathit{ackedLength}[\mathit{follower}]$}
                             \State $\mathit{sentLength}[\mathit{follower}] := \mathit{ack}$
                             \State $\mathit{ackedLength}[\mathit{follower}] := \mathit{ack}$
                             \State \Call{CommitLogEntries}{}()
