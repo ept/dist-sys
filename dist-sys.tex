@@ -837,7 +837,7 @@ Is the Byzantine generals problem of practical relevance?
 Real distributed systems do often involve complex trust relationships.
 For example, a customer needs to trust an online shop to actually deliver the goods they ordered, although they can dispute the payment via their bank if the goods never arrive or if they get charged too much.
 But if an online shop somehow allowed customers to order goods without paying for them, this weakness would no doubt be exploited by fraudsters, so the shop must assume that customers are potentially malicious.
-On the other hand, for RPC between services belonging to the shop, running in the same datacentre, one service can probably trust the other services run by the same company.
+On the other hand, for RPC between services belonging to the shop, running in the same datacenter, one service can probably trust the other services run by the same company.
 The payments service doesn't fully trust the shop, since someone might set up a fraudulent shop or use stolen credit card numbers, but the shop probably does trust the payments service.
 And so on.
 And in the end, we want the customer, the online shop, and the payments service to agree on any order that is placed.
@@ -1041,6 +1041,8 @@ For instance, an algorithm designed for a crash-recovery system model may look v
 The third part of a system model is the synchrony assumption, which is about timing.
 The three choices we can make here are \emph{synchronous}, \emph{asynchronous}, or \emph{partially synchronous} \citep{Dwork:1988dr}.
 (Note that the definitions of these terms differ somewhat across different parts of computer science; our definitions here are standard in the field of distributed computing.)
+
+% TODO explain that synchronous/asynchronous are also used e.g. in the context of RPC, in which case "synchronous" means "caller thread waits until response is received", and "asynchronous" means "caller thread continues doing other stuff (potentially making further RPC requests) while RPC is in progress"
 
 A synchronous system is what we would love to have: a message sent over the network never takes longer than some known maximum latency, and nodes always execute their algorithm at a predictable speed.
 Many problems in distributed computing are much easier if you assume a synchronous system.
@@ -5527,17 +5529,168 @@ Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, et
 % https://people.wou.edu/~beavers/LaTeX/beamer_guide.pdf
 % http://anorien.csc.warwick.ac.uk/mirrors/CTAN/macros/latex/contrib/beamer/doc/beameruserguide.pdf
 
-\section{Material for lecture 8}
+\section{Case studies}
 
-% NFS (including close-to-open consistency)
+\begin{frame}
+    \begin{center}
+        Lecture 8\\[2em]
+        \Large{\color{darkblue}{Case studies}}
+    \end{center}
+\end{frame}
+
+\subsection{Conflict-free replicated datatypes (CRDTs)}
+
+\subsection{Google's Spanner}
+
+\begin{frame}
+    \label{s:spanner-intro}
+    \frametitle{Google's Spanner}
+    A database system with millions of nodes, petabytes of data, distributed across datacenters worldwide\\[1em]\pause
+    Consistency properties:
+    \begin{itemize}
+        \item \textbf{Serializable} transaction isolation
+        \item \textbf{Linearizable} reads and writes\pause
+        \item Many \textbf{shards}, each holding a subset of the data;\\atomic commit of transactions across shards\\[1em]\pause
+    \end{itemize}
+    Many standard techniques:
+    \begin{itemize}
+        \item State machine replication (Paxos) within a shard
+        \item Two-phase locking for serializability
+        \item Two-phase commit for cross-shard atomicity\\[1em]\pause
+    \end{itemize}
+    The interesting bit: read-only transactions require \textbf{no locks}!
+\end{frame}
+\inlineslide{s:spanner-intro}{}\label{l:spanner-intro}
+
+Spanner \citep{Corbett:2012}
+
+Some read-only transactions need to read a large number of objects in a database; for example, a backup or audit process needs to essentially read the entire database.
+Performing such transactions with two-phase locking would be extremely disruptive, since the backup may take a long time, and the read lock on the entire database would prevent any clients from writing to the database for the duration of the backup.
+For this reason, it is very important that large read-only transactions can execute in the background, without requiring any locks and thus without interfering with concurrent read-write transactions.
+
+
+
+\begin{frame}
+    \label{s:snapshots}
+    \frametitle{Consistent snapshots}
+    A read-only transaction observes a \textbf{consistent snapshot}:\\
+    If $T_1 \rightarrow T_2$ (e.g. $T_2$ reads data written by $T_1$)\dots
+    \begin{itemize}
+        \item Snapshot reflecting writes by $T_2$ also reflects writes by $T_1$
+        \item Snapshot that does not reflect writes by $T_1$ does not reflect writes by $T_2$ either\pause
+        \item In other words, snapshot is \textbf{consistent with causality}
+        \item Even if read-only transaction runs for a long time\\[1em]\pause
+    \end{itemize}
+    Approach: \textbf{multi-version concurrency control} (MVCC)
+    \begin{itemize}
+        \item Each read-write transaction $T_w$ has commit timestamp $t_w$
+        \item Every value is tagged with timestamp $t_w$ of transaction that wrote it (not overwriting previous value)\pause
+        \item Read-only transaction $T_r$ has snapshot timestamp $t_r$
+        \item $T_r$ ignores values with $t_w > t_r$; observes most recent value with $t_w \le t_r$
+    \end{itemize}
+\end{frame}
+\inlineslide{s:snapshots}{}\label{l:snapshots}
+
+Spanner's implementation of snapshot isolation uses \emph{multi-version concurrency control} (MVCC), a particular form of optimistic concurrency control similar to what was discussed in the first half of this course.
+MVCC is based on assigning a timestamp to every transaction; when a transaction 
+Many other databases also use MVCC, but what makes Spanner special is the way in which it assigns timestamps to transactions.
+
+\begin{frame}
+    \label{s:commit-timestamps}
+    \frametitle{Obtaining commit timestamps}
+    Must ensure that whenever $T_1 \rightarrow T_2$ we have $t_1 < t_2$.
+    \begin{itemize}
+        \item Physical clocks may be \textbf{inconsistent with causality}\pause
+        \item Can we use Lamport clocks instead?
+        \item Problem: linearizability depends on \textbf{real-time order}, and logical clocks may not reflect this!\pause
+    \end{itemize}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (node1) at (0,4.5) {\storageSymbol}; \node [yshift=-0.2cm] at (node1) {$A$};
+            \node [alice,minimum size=1cm]     (node2) at (4,4.5) {};
+            \node [rectangle,fill=red!10,draw] (node3) at (8,4.5) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
+            \draw (node1) -- (0,0.3);
+            \draw (node2) -- (4,0.3);
+            \draw (node3) -- (8,0.3);
+            \node<4-> [rectangle,fill=white,draw,text depth=0.3cm] (T1) at (0,3) {$T_1$};
+            \node<5-> [rectangle,fill=white,draw,text depth=0.3cm] (T2) at (8,1) {$T_2$};
+            \draw<4-> [bigarrow] (T1.south east) -- node [above,sloped] {results} (4,2.1);
+            \draw<5-> [bigarrow] (4,1.9) -- node [above,sloped] {action} (T2.north west);
+        \end{tikzpicture}
+    \end{center}%
+\end{frame}
+\inlineslide{s:commit-timestamps}{}\label{l:commit-timestamps}
+
+The MVCC algorithm of comparing transaction timestamps requires that if transaction $T_1$ happened before transaction $T_2$, then the timestamp of $T_1$ must be less than that of $T_2$.
+However, recall from \autoref{l:physical-order} that timestamps from physical clocks do not necessarily satisfy this property.
+Thus, our natural response should be to use logical timestamps, such as Lamport timestamps, instead (\autoref{sec:logical-time}).
+
+Unfortunately, logical timestamps also have problems.
+
+\begin{frame}
+    \label{s:truetime}
+    \frametitle{TrueTime: explicit physical clock uncertainty}
+    \uncover<2->{Spanner's TrueTime clock returns $(\mathit{earliest}, \mathit{latest})$.}\\%
+    \uncover<2->{True physical timestamp must lie within that range.}\\%
+    \uncover<3->{On commit, wait for uncertainty $\delta_i = t_{i,\mathsf{latest}} - t_{i,\mathsf{earliest}}$.}\\[1em]
+    \begin{tikzpicture}
+        \node [rectangle,fill=red!10,draw] (node1) at (1,4.5) {\storageSymbol}; \node [yshift=-0.2cm] at (node1) {$A$};
+        \node [text width=1.5cm,align=center] (node2) at (4,4.5) {physical time};
+        \node [rectangle,fill=red!10,draw] (node3) at (7,4.5) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
+        \draw (node1) -- (1,-0.8);
+        \draw (node3) -- (7,-0.8);
+        \useasboundingbox (-1,0);
+        \tikzstyle{wait}=[rectangle,fill=blue!10,draw,anchor=west,rotate=270,font=\footnotesize,minimum height=0.7cm,minimum width=1cm]
+        \node<1-> [rectangle,fill=white,draw,text depth=0.3cm,minimum width=0.7cm] (T1) at (1,3) {$T_1$};
+        \node<4-> [rectangle,fill=white,draw,text depth=0.3cm,minimum width=0.7cm] (T2) at (7,1) {$T_2$};
+        \node<3-> [wait] (wait1) at (T1.south) {wait};
+        \node<5-> [wait] (wait2) at (T2.south) {wait};
+        \draw<2-> [line width=3pt] (T1.south west) -- node [at start,left,font=\scriptsize] {commit req} (T1.south east);
+        \draw<4-> [line width=3pt] (T2.south west) -- node [at end,right,font=\scriptsize] {commit req} (T2.south east);
+        \draw<3-> [line width=3pt] (wait1.south east) -- node [at start,left,font=\scriptsize] {commit done} (wait1.north east);
+        \draw<5-> [line width=3pt] (wait2.south east) -- node [at end,right,font=\scriptsize] {commit done} (wait2.north east);
+        \fill<2-> [blue!10] (T1.south east) -- (4,3.0) -- (4,2.0) -- cycle;
+        \fill<4-> [blue!10] (T2.south west) -- (4,1.0) -- (4,0.0) -- cycle;
+        \draw<2-> [blue] (3.8,3.0) -- node [at start,above left,inner sep=0pt] {$t_{1,\mathsf{earliest}}$} (4.4,3.0);
+        \draw<2-> [blue] (3.8,2.0) -- node [at start,below left,inner sep=0pt] {$t_{1,\mathsf{latest}}$} (4.4,2.0);
+        \draw<4-> [blue] (3.6,1.0) -- node [at end,above right,inner sep=0pt] {$t_{2,\mathsf{earliest}}$} (4.2,1.0);
+        \draw<4-> [blue] (3.6,0.0) -- node [at end,below right,inner sep=0pt] {$t_{2,\mathsf{latest}}$} (4.2,0.0);
+        \draw<3-> [blue,<->] (4.2,3.0) -- node [right] {$\delta_1$} (4.2,2.0);
+        \draw<5-> [blue,<->] (3.8,1.0) -- node [left] {$\delta_2$} (3.8,0.0);
+        \node<3-> [right=0.2cm of wait1.north west,inner sep=0] (wait1a) {};
+        \node<3-> [right=0.2cm of wait1.north east,inner sep=0] (wait1b) {};
+        \draw<3-> [blue,<->] (wait1a) -- node [right] {$\delta_1$} (wait1b);
+        \node<5-> [left=0.2cm of wait2.south west,inner sep=0] (wait2a) {};
+        \node<5-> [left=0.2cm of wait2.south east,inner sep=0] (wait2b) {};
+        \draw<5-> [blue,<->] (wait2a) -- node [left] {$\delta_2$} (wait2b);
+        \draw<1-> (node2) -- (4,-0.8);
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:truetime}{}\label{l:truetime}
+
+When transaction $T_i$ wants to commit, it gets a timestamp interval $[t_{i,\mathsf{earliest}}, t_{i,\mathsf{latest}}]$ from TrueTime, and assigns $t_{i,\mathsf{latest}}$ to be the commit timestamp of $T_i$.
+However, before the transaction actually commits and releases its locks, it first pauses and waits for a duration equal to the clock uncertainty period $\delta_i = t_{i,\mathsf{latest}} - t_{i,\mathsf{earliest}}$.
+Only after this wait time has elapsed, the transaction is committed and its writes become visible to other transactions.
+
+Even though we don't have perfectly synchronised clocks, and thus a node cannot know the exact physical time of an event, this algorithm ensures that the timestamp of a transaction is less than the true physical time at the moment when the transaction commits.
+Therefore, if $T_2$ begins later in real time than $T_1$, the earliest possible timestamp that could be assigned to $T_2$ must be greater than $T_1$'s timestamp.
+Put another way, the waiting ensures that the timestamp intervals of $T_1$ and $T_2$ do not overlap, even if the transactions are executed on different nodes with no communication between the two transactions.
+
+Google assumes a node's quartz clock has a maximum drift rate of 200~ppm.
+Is this a safe assumption?
+According to the Spanner paper: ``Our machine statistics show that bad CPUs are 6 times more likely than bad clocks.
+That is, clock issues are extremely infrequent, relative to much more serious hardware problems.
+As a result, we believe that TrueTime's implementation is as trustworthy as any other piece of software upon which Spanner depends.'' \citep{Corbett:2012}.
+
+\subsection{Distributed filesystems}
+
+% NFS (including close-to-open consistency) versus Windows shared folders/network drives, Dropbox, Google Drive, OneDrive
 % CRDTs
 % peer-to-peer systems
 % MapReduce [covered in Part II cloud computing module], Spanner
 % Byzantine fault tolerance
 % Distributed mutual exclusion / locking
 
-Material for the last lecture is not yet ready.
-Please see the course web page \url{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/materials.html} for updates.
 
 \footnotesize
 \bibliographystyle{plainnat}
