@@ -3514,8 +3514,7 @@ Whether or not this is a problem depends on the application: in some systems, di
 When discarding concurrent updates is not acceptable, we need to use a type of timestamp that allows us to detect when updates happen concurrently, such as vector clocks.
 With such partially ordered timestamps, we can tell when a new value should overwrite an old value (when the old update happened before the new update), and when several updates are concurrent, we can keep all of the concurrently written values.
 These concurrently written values are called \emph{conflicts}, or sometimes \emph{siblings}.
-The application can later merge conflicts back into a single value.
-% We discuss algorithms for doing this further in section TODO
+The application can later merge conflicts back into a single value, as discussed in \autoref{sec:concurrency-control}.
 
 A downside of vector clocks is that they can become expensive: every client needs an entry in the vector, and in systems with large number of clients (or where clients assume a new identity every time they are restarted), these vectors can become large, potentially taking up more space than the data itself.
 Further types of logical clocks, such as \emph{dotted version vectors} \citep{Preguica:2010}, have been developed to optimise this type of system.
@@ -3901,7 +3900,7 @@ It is not sufficient to merely ensure that the state update is deterministic.
 
 For example, we can use causal broadcast, which ensures the same delivery order across replicas when one update happened before another, but which may deliver concurrent updates in any order.
 If we want to ensure that replicas end up in the same state, no matter in which order concurrent updates are delivered, we need to make those updates \emph{commutative}: that is, we have to ensure that the final result is the same, no matter in which order those updates are applied.
-This can be done, and we will see some techniques for commutativity later. % TODO in \autoref{sec:consistency}.
+This can be done, and we will see some techniques for commutativity in \autoref{sec:concurrency-control}.
 
 \begin{frame}
     \label{s:causal-replication}
@@ -5345,7 +5344,7 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
     \end{tikzpicture}
 }
 
-\subsection{Eventual consistency}
+\subsection{Eventual consistency}\label{sec:eventual-consistency}
 
 Linearizability is a very convenient consistency model for distributed systems, because it guarantees that a system behaves as if there was only one copy of the data, even if it is in fact replicated.
 This allows applications to ignore some of the complexities of working with distributed systems.
@@ -5400,7 +5399,7 @@ The video of this lecture includes a demonstration of offline updates to a calen
         \node at (current page.center) {\includegraphics[width=\paperwidth]{images/calendar.png}};
     \end{tikzpicture}
 \end{frame}
-\inlineslide{s:calendar}{}
+\inlineslide{s:calendar}{}\label{l:calendar}
 
 This trade-off is known as the \emph{CAP theorem} (named after \emph{consistency}, \emph{availability}, and \emph{partition tolerance}), which states that if there is a network partition in a system, we must choose between one of the following options \citep{Gilbert:2002}:
 \begin{enumerate}
@@ -5486,7 +5485,7 @@ The lecture video shows an example of a conflict in the eventually consistent ca
 After the two devices synchronise, the update of the time is applied to both devices, while the update of the title is discarded.
 The state of the two devices therefore converges~-- at the cost of a small amount of data loss.
 This is the \emph{last writer wins} approach to conflict resolution that we have seen on \autoref{l:concurrent-writes} (assuming the update to the time is the ``last'' update in this example).
-A more refined approach to conflict resolution might merge the update to the time and the title into a calendar event that reflects both updates.
+A more refined approach might merge the updates to the time and the title, as shown on \autoref{l:lecture-conflicts}.
 
 This brings us to the end of our discussion of consistency models.
 \autoref{l:model-requirements} summarises some of the key properties of the models we have seen, in descending order of the minimum strength of assumptions that they must make about the system model.
@@ -5498,6 +5497,8 @@ It can be shown that a linearizable CAS operation is equivalent to consensus \ci
 On the other hand, the ABD algorithm for linearizable $\mathsf{get}$/$\mathsf{set}$ is asynchronous, since it does not require any clocks or timeouts.
 Finally, eventual consistency and strong eventual consistency make the weakest assumptions: operations can be processed without waiting for any communication with other nodes, and without any timing assumptions.
 Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, etc.), a node broadcasting a message can immediately deliver it to itself without waiting for communication with other nodes, as discussed in \autoref{sec:delivery-order}; this corresponds to a replica immediately processing its own operations without waiting for communication with other replicas.
+
+This hierarchy has some similarities to the concept of complexity classes of algorithms~-- for example, sorting generally is $O(n \log n)$~-- in the sense that it captures the unavoidable minimum communication and synchrony requirements for a range of common problems in distributed systems.
 
 \begin{frame}
     \label{s:model-requirements}
@@ -5520,27 +5521,321 @@ Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, et
 \end{frame}
 \inlineslide{s:model-requirements}{}\label{l:model-requirements}
 
-% Distributed systems are fascinating because we have to work with partial knowledge and uncertain
-% truths. We never have certainty about the state of the system, because by the time we hear about
-% something, that state may already be outdated. In this way it resembles real life more than most of
-% computing! In real life you need to often make decisions with incomplete information.
 
-% Beamer documentation:
-% https://people.wou.edu/~beavers/LaTeX/beamer_guide.pdf
-% http://anorien.csc.warwick.ac.uk/mirrors/CTAN/macros/latex/contrib/beamer/doc/beameruserguide.pdf
-
-\section{Case studies}
+\section{Concurrency control in applications}\label{sec:concurrency-control}
 
 \begin{frame}
     \begin{center}
         Lecture 8\\[2em]
-        \Large{\color{darkblue}{Case studies}}
+        \Large{\color{darkblue}{Concurrency control in applications}}
     \end{center}
 \end{frame}
 
-\subsection{Conflict-free replicated datatypes (CRDTs)}
+In this last lecture we will look at a couple of examples of distributed systems that need to manage concurrent access to data.
+In particular, we will include some case studies of practical, real-world systems that need to deal with concurrency, and which build upon the concepts from the rest of this course.
 
-\subsection{Google's Spanner}
+\subsection{Collaboration and conflict resolution}
+
+Collaboration software is a broad category of software that facilitates several people working together on some task.
+This includes applications such as Google Docs/Office 365 (multi-user text documents, spreadsheets, presentations, etc.), Overleaf (collaborative {\LaTeX} documents), multi-user graphics software (e.g.\ Figma), project planning tools (e.g.\ Trello), note-taking apps (e.g.\ OneNote, Evernote, Notion), and shared calendars between colleagues or family members (like the calendar sync we saw on \autoref{l:calendar}).
+
+Modern collaboration software allows several people to update a document concurrently, without having to email files back and forth.
+This makes collaboration another example of replication: each device on which a user has opened a document is a replica, and any updates made to one replica need to be sent over the network to the replicas on other devices.
+
+In principle, it would be possible to use a linearizable replication scheme for collaboration software.
+However, such software would be slow to use, since every read or write operation would have to contact a quorum of replicas; moreover, it would not work offline.
+Instead, for the sake of better performance and better robustness to network interruptions, most collaboration software uses optimistic replication that provides strong eventual consistency (\autoref{l:eventual-2}).
+
+\begin{frame}
+    \label{s:collaboration}
+    \frametitle{Collaboration and conflict resolution}
+    Nowadays we use a lot of \textbf{collaboration software}:
+    \begin{itemize}
+        \item \textbf{Examples:} calendar sync (last lecture), Google Docs, \dots\pause
+        \item Several users/devices working on a shared file/document
+        \item Each user device has local replica of the data\pause
+        \item Update local replica anytime (even while offline),\\sync with others when network available\pause
+        \item \textbf{Challenge:} how to reconcile concurrent updates?\\[1em]\pause
+    \end{itemize}
+    Families of \textbf{algorithms}:
+    \begin{itemize}
+        \item Conflict-free Replicated Data Types (\textbf{CRDTs})
+            \begin{itemize}
+                \item Operation-based
+                \item State-based
+            \end{itemize}
+        \item Operational Transformation (\textbf{OT})
+    \end{itemize}
+\end{frame}
+\inlineslide{s:collaboration}{}\label{l:collaboration}
+
+In this section we will look at some algorithms that are used for this kind of collaboration.
+As example, consider the calendar sync demo in the lecture recording of \autoref{sec:eventual-consistency}.
+Two nodes initially start with the same calendar entry.
+On node $A$, the title is changed from ``Lecture'' to ``Lecture 1'', and concurrently on node $B$ the time is changed from 12:00 to 10:00.
+These two updates happen while the two nodes are temporarily unable to communicate, but eventually connectivity is restored and the two nodes sync their changes.
+In the outcome shown on \autoref{l:lecture-conflicts}, the final calendar entry reflects both the change to the title and the change to the time.
+
+\begin{frame}
+    \label{s:lecture-conflicts}
+    \frametitle{Conflicts due to concurrent updates}
+    \begin{tikzpicture}
+        \node [rectangle,fill=red!10,draw] (node1) at (0,6.4) {node $A$};
+        \node [rectangle,fill=red!10,draw] (node2) at (6,6.4) {node $B$};
+        \draw (node1) -- (0,-1.2);
+        \draw (node2) -- (6,-1.2);
+        \draw [red,very thick,dashed] (3,2.0) -- (3,6.6);
+        \node [rotate=270,red] at (2.7,4.3) {network partition};
+        \node [draw,fill=white] at (0,5) {\begin{minipage}{3.5cm}
+            \inputminted[fontsize=\scriptsize]{json}{code/conflict1.json}
+        \end{minipage}};
+        \node<2-> [font=\footnotesize] at (-0.1,3.75) {\texttt{title = "Lecture 1"}};
+        \node<2-> [draw,fill=white] at (0,2.5) {\begin{minipage}{3.5cm}
+            \inputminted[fontsize=\scriptsize]{json}{code/conflict2.json}
+        \end{minipage}};
+        \node<4-> [draw,fill=white] at (0,0) {\begin{minipage}{3.5cm}
+            \inputminted[fontsize=\scriptsize]{json}{code/conflict4.json}
+        \end{minipage}};
+        \node [draw,fill=white] at (6,5) {\begin{minipage}{3.5cm}
+            \inputminted[fontsize=\scriptsize]{json}{code/conflict1.json}
+        \end{minipage}};
+        \node<3-> [font=\footnotesize] at (7.4,3.75) {\texttt{time = "10:00"}};
+        \node<3-> [draw,fill=white] at (6,2.5) {\begin{minipage}{3.5cm}
+            \inputminted[fontsize=\scriptsize]{json}{code/conflict3.json}
+        \end{minipage}};
+        \node<4-> [draw,fill=white] at (6,0) {\begin{minipage}{3.5cm}
+            \inputminted[fontsize=\scriptsize]{json}{code/conflict4.json}
+        \end{minipage}};
+        \draw<4-> [doublebigarrow] (0,1.25) -- node [above] {sync} (6,1.25);
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:lecture-conflicts}{}\label{l:lecture-conflicts}
+
+This scenario is an example of \emph{conflict resolution}, which occurs whenever several concurrent writes to the same object need to be integrated into a single final state (see also \autoref{l:concurrent-writes}).
+\emph{Conflict-free replicated data types}, or \emph{CRDTs} for short, are a family of algorithms that perform such conflict resolution \citep{Shapiro:2011}.
+A CRDT is a replicated object that an application accesses though the object-oriented interface of an abstract datatype, such as a set, list, map, tree, counter, etc.
+
+\autoref{l:op-crdt-map} and \autoref{l:delete-crdt-map} show an example of a CRDT that provides a map from keys to values.
+The application can invoke three types of operation: reading the value for a given key, updating the value for a given key, and deleting a key from the map.
+
+The local state at each node consists of the set $\mathit{values}$ containing $(\mathit{timestamp}, \mathit{key}, \mathit{value})$ triples.
+Reading the value for a given key is a purely local operation that only inspects $\mathit{values}$ on the current node, and performs no network communication.
+The algorithm preserves the invariant that $\mathit{values}$ contains at most one element for any given key.
+Therefore, when reading the value for a key, the value is unique if it exists.
+
+\begin{frame}
+    \label{s:op-crdt-map}
+    \frametitle{Operation-based map CRDT}
+    \footnotesize
+    \begin{algorithmic}
+        \On{initialisation}
+            \State $\mathit{values} := \{\}$
+        \EndOn
+        \State
+        \On{request to read value for key $k$}
+            \State \textbf{if} $\exists t,v.\; (t,k,v) \in \mathit{values}$ \textbf{then return} $v$ \textbf{else return} $\mathsf{null}$
+        \EndOn
+        \State
+        \On{request to set key $k$ to value $v$}
+            \State $t := \mathrm{newTimestamp}()$ \Comment{globally unique, e.g. Lamport timestamp}
+            \State \textbf{broadcast} $(\mathsf{set}, t, k, v)$ by causal broadcast (including to self)
+        \EndOn
+        \State
+        \On{delivering $(\mathsf{set},t,k,v)$ by causal broadcast}
+            \State $\mathit{previous} := \{(t',k',v') \in \mathit{values} \mid k' = k\}$
+            \If{$\mathit{previous} = \{\} \;\vee\; \forall (t',k',v') \in \mathit{previous}.\; t' < t$}
+                \State $\mathit{values} := (\mathit{values} \setminus \mathit{previous}) \,\cup\, \{(t,k,v)\}$
+            \EndIf
+        \EndOn
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:op-crdt-map}{}\label{l:op-crdt-map}
+
+\begin{frame}
+    \label{s:delete-crdt-map}
+    \frametitle{Deletion in operation-based map CRDT}
+    \begingroup\footnotesize
+    \begin{algorithmic}
+        \On{request to delete key $k$}
+            \If{$\exists t,v.\; (t,k,v) \in \mathit{values}$}
+                \State \textbf{broadcast} $(\mathsf{delete}, t)$ by causal broadcast (including to self)
+            \EndIf
+        \EndOn
+        \State
+        \On{delivering $(\mathsf{delete},t)$ by causal broadcast}
+            \State $\mathit{values} := \{(t',k',v') \in \mathit{values} \mid t' \ne t\}$
+        \EndOn
+        \State
+    \end{algorithmic}
+    \endgroup\pause
+    \begin{itemize}
+        \item Reliability of causal broadcast ensures every operation is eventually delivered to every (non-crashed) replica\pause
+        \item Applying an operation is \textbf{commutative}: all causal delivery orders converge to the same state\pause
+        \item Therefore, get \textbf{strong eventual consistency}
+    \end{itemize}
+\end{frame}
+\inlineslide{s:delete-crdt-map}{}\label{l:delete-crdt-map}
+
+To update the value for a given key, we create a globally unique timestamp for the operation~-- a Lamport timestamp (\autoref{l:lamport-definition}) is a good choice~-- and then causally broadcast a message containing the timestamp, key, and value.
+When that message is delivered, we check if the local copy of $\mathit{values}$ already contains an entry with a higher timestamp for the same key; if so, we ignore the message, because the value with the higher timestamp takes precedence.
+Otherwise we remove the previous value (if any), and add the new $(\mathit{timestamp}, \mathit{key}, \mathit{value})$ triple to $\mathit{values}$.
+This means that we resolve concurrent updates to the same key using the last-writer-wins (LWW) approach that we saw on \autoref{l:concurrent-writes}.
+
+For deletions, we find the timestamp of the last update to the key (if any), and causally broadcast that timestamp in a $\mathsf{delete}$ message.
+On delivering that message, a node checks its local $\mathit{values}$ and removes any element with that timestamp.
+There is no need to include the key in the message because the timestamp already uniquely identifies the update, and therefore the key being deleted.
+
+This algorithm is an example of an approach that we hinted at on \autoref{l:causal-replication}, namely, a method for performing replication using causal broadcast.
+It is an \emph{operation-based} CRDT because each broadcast message contains a description of an operation (as opposed to \emph{state-based} CRDTs that we will see shortly).
+It allows operations to complete without network connectivity, because the sender of a causal broadcast can immediately deliver a message to itself, and send it to other nodes sometime later.
+Moreover, even though concurrently broadcast messages may be delivered in different orders on different replicas, the algorithm ensures strong eventual consistency because the functions that update a replica's state are commutative.
+
+\supervision{
+    Prove that the operation-based map CRDT algorithm provides strong eventual consistency.
+}{
+    The \emph{eventual delivery} property of strong eventual consistency holds because causal broadcast is reliable: any message delivered by one non-faulty node will also be delivered by all other non-faulty nodes.
+    Therefore, each update applied on one non-faulty replica is also applied by every other non-faulty replica.
+
+    To prove the \emph{convergence} property, we must show that any two replicas that have processed the same set of updates are in the same state.
+    Note that the replica state $\mathit{values}$ is determined entirely and deterministically by the sequence of messages delivered by causal broadcast.
+    Consider two replicas, $A$ and $B$, on which causal broadcast has delivered the same set of messages; that is, their sequences of deliveries contain the same messages, and $A$'s sequence of deliveries is a permutation of $B$'s sequence of deliveries.
+    Then we must show that processing the messages in $A$'s delivery order results in the same state as processing the messages in $B$'s delivery order.
+
+    Causal broadcast ensures that if there is a causal dependency between messages, then all nodes deliver those messages in the same order; only concurrent messages may be delivered in a different order at each node.
+    Thus, we can transform $A$'s sequence of deliveries into $B$'s sequence of deliveries by repeatedly performing pairwise swaps of two adjacent messages in the sequence.
+    Moreover, the two messages being swapped each time are always messages that were broadcast concurrently, so every delivery order produced by such swaps is a valid causal order.
+
+    Let $a$ and $b$ be any two such messages being swapped.
+    To show convergence, we must prove commutativity: that is, processing first $a$ and then $b$ (in any replica state) has the same effect on the state as processing first $b$ then $a$.
+    If this property holds, then each of the pairwise swaps that we make has no effect on the final state.
+    We prove commutativity case by case depending on the type of message:
+    \begin{enumerate}
+        \item Let $a = (\mathsf{set}, t_a, k_a, v_a)$ and $b = (\mathsf{set}, t_b, k_b, v_b)$.
+            We have $t_a \ne t_b$ due to the assumption of globally unique timestamps and because causal broadcast does not duplicate messages.
+            Assume $t_a < t_b$ without loss of generality.
+            Let $\mathit{values}$ be the state of both replicas immediately before $a$ or $b$ are processed.
+
+            Consider first the case where $k_a \ne k_b$.
+            The pseudocode for delivering a $\mathsf{set}$ message only reads or modifies tuples in $\mathit{values}$ that contain the key in the message.
+            Thus, two messages containing different keys can be processed in either order without affecting the outcome.
+
+            In the case where $k_a=k_b$ we consider the following cases:
+            \begin{enumerate}
+                \item $\nexists t,v.\; (t,k_a,v) \in \mathit{values}.$
+
+                    Consider a replica that first processes $a$, then $b$.
+                    After processing $a$, the replica state is $\mathit{values} \cup \{(t_a,k_a,v_a)\}$.
+                    After processing $b$, the replica state is $\mathit{values} \cup \{(t_b,k_b,v_b)\}$.
+
+                    Next, consider a replica that first processes $b$, then $a$.
+                    After processing $b$, the replica state is $\mathit{values} \cup \{(t_b,k_b,v_b)\}$.
+                    After processing $a$, the replica state remains $\mathit{values} \cup \{(t_b,k_b,v_b)\}$ since $t_a < t_b$.
+                    Thus, both delivery orders lead to the same state.
+
+                \item There exist $t,v$ such that $(t,k_a,v) \in \mathit{values}$.
+                    By uniqueness of timestamps, $t \ne t_a$ and $t \ne t_b$.
+                    We then consider further cases:
+
+                    \begin{enumerate}
+                        \item $t < t_a < t_b$.
+
+                            A replica that first processes $a$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_a,k_a,v_a)\}$, and then in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$ after processing $b$.
+
+                            A replica that first processes $b$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$, and then remain in that state after processing $a$.
+                        \item $t_a < t < t_b$.
+
+                            A replica that first processes $a$ will remain in state $\mathit{values}$ after processing $a$.
+                            After processing $b$ it moves to state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$.
+
+                            A replica that first processes $b$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$, and then remain in that state after processing $a$.
+                        \item $t_a < t_b < t$.
+                            Then processing $a$ and $b$ leaves the replica state unchanged, regardless of the order in which they are processed.
+                    \end{enumerate}
+            \end{enumerate}
+
+        \item Let $a = (\mathsf{set}, t_a, k_a, v_a)$ and $b = (\mathsf{delete}, t_b)$.
+            Note that when a $\mathsf{delete}$ message is broadcast, it always contains the timestamp of an existing tuple in $\mathit{values}$, which must have been placed there by processing an earlier $\mathsf{set}$ operation with that timestamp $t_b$.
+            Let $c = (\mathsf{set}, t_b, \dots)$ be that earlier message.
+
+            $c$ must have already been delivered before $b$ was broadcast, but we are assuming that $a$ and $b$ are concurrent, so therefore $c \ne a$.
+            Moreover, since each $\mathsf{set}$ message contains a unique timestamp, we have $t_a \ne t_b$.
+
+            Let $\mathit{values}$ be the state of both replicas immediately before $a$ or $b$ are processed.
+            We now consider the following cases:
+            \begin{enumerate}
+                \item $\nexists t,v.\; (t,k_a,v) \in \mathit{values}.$
+
+                    A replica that first processes $a$ will first be in state $\mathit{values} \cup \{(t_a,k_a,v_a)\}$.
+                    After processing $b$, the tuple containing timestamp $t_b$ (if any) is removed from the set.
+
+                    A replica that first processes $b$ first removes the tuple containing timestamp $t_b$ from the set, then adds $(t_a,k_a,v_a)$ to the set.
+                    Since $t_a \ne t_b$, the tuple removed by processing $b$ is not the tuple added by processing $a$, so both orders of processing have the same outcome.
+
+                \item There exist $t,v$ such that $(t,k_a,v) \in \mathit{values}$.
+                    By uniqueness of timestamps, $t \ne t_a$, but it is possible that $t = t_b$.
+                    Once again we consider cases:
+                    \begin{enumerate}
+                        \item $t < t_a$.
+
+                            A replica that first processes $a$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_a,k_a,v_a)\}$.
+                            After processing $b$, the tuple containing timestamp $t_b$ (if any) is removed from the set.
+
+                            A replica that first processes $b$ first removes the tuple containing $t_b$ from the set, then adds $\{(t_a,k_a,v_a)\}$ to the set.
+                            Since $t \ne t_a$, the tuple removed by processing $b$ is not the tuple added by processing $a$, so both orders of processing have the same outcome.
+                        \item $t_a < t$.
+
+                            A replica that first processes $a$ will leave the state unchanged.
+                            After processing $b$, the tuple containing timestamp $t_b$ (if any) is removed from the set.
+
+                            A replica that first processes $b$ first removes the tuple containing $t_b$ from the set.
+                            If $t \ne t_b$ then processing $a$ has no effect as before.
+                            However, if $t = t_b$, then processing $a$ next adds $\{(t_a,k_a,v_a)\}$ to the set.
+                            \textbf{BUG: this case does not commute!}
+                    \end{enumerate}
+            \end{enumerate}
+
+        \item Let $a = (\mathsf{delete}, t_a)$ and $b = (\mathsf{set}, t_b, k_b, v_b)$.
+            This case is the same as the previous case.
+        \item Let $a = (\mathsf{delete}, t_a)$ and $b = (\mathsf{delete}, t_b)$.
+            TODO.
+    \end{enumerate}
+}
+
+\begin{frame}
+    \label{s:state-crdt-map}
+    \frametitle{State-based map CRDT}
+    \footnotesize
+    The operator $\sqcup$ merges two states $s_1$ and $s_2$ as follows:
+    \[ s_1 \sqcup s_2 = \{(t,k,v) \in (s_1 \cup s_2) \mid \nexists (t',k',v') \in (s_1 \cup s_2).\; t' > t\} \]
+    \begin{algorithmic}
+        \On{initialisation}
+            \State $\mathit{values} := \{\}$
+        \EndOn
+        \State
+        \On{request to read value for key $k$}
+            \State \textbf{if} $\exists t,v.\; (t,k,v) \in \mathit{values}$ \textbf{then return} $v$ \textbf{else return} $\mathsf{null}$
+        \EndOn
+        \State
+        \On{request to set key $k$ to value $v$}
+            \State $t := \mathrm{newTimestamp}()$ \Comment{globally unique, e.g. Lamport timestamp}
+            \State $\mathit{values} := \{(t',k',v') \in \mathit{values} \mid k' \neq k\} \,\cup\, \{(t,k,v)\}$
+            \State \textbf{broadcast} $\mathit{values}$ by best-effort broadcast
+        \EndOn
+        \State
+        \On{delivering $V$ by best-effort broadcast}
+            \State $\mathit{values} := \mathit{values} \sqcup V$
+        \EndOn
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:state-crdt-map}{}\label{l:state-crdt-map}
+
+% Excercise: prove that in op-based LWW map CRDT, ops are commutative. Support both deletion and assignment
+% Excercise: make a variant of the algorithm that has multi-value semantics rather than LWW
+% TODO: demo video of two Google Docs windows side-by-side
+% Operational Transformation
+% Text CRDT using rational numbers
+
+\subsection{Google's Spanner}\label{sec:spanner}
 
 \begin{frame}
     \label{s:spanner-intro}
@@ -5632,17 +5927,17 @@ Unfortunately, logical timestamps also have problems.
     \frametitle{TrueTime: explicit physical clock uncertainty}
     \uncover<2->{Spanner's TrueTime clock returns $(\mathit{earliest}, \mathit{latest})$.}\\%
     \uncover<2->{True physical timestamp must lie within that range.}\\%
-    \uncover<3->{On commit, wait for uncertainty $\delta_i = t_{i,\mathsf{latest}} - t_{i,\mathsf{earliest}}$.}\\[1em]
+    \uncover<3->{On commit, wait for uncertainty $\delta_i = t_{i,\mathsf{latest}} - t_{i,\mathsf{earliest}}$.}\\[0.5em]
     \begin{tikzpicture}
         \node [rectangle,fill=red!10,draw] (node1) at (1,4.5) {\storageSymbol}; \node [yshift=-0.2cm] at (node1) {$A$};
         \node [text width=1.5cm,align=center] (node2) at (4,4.5) {physical time};
         \node [rectangle,fill=red!10,draw] (node3) at (7,4.5) {\storageSymbol}; \node [yshift=-0.2cm] at (node3) {$B$};
-        \draw (node1) -- (1,-0.8);
-        \draw (node3) -- (7,-0.8);
+        \draw (node1) -- (1,-1.2);
+        \draw (node3) -- (7,-1.2);
         \useasboundingbox (-1,0);
         \tikzstyle{wait}=[rectangle,fill=blue!10,draw,anchor=west,rotate=270,font=\footnotesize,minimum height=0.7cm,minimum width=1cm]
-        \node<1-> [rectangle,fill=white,draw,text depth=0.3cm,minimum width=0.7cm] (T1) at (1,3) {$T_1$};
-        \node<4-> [rectangle,fill=white,draw,text depth=0.3cm,minimum width=0.7cm] (T2) at (7,1) {$T_2$};
+        \node<1-> [rectangle,fill=white,draw,text depth=0.3cm,minimum width=0.7cm] (T1) at (1,3.0) {$T_1$};
+        \node<4-> [rectangle,fill=white,draw,text depth=0.3cm,minimum width=0.7cm] (T2) at (7,0.5) {$T_2$};
         \node<3-> [wait] (wait1) at (T1.south) {wait};
         \node<5-> [wait] (wait2) at (T2.south) {wait};
         \draw<2-> [line width=3pt] (T1.south west) -- node [at start,left,font=\scriptsize] {commit req} (T1.south east);
@@ -5650,13 +5945,13 @@ Unfortunately, logical timestamps also have problems.
         \draw<3-> [line width=3pt] (wait1.south east) -- node [at start,left,font=\scriptsize] {commit done} (wait1.north east);
         \draw<5-> [line width=3pt] (wait2.south east) -- node [at end,right,font=\scriptsize] {commit done} (wait2.north east);
         \fill<2-> [blue!10] (T1.south east) -- (4,3.0) -- (4,2.0) -- cycle;
-        \fill<4-> [blue!10] (T2.south west) -- (4,1.0) -- (4,0.0) -- cycle;
+        \fill<4-> [blue!10] (T2.south west) -- (4,0.5) -- (4,-0.5) -- cycle;
         \draw<2-> [blue] (3.8,3.0) -- node [at start,above left,inner sep=0pt] {$t_{1,\mathsf{earliest}}$} (4.4,3.0);
         \draw<2-> [blue] (3.8,2.0) -- node [at start,below left,inner sep=0pt] {$t_{1,\mathsf{latest}}$} (4.4,2.0);
-        \draw<4-> [blue] (3.6,1.0) -- node [at end,above right,inner sep=0pt] {$t_{2,\mathsf{earliest}}$} (4.2,1.0);
-        \draw<4-> [blue] (3.6,0.0) -- node [at end,below right,inner sep=0pt] {$t_{2,\mathsf{latest}}$} (4.2,0.0);
+        \draw<4-> [blue] (3.6,0.5) -- node [at end,above right,inner sep=0pt] {$t_{2,\mathsf{earliest}}$} (4.2,0.5);
+        \draw<4-> [blue] (3.6,-0.5) -- node [at end,below right,inner sep=0pt] {$t_{2,\mathsf{latest}}$} (4.2,-0.5);
         \draw<3-> [blue,<->] (4.2,3.0) -- node [right] {$\delta_1$} (4.2,2.0);
-        \draw<5-> [blue,<->] (3.8,1.0) -- node [left] {$\delta_2$} (3.8,0.0);
+        \draw<5-> [blue,<->] (3.8,0.5) -- node [left] {$\delta_2$} (3.8,-0.5);
         \node<3-> [right=0.2cm of wait1.north west,inner sep=0] (wait1a) {};
         \node<3-> [right=0.2cm of wait1.north east,inner sep=0] (wait1b) {};
         \draw<3-> [blue,<->] (wait1a) -- node [right] {$\delta_1$} (wait1b);
@@ -5664,6 +5959,7 @@ Unfortunately, logical timestamps also have problems.
         \node<5-> [left=0.2cm of wait2.south east,inner sep=0] (wait2b) {};
         \draw<5-> [blue,<->] (wait2a) -- node [left] {$\delta_2$} (wait2b);
         \draw<1-> (node2) -- (4,-0.8);
+        \draw<6-> (wait1.north east) edge [-{Stealth},red,thick,densely dashed] node [above,red,font=\scriptsize] {real time} (T2.north west);
     \end{tikzpicture}
 \end{frame}
 \inlineslide{s:truetime}{}\label{l:truetime}
@@ -5682,7 +5978,32 @@ According to the Spanner paper: ``Our machine statistics show that bad CPUs are 
 That is, clock issues are extremely infrequent, relative to much more serious hardware problems.
 As a result, we believe that TrueTime's implementation is as trustworthy as any other piece of software upon which Spanner depends.'' \citep{Corbett:2012}.
 
+\begin{frame}
+    \label{s:truetime-sync}
+    \frametitle{Determining clock uncertainty in TrueTime}
+    Clock servers with \textbf{atomic clock} or \textbf{GPS receiver} in each datacenter;
+    servers report their clock uncertainty.\\%
+    \uncover<2->{Each node syncs its quartz clock with a server every 30 sec.}\\%
+    \uncover<3->{Between syncs, assume worst-case drift of 200ppm.}\\[1em]%
+    \begin{tikzpicture}
+        \draw [-{Classical TikZ Rightarrow[length=2mm]}] (0,0) -- node [at end,right,inner xsep=10pt] {local clock uncertainty [ms]} (0,4);
+        \draw [-{Classical TikZ Rightarrow[length=2mm]}] (0,0) -- node [at end,above left,inner xsep=0pt,inner ysep=10pt] {time [s]} (10,0);
+        \foreach \y / \label in {0/0, 1/2, 2/4, 3/6} \draw (-0.1,\y) -- node [at start,left] {$\label$} (0.1,\y);
+        \foreach \x / \label in {0/0, 1/10, 2/20, 3/30, 4/40, 5/50, 6/60, 7/70, 8/80, 9/90} \draw (\x,-0.1) -- node [at start,below] {$\label$} (\x,0.1);
+        \draw<3-> [blue,thick] (0.0,2.0) -- (1.5,3.5) -- (1.5,0.5) -- (4.5,3.5) -- (4.5,0.5) -- (7.5,3.5) -- (7.5,0.5) -- (9.0,2.0);
+        \draw<2-> [->,red,thick] (1.5,-1) -- node [at start,below right,inner xsep=0] {sync with clock server} (1.5,-0.1);
+        \draw<2-> [->,red,thick] (4.5,-1) -- (4.5,-0.1);
+        \draw<2-> [->,red,thick] (7.5,-1) -- (7.5,-0.1);
+        \draw<4-> [darkgreen,dashed] (0.0,0.5) -- (8.5,0.5);
+        \draw<4-> [<->,darkgreen,thick] (0.5,0) -- node [right,font=\footnotesize] {server uncertainty + round trip time to clock server} (0.5,0.5);
+        \useasboundingbox (0,-1.7);
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:truetime-sync}{}\label{l:truetime-sync}
+
 \subsection{Distributed filesystems}
+
+NFS \citep{Kirch:2006}
 
 % NFS (including close-to-open consistency) versus Windows shared folders/network drives, Dropbox, Google Drive, OneDrive
 % CRDTs
@@ -5690,6 +6011,15 @@ As a result, we believe that TrueTime's implementation is as trustworthy as any 
 % MapReduce [covered in Part II cloud computing module], Spanner
 % Byzantine fault tolerance
 % Distributed mutual exclusion / locking
+
+% Distributed systems are fascinating because we have to work with partial knowledge and uncertain
+% truths. We never have certainty about the state of the system, because by the time we hear about
+% something, that state may already be outdated. In this way it resembles real life more than most of
+% computing! In real life you need to often make decisions with incomplete information.
+
+% Beamer documentation:
+% https://people.wou.edu/~beavers/LaTeX/beamer_guide.pdf
+% http://anorien.csc.warwick.ac.uk/mirrors/CTAN/macros/latex/contrib/beamer/doc/beameruserguide.pdf
 
 
 \footnotesize

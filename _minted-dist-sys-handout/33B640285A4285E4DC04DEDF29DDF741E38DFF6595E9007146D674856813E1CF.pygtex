@@ -1,0 +1,7 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{p}{\PYGZob{}}
+  \PYG{n+nt}{\PYGZdq{}title\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}Lecture\PYGZdq{}}\PYG{p}{,}
+  \PYG{n+nt}{\PYGZdq{}date\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}2020\PYGZhy{}11\PYGZhy{}05\PYGZdq{}}\PYG{p}{,}
+  \PYG{n+nt}{\PYGZdq{}time\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}10:00\PYGZdq{}}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}
