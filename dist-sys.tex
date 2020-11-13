@@ -506,7 +506,7 @@ Thus, to the caller of the stub, it looks as if the function had executed locall
         \item If a timeout occurs, the RPC client doesn't know whether the server executed the function; local function calls don't have this uncertainty.
         \item RPC is often much slower than a local function call, due to network latency.
             Moreover, network latency is often variable and unpredictable, while the execution speed of a local function is usually predictable.
-        \item RPC clients and servers may need to take measures to make function invocation \emph{idempotent} (this concept is introduced in a later lecture), to allow safe retries in case of message loss.
+        \item RPC clients and servers may need to take measures to make function invocation \emph{idempotent} (this concept is introduced in Lecture 5), to allow safe retries in case of message loss.
         \item Another difference is that if an object reference is passed as an argument, a local function call can potentially mutate the object (unless it is immutable).
             This is not possible with RPC, since the remote function cannot access the caller's memory; the only way how the remote function can pass information back to the caller is through the return value, or through another RPC.
         \item Perfect location transparency can only be achieved by making local function calls more like RPCs (e.g.\ allowing them to unpredictably fail).
@@ -5543,7 +5543,7 @@ Modern collaboration software allows several people to update a document concurr
 This makes collaboration another example of replication: each device on which a user has opened a document is a replica, and any updates made to one replica need to be sent over the network to the replicas on other devices.
 
 In principle, it would be possible to use a linearizable replication scheme for collaboration software.
-However, such software would be slow to use, since every read or write operation would have to contact a quorum of replicas; moreover, it would not work offline.
+However, such software would be slow to use, since every read or write operation would have to contact a quorum of replicas; moreover, it would not work on a device that is offline.
 Instead, for the sake of better performance and better robustness to network interruptions, most collaboration software uses optimistic replication that provides strong eventual consistency (\autoref{l:eventual-2}).
 
 \begin{frame}
@@ -5613,10 +5613,10 @@ In the outcome shown on \autoref{l:lecture-conflicts}, the final calendar entry 
 
 This scenario is an example of \emph{conflict resolution}, which occurs whenever several concurrent writes to the same object need to be integrated into a single final state (see also \autoref{l:concurrent-writes}).
 \emph{Conflict-free replicated data types}, or \emph{CRDTs} for short, are a family of algorithms that perform such conflict resolution \citep{Shapiro:2011}.
-A CRDT is a replicated object that an application accesses though the object-oriented interface of an abstract datatype, such as a set, list, map, tree, counter, etc.
+A CRDT is a replicated object that an application accesses though the object-oriented interface of an abstract datatype, such as a set, list, map, tree, graph, counter, etc.
 
-\autoref{l:op-crdt-map} and \autoref{l:delete-crdt-map} show an example of a CRDT that provides a map from keys to values.
-The application can invoke three types of operation: reading the value for a given key, updating the value for a given key, and deleting a key from the map.
+\autoref{l:op-crdt-map} shows an example of a CRDT that provides a map from keys to values.
+The application can invoke two types of operation: reading the value for a given key, and setting the value for a given key (which adds the key if it is not already present).
 
 The local state at each node consists of the set $\mathit{values}$ containing $(\mathit{timestamp}, \mathit{key}, \mathit{value})$ triples.
 Reading the value for a given key is a purely local operation that only inspects $\mathit{values}$ on the current node, and performs no network communication.
@@ -5638,10 +5638,10 @@ Therefore, when reading the value for a key, the value is unique if it exists.
         \State
         \On{request to set key $k$ to value $v$}
             \State $t := \mathrm{newTimestamp}()$ \Comment{globally unique, e.g. Lamport timestamp}
-            \State \textbf{broadcast} $(\mathsf{set}, t, k, v)$ by causal broadcast (including to self)
+            \State \textbf{broadcast} $(\mathsf{set}, t, k, v)$ by reliable broadcast (including to self)
         \EndOn
         \State
-        \On{delivering $(\mathsf{set},t,k,v)$ by causal broadcast}
+        \On{delivering $(\mathsf{set},t,k,v)$ by reliable broadcast}
             \State $\mathit{previous} := \{(t',k',v') \in \mathit{values} \mid k' = k\}$
             \If{$\mathit{previous} = \{\} \;\vee\; \forall (t',k',v') \in \mathit{previous}.\; t' < t$}
                 \State $\mathit{values} := (\mathit{values} \setminus \mathit{previous}) \,\cup\, \{(t,k,v)\}$
@@ -5651,162 +5651,137 @@ Therefore, when reading the value for a key, the value is unique if it exists.
 \end{frame}
 \inlineslide{s:op-crdt-map}{}\label{l:op-crdt-map}
 
-\begin{frame}
-    \label{s:delete-crdt-map}
-    \frametitle{Deletion in operation-based map CRDT}
-    \begingroup\footnotesize
-    \begin{algorithmic}
-        \On{request to delete key $k$}
-            \If{$\exists t,v.\; (t,k,v) \in \mathit{values}$}
-                \State \textbf{broadcast} $(\mathsf{delete}, t)$ by causal broadcast (including to self)
-            \EndIf
-        \EndOn
-        \State
-        \On{delivering $(\mathsf{delete},t)$ by causal broadcast}
-            \State $\mathit{values} := \{(t',k',v') \in \mathit{values} \mid t' \ne t\}$
-        \EndOn
-        \State
-    \end{algorithmic}
-    \endgroup\pause
-    \begin{itemize}
-        \item Reliability of causal broadcast ensures every operation is eventually delivered to every (non-crashed) replica\pause
-        \item Applying an operation is \textbf{commutative}: all causal delivery orders converge to the same state\pause
-        \item Therefore, get \textbf{strong eventual consistency}
-    \end{itemize}
-\end{frame}
-\inlineslide{s:delete-crdt-map}{}\label{l:delete-crdt-map}
-
-To update the value for a given key, we create a globally unique timestamp for the operation~-- a Lamport timestamp (\autoref{l:lamport-definition}) is a good choice~-- and then causally broadcast a message containing the timestamp, key, and value.
+To update the value for a given key, we create a globally unique timestamp for the operation~-- a Lamport timestamp (\autoref{l:lamport-definition}) is a good choice~-- and then broadcast a message containing the timestamp, key, and value.
 When that message is delivered, we check if the local copy of $\mathit{values}$ already contains an entry with a higher timestamp for the same key; if so, we ignore the message, because the value with the higher timestamp takes precedence.
 Otherwise we remove the previous value (if any), and add the new $(\mathit{timestamp}, \mathit{key}, \mathit{value})$ triple to $\mathit{values}$.
 This means that we resolve concurrent updates to the same key using the last-writer-wins (LWW) approach that we saw on \autoref{l:concurrent-writes}.
 
-For deletions, we find the timestamp of the last update to the key (if any), and causally broadcast that timestamp in a $\mathsf{delete}$ message.
-On delivering that message, a node checks its local $\mathit{values}$ and removes any element with that timestamp.
-There is no need to include the key in the message because the timestamp already uniquely identifies the update, and therefore the key being deleted.
+\begin{frame}
+    \label{s:op-crdt}
+    \frametitle{Operation-based CRDTs}
+    Reliable broadcast may deliver updates in any order:
+    \begin{itemize}
+        \item broadcast $(\mathsf{set}, t_1, \text{``title''}, \text{``Lecture 1''})$
+        \item broadcast $(\mathsf{set}, t_1, \text{``time''}, \text{``10:00''})$\\[1em]\pause
+    \end{itemize}
+    Recall \textbf{strong eventual consistency}:
+    \begin{itemize}
+        \item \textbf{Eventual delivery:} every update made to one non-faulty replica is eventually processed by every non-faulty replica.
+        \item \textbf{Convergence:} any two replicas that have processed the same set of updates are in the same state\\[1em]\pause
+    \end{itemize}
+    CRDT algorithm implements this:
+    \begin{itemize}
+        \item Reliable broadcast ensures every operation is eventually delivered to every (non-crashed) replica\pause
+        \item Applying an operation is \textbf{commutative}: order of delivery doesn't matter
+    \end{itemize}
+\end{frame}
+\inlineslide{s:op-crdt}{}\label{l:op-crdt}
 
-This algorithm is an example of an approach that we hinted at on \autoref{l:causal-replication}, namely, a method for performing replication using causal broadcast.
-It is an \emph{operation-based} CRDT because each broadcast message contains a description of an operation (as opposed to \emph{state-based} CRDTs that we will see shortly).
-It allows operations to complete without network connectivity, because the sender of a causal broadcast can immediately deliver a message to itself, and send it to other nodes sometime later.
-Moreover, even though concurrently broadcast messages may be delivered in different orders on different replicas, the algorithm ensures strong eventual consistency because the functions that update a replica's state are commutative.
+This algorithm is an example of an approach that we hinted at on \autoref{l:causal-replication}, namely, a method for performing replication using reliable broadcast, without requiring totally ordered delivery.
+It is an \emph{operation-based} CRDT because each broadcast message contains a description of an update operation (as opposed to \emph{state-based} CRDTs that we will see shortly).
+It allows operations to complete without network connectivity, because the sender of a reliable broadcast can immediately deliver a message to itself, and send it to other nodes sometime later.
+Moreover, even though messages may be delivered in different orders on different replicas, the algorithm ensures strong eventual consistency because the function that updates a replica's state is commutative.
 
 \supervision{
     Prove that the operation-based map CRDT algorithm provides strong eventual consistency.
 }{
-    The \emph{eventual delivery} property of strong eventual consistency holds because causal broadcast is reliable: any message delivered by one non-faulty node will also be delivered by all other non-faulty nodes.
+    The \emph{eventual delivery} property of strong eventual consistency holds because when a message is delivered by one non-faulty node, reliable broadcast ensures that it will also be delivered by all other non-faulty nodes.
     Therefore, each update applied on one non-faulty replica is also applied by every other non-faulty replica.
 
     To prove the \emph{convergence} property, we must show that any two replicas that have processed the same set of updates are in the same state.
-    Note that the replica state $\mathit{values}$ is determined entirely and deterministically by the sequence of messages delivered by causal broadcast.
-    Consider two replicas, $A$ and $B$, on which causal broadcast has delivered the same set of messages; that is, their sequences of deliveries contain the same messages, and $A$'s sequence of deliveries is a permutation of $B$'s sequence of deliveries.
+    Note that the replica state $\mathit{values}$ is determined entirely and deterministically by the sequence of messages delivered by reliable broadcast.
+    Consider two replicas, $A$ and $B$, on which the broadcast protocol has delivered the same set of messages; that is, their sequences of deliveries contain the same messages, and $A$'s sequence of deliveries is a permutation of $B$'s sequence of deliveries.
     Then we must show that processing the messages in $A$'s delivery order results in the same state as processing the messages in $B$'s delivery order.
 
-    Causal broadcast ensures that if there is a causal dependency between messages, then all nodes deliver those messages in the same order; only concurrent messages may be delivered in a different order at each node.
-    Thus, we can transform $A$'s sequence of deliveries into $B$'s sequence of deliveries by repeatedly performing pairwise swaps of two adjacent messages in the sequence.
-    Moreover, the two messages being swapped each time are always messages that were broadcast concurrently, so every delivery order produced by such swaps is a valid causal order.
-
+    We can transform $A$'s sequence of deliveries into $B$'s sequence of deliveries by repeatedly performing pairwise swaps of two adjacent messages in the sequence, since one is a permutation of the other.
     Let $a$ and $b$ be any two such messages being swapped.
     To show convergence, we must prove commutativity: that is, processing first $a$ and then $b$ (in any replica state) has the same effect on the state as processing first $b$ then $a$.
     If this property holds, then each of the pairwise swaps that we make has no effect on the final state.
-    We prove commutativity case by case depending on the type of message:
+
+    To prove commutativity, let $a = (\mathsf{set}, t_a, k_a, v_a)$ and $b = (\mathsf{set}, t_b, k_b, v_b)$.
+    We have $t_a \ne t_b$ due to the assumption of globally unique timestamps and because reliable broadcast does not duplicate messages.
+    Assume $t_a < t_b$ without loss of generality.
+    Let $\mathit{values}$ be the state of both replicas immediately before $a$ or $b$ are processed.
+
+    Consider first the case where $k_a \ne k_b$.
+    The pseudocode for delivering a $\mathsf{set}$ message only reads or modifies tuples in $\mathit{values}$ that contain the key in the message.
+    Thus, two messages containing different keys can be processed in either order without affecting the outcome.
+
+    In the case where $k_a=k_b$ we consider the following cases:
     \begin{enumerate}
-        \item Let $a = (\mathsf{set}, t_a, k_a, v_a)$ and $b = (\mathsf{set}, t_b, k_b, v_b)$.
-            We have $t_a \ne t_b$ due to the assumption of globally unique timestamps and because causal broadcast does not duplicate messages.
-            Assume $t_a < t_b$ without loss of generality.
-            Let $\mathit{values}$ be the state of both replicas immediately before $a$ or $b$ are processed.
+        \item $\nexists t,v.\; (t,k_a,v) \in \mathit{values}.$
 
-            Consider first the case where $k_a \ne k_b$.
-            The pseudocode for delivering a $\mathsf{set}$ message only reads or modifies tuples in $\mathit{values}$ that contain the key in the message.
-            Thus, two messages containing different keys can be processed in either order without affecting the outcome.
+            Consider a replica that first processes $a$, then $b$.
+            After processing $a$, the replica state is $\mathit{values} \cup \{(t_a,k_a,v_a)\}$.
+            After processing $b$, the replica state is $\mathit{values} \cup \{(t_b,k_b,v_b)\}$.
 
-            In the case where $k_a=k_b$ we consider the following cases:
+            Next, consider a replica that first processes $b$, then $a$.
+            After processing $b$, the replica state is $\mathit{values} \cup \{(t_b,k_b,v_b)\}$.
+            After processing $a$, the replica state remains $\mathit{values} \cup \{(t_b,k_b,v_b)\}$ since $t_a < t_b$.
+            Thus, both delivery orders lead to the same state.
+
+        \item There exist $t,v$ such that $(t,k_a,v) \in \mathit{values}$.
+            By uniqueness of timestamps, $t \ne t_a$ and $t \ne t_b$.
+            We then consider further cases:
+
             \begin{enumerate}
-                \item $\nexists t,v.\; (t,k_a,v) \in \mathit{values}.$
+                \item $t < t_a < t_b$.
 
-                    Consider a replica that first processes $a$, then $b$.
-                    After processing $a$, the replica state is $\mathit{values} \cup \{(t_a,k_a,v_a)\}$.
-                    After processing $b$, the replica state is $\mathit{values} \cup \{(t_b,k_b,v_b)\}$.
+                    A replica that first processes $a$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_a,k_a,v_a)\}$, and then in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$ after processing $b$.
 
-                    Next, consider a replica that first processes $b$, then $a$.
-                    After processing $b$, the replica state is $\mathit{values} \cup \{(t_b,k_b,v_b)\}$.
-                    After processing $a$, the replica state remains $\mathit{values} \cup \{(t_b,k_b,v_b)\}$ since $t_a < t_b$.
-                    Thus, both delivery orders lead to the same state.
+                    A replica that first processes $b$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$, and then remain in that state after processing $a$.
+                \item $t_a < t < t_b$.
 
-                \item There exist $t,v$ such that $(t,k_a,v) \in \mathit{values}$.
-                    By uniqueness of timestamps, $t \ne t_a$ and $t \ne t_b$.
-                    We then consider further cases:
+                    A replica that first processes $a$ will remain in state $\mathit{values}$ after processing $a$.
+                    After processing $b$ it moves to state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$.
 
-                    \begin{enumerate}
-                        \item $t < t_a < t_b$.
-
-                            A replica that first processes $a$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_a,k_a,v_a)\}$, and then in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$ after processing $b$.
-
-                            A replica that first processes $b$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$, and then remain in that state after processing $a$.
-                        \item $t_a < t < t_b$.
-
-                            A replica that first processes $a$ will remain in state $\mathit{values}$ after processing $a$.
-                            After processing $b$ it moves to state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$.
-
-                            A replica that first processes $b$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$, and then remain in that state after processing $a$.
-                        \item $t_a < t_b < t$.
-                            Then processing $a$ and $b$ leaves the replica state unchanged, regardless of the order in which they are processed.
-                    \end{enumerate}
+                    A replica that first processes $b$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_b,k_b,v_b)\}$, and then remain in that state after processing $a$.
+                \item $t_a < t_b < t$.
+                    Then processing $a$ and $b$ leaves the replica state unchanged, regardless of the order in which they are processed.
             \end{enumerate}
-
-        \item Let $a = (\mathsf{set}, t_a, k_a, v_a)$ and $b = (\mathsf{delete}, t_b)$.
-            Note that when a $\mathsf{delete}$ message is broadcast, it always contains the timestamp of an existing tuple in $\mathit{values}$, which must have been placed there by processing an earlier $\mathsf{set}$ operation with that timestamp $t_b$.
-            Let $c = (\mathsf{set}, t_b, \dots)$ be that earlier message.
-
-            $c$ must have already been delivered before $b$ was broadcast, but we are assuming that $a$ and $b$ are concurrent, so therefore $c \ne a$.
-            Moreover, since each $\mathsf{set}$ message contains a unique timestamp, we have $t_a \ne t_b$.
-
-            Let $\mathit{values}$ be the state of both replicas immediately before $a$ or $b$ are processed.
-            We now consider the following cases:
-            \begin{enumerate}
-                \item $\nexists t,v.\; (t,k_a,v) \in \mathit{values}.$
-
-                    A replica that first processes $a$ will first be in state $\mathit{values} \cup \{(t_a,k_a,v_a)\}$.
-                    After processing $b$, the tuple containing timestamp $t_b$ (if any) is removed from the set.
-
-                    A replica that first processes $b$ first removes the tuple containing timestamp $t_b$ from the set, then adds $(t_a,k_a,v_a)$ to the set.
-                    Since $t_a \ne t_b$, the tuple removed by processing $b$ is not the tuple added by processing $a$, so both orders of processing have the same outcome.
-
-                \item There exist $t,v$ such that $(t,k_a,v) \in \mathit{values}$.
-                    By uniqueness of timestamps, $t \ne t_a$, but it is possible that $t = t_b$.
-                    Once again we consider cases:
-                    \begin{enumerate}
-                        \item $t < t_a$.
-
-                            A replica that first processes $a$ will first be in state $\mathit{values} \setminus \{(t,k_a,v)\} \cup \{(t_a,k_a,v_a)\}$.
-                            After processing $b$, the tuple containing timestamp $t_b$ (if any) is removed from the set.
-
-                            A replica that first processes $b$ first removes the tuple containing $t_b$ from the set, then adds $\{(t_a,k_a,v_a)\}$ to the set.
-                            Since $t \ne t_a$, the tuple removed by processing $b$ is not the tuple added by processing $a$, so both orders of processing have the same outcome.
-                        \item $t_a < t$.
-
-                            A replica that first processes $a$ will leave the state unchanged.
-                            After processing $b$, the tuple containing timestamp $t_b$ (if any) is removed from the set.
-
-                            A replica that first processes $b$ first removes the tuple containing $t_b$ from the set.
-                            If $t \ne t_b$ then processing $a$ has no effect as before.
-                            However, if $t = t_b$, then processing $a$ next adds $\{(t_a,k_a,v_a)\}$ to the set.
-                            \textbf{BUG: this case does not commute!}
-                    \end{enumerate}
-            \end{enumerate}
-
-        \item Let $a = (\mathsf{delete}, t_a)$ and $b = (\mathsf{set}, t_b, k_b, v_b)$.
-            This case is the same as the previous case.
-        \item Let $a = (\mathsf{delete}, t_a)$ and $b = (\mathsf{delete}, t_b)$.
-            TODO.
     \end{enumerate}
+    In all of these cases, the state of a replica after processing $a$ then $b$ is the same as the state of a replica after processing $b$ then $a$.
+    Therefore, $a$ and $b$ commute in all replica states, and therefore the algorithm ensures convergence.
 }
+
+\supervision{
+    Give pseudocode for a variant of the operation-based map CRDT algorithm that has multi-value register semantics instead of last-writer-wins semantics; that is, when there are several concurrent updates for the same key, the algorithm should preserve all of those updates rather than preserving only the one with the greatest timestamp.
+}{
+    Note that this algorithm uses causal broadcast to ensure that when one updates overwrites another, the causally later (overwriting) update is delivered after the update that it overwrites.
+
+    \begin{algorithmic}
+        \On{initialisation}
+            \State $\mathit{values} := \{\}$
+        \EndOn
+        \State
+        \On{request to read value for key $k$}
+            \State \textbf{return} $\{v \mid \exists t.\; (t,k,v) \in \mathit{values}\}$
+        \EndOn
+        \State
+        \On{request to set key $k$ to value $v$}
+            \State $T := \{t \mid \exists v'.\; (t,k,v') \in \mathit{values}\}$
+            \State $t := \mathrm{newTimestamp}()$ \Comment{globally unique, e.g. Lamport timestamp~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+            \State \textbf{broadcast} $(\mathsf{set},T,t,k,v)$ by causal broadcast (including to self)
+        \EndOn
+        \State
+        \On{delivering $(\mathsf{set},T,t,k,v)$ by causal broadcast}
+            \State $\mathit{values} := \{(t',k',v') \in \mathit{values} \mid t' \notin T\} \,\cup\, \{(t,k,v)\}$
+        \EndOn
+    \end{algorithmic}
+}
+
+An alternative CRDT algorithm for the same map datatype is shown on \autoref{l:state-crdt-map}.
+The definition of $\mathit{values}$ and the function for reading the value for a key is the same as on \autoref{l:op-crdt-map}.
+However, updates are handled differently: instead of broadcasting each operation, we directly update $\mathit{values}$ and then broadcast the whole of $\mathit{values}$.
+On delivering this message at another replica, we merge together the two replicas' states using a merge function $\sqcup$.
+This merge function compares the timestamps of entries with the same key, and keeps those with the greater timestamp.
 
 \begin{frame}
     \label{s:state-crdt-map}
     \frametitle{State-based map CRDT}
     \footnotesize
     The operator $\sqcup$ merges two states $s_1$ and $s_2$ as follows:
-    \[ s_1 \sqcup s_2 = \{(t,k,v) \in (s_1 \cup s_2) \mid \nexists (t',k',v') \in (s_1 \cup s_2).\; t' > t\} \]
+    \[ s_1 \sqcup s_2 = \{(t,k,v) \in (s_1 \cup s_2) \mid \nexists (t',k',v') \in (s_1 \cup s_2).\; k' = k \wedge t' > t\} \]
     \begin{algorithmic}
         \On{initialisation}
             \State $\mathit{values} := \{\}$
@@ -5829,11 +5804,418 @@ Moreover, even though concurrently broadcast messages may be delivered in differ
 \end{frame}
 \inlineslide{s:state-crdt-map}{}\label{l:state-crdt-map}
 
-% Excercise: prove that in op-based LWW map CRDT, ops are commutative. Support both deletion and assignment
-% Excercise: make a variant of the algorithm that has multi-value semantics rather than LWW
-% TODO: demo video of two Google Docs windows side-by-side
-% Operational Transformation
-% Text CRDT using rational numbers
+This approach of broadcasting the entire replica state and merging it with another replica's state is called a \emph{state-based CRDT}.
+The downside of the state-based approach is that the broadcast messages are likely to be larger than in the operation-based approach.
+The advantage of the state-based approach is that it can tolerate lost or duplicated messages: as long as two replicas eventually succeed in exchanging their latest states, they will converge to the same state, even if some earlier messages were lost.
+Duplicated messages are also fine because the merge operator is idempotent (cf.\ \autoref{l:idempotence}).
+This is why a state-based CRDT can use unreliable best-effort broadcast, while an operation-based CRDT requires reliable broadcast (and some even require causal broadcast).
+
+\begin{frame}
+    \label{s:state-crdt}
+    \frametitle{State-based CRDTs}
+    Merge operator $\sqcup$ must satisfy: $\forall s_1, s_2, s_3$\dots
+    \begin{itemize}
+        \item \textbf{Commutative}: $s_1 \sqcup s_2 = s_2 \sqcup s_1.$
+        \item \textbf{Associative}: $(s_1 \sqcup s_2) \sqcup s_3 = s_1 \sqcup (s_2 \sqcup s_3).$
+        \item \textbf{Idempotent}: $s_1 \sqcup s_1 = s_1.$\\[1em]\pause
+    \end{itemize}
+    State-based versus operation-based:
+    \begin{itemize}
+        \item Op-based CRDT typically has smaller messages
+        \item State-based CRDT can tolerate message loss/duplication\\[1em]\pause
+    \end{itemize}
+    Not necessarily uses broadcast:
+    \begin{itemize}
+        \item Can also merge concurrent updates to replicas e.g. in quorum replication, anti-entropy, \dots
+    \end{itemize}
+\end{frame}
+\inlineslide{s:state-crdt}{}\label{l:state-crdt}
+
+Moreover, state-based CRDTs are not limited to replication systems that use broadcast.
+Other methods of replication, such as the quorum write algorithms and anti-entropy protocols we saw in \autoref{sec:replication}, can also use CRDTs for conflict resolution (see \autoref{l:reconcile}).
+
+As another example of concurrent updates and the need for conflict resolution, we will consider collaboration software such as Google Docs.
+When you type in a Google Doc, the keystrokes are immediately applied to the local copy of the document in your web browser, without waiting for them to sync to a server or any other users.
+This means that when two users are typing concurrently, their documents can temporarily diverge; as network communication takes place, the system needs to ensure that all users converge to the same view of the document.
+The video of this lecture includes a demo of Google Docs showing this conflict resolution process in action.
+
+\begin{frame}
+    \label{s:google-docs}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node at (current page.center) {\includegraphics[height=\paperheight]{images/google-docs.png}};
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:google-docs}{}\label{l:google-docs}
+
+% Use Apple's Network Link Conditioner (part of the Additional Tools for Xcode package) to disconnect the network while demoing Google Docs
+% https://apple.stackexchange.com/questions/24066/how-to-simulate-slow-internet-connections-on-the-mac
+
+We can think of a collaboratively editable text document as a list of characters, where each user can insert or delete characters at any index in the list.
+Fonts, formatting, embedded images, tables, and so on add further complexity, so we will just concentrate on plain text for now.
+When several users may concurrently update a text document, a particular problem arises, which is demonstrated in the example on \autoref{l:text-editing}.
+
+In this example, two users $A$ and $B$ both start with the same document, ``BC''.
+User $A$ adds the character ``A'' at the beginning of the document, so that it reads ``ABC''.
+Concurrently, user $B$ adds the character ``D'' at the end of the document, so that it reads ``BCD''.
+As $A$ and $B$ merge their edits, we would expect that the final document should read ``ABCD''.
+
+On \autoref{l:text-editing}, the users' replicas communicate by sending each other the operations they have performed.
+User $A$ sends $(\mathsf{insert}, 0, \text{``A''})$ to $B$, and $B$ applies this operation, leading to the desired outcome ``ABCD''.
+However, when $B$ sends $(\mathsf{insert}, 2, \text{``D''})$ to $A$, and $A$ inserts the character ``D'' at index 2, the result is ``ABDC'', not the expected ``ABCD''.
+
+\begin{frame}
+    \label{s:text-editing}
+    \frametitle{Collaborative text editing: the problem}
+    \begin{center}
+        % ampersand replacement: https://tex.stackexchange.com/questions/208408/tikz-matrix-undefined-control-sequence
+        \begin{tikzpicture}[ampersand replacement=\&]
+            \tikzstyle{state}=[draw,fill=white,matrix,column sep={20pt,between origins}]
+            \tikzstyle{val}=[draw,anchor=base,minimum width=20pt,text height=8pt,text depth=3pt]
+            \tikzstyle{oid}=[anchor=base,font=\footnotesize]
+            \node [rectangle,fill=red!10,draw] (node1) at (0,6.4) {user $A$};
+            \node [rectangle,fill=red!10,draw] (node2) at (6,6.4) {user $B$};
+            \draw (node1) -- (0,-1);
+            \draw (node2) -- (6,-1);
+            \draw [red,very thick,dashed] (3,2.0) -- (3,6.6);
+            \node [rotate=270,red] at (2.7,4.3) {network partition};
+            \node (a1) at (0,5) [state] {
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \\
+            };
+            \path<2-> (0,3.9) node [right,font=\footnotesize] {$\mathsf{insert}(0, \text{``A''})$};
+            \node<2-> (a2) at (0,2.8) [state] {
+                \node [val] {\texttt{A}}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \&
+                \node [oid] {2}; \\
+            };
+            \node<5-> (a3) at (0,0) [state] {
+                \node [val] {\texttt{A}}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val,fill=red!10] {\texttt{D}}; \&
+                \node [val,fill=red!10] {\texttt{C}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \&
+                \node [oid,fill=red!10] {2}; \&
+                \node [oid,fill=red!10] {3}; \\
+            };
+            \node (b1) at (6,5) [state] {
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \\
+            };
+            \path<3-> (6,3.9) node [right,font=\footnotesize] {$\mathsf{insert}(2, \text{``D''})$};
+            \node<3-> (b2) at (6,2.8) [state] {
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {\texttt{D}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \&
+                \node [oid] {2}; \\
+            };
+            \node<4-> (b3) at (6,0) [state] {
+                \node [val] {\texttt{A}}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {\texttt{D}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \&
+                \node [oid] {2}; \&
+                \node [oid] {3}; \\
+            };
+            \draw<4-> (0,1.3) edge [bigarrow,out=0,in=160]
+                node [above,near start,font=\footnotesize] {$(\mathsf{insert}, 0, \text{``A''})$} (b3.north west);
+            \draw<5-> (6,1.3) edge [bigarrow,out=180,in=20]
+                node [above,near start,font=\footnotesize] {$(\mathsf{insert}, 2, \text{``D''})$} (a3.north east);
+            \useasboundingbox (-2,-1) -- (9,-1);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:text-editing}{}\label{l:text-editing}
+
+The problem is that at the time when $B$ performed the operation $\mathsf{insert}(2, \text{``D''})$, index 2 referred to the position after character ``C''.
+However, $A$'s concurrent insertion at index 0 had the effect of increasing the indexes of all subsequent characters by 1, so the position after ``C'' is now index 3, not index 2.
+
+\emph{Operational transformation} is one approach that is used to solve this problem.
+There is a family of different algorithms that use this approach and that vary in the details of how they resolve conflicts.
+But the general principle they have in common is illustrated on \autoref{l:op-transform}.
+
+\begin{frame}
+    \label{s:op-transform}
+    \frametitle{Operational transformation}
+    \begin{center}
+        % ampersand replacement: https://tex.stackexchange.com/questions/208408/tikz-matrix-undefined-control-sequence
+        \begin{tikzpicture}[ampersand replacement=\&]
+            \tikzstyle{state}=[draw,fill=white,matrix,column sep={20pt,between origins}]
+            \tikzstyle{val}=[draw,anchor=base,minimum width=20pt,text height=8pt,text depth=3pt]
+            \tikzstyle{oid}=[anchor=base,font=\footnotesize]
+            \node [rectangle,fill=red!10,draw] (node1) at (0,6.7) {user $A$};
+            \node [rectangle,fill=red!10,draw] (node2) at (6,6.7) {user $B$};
+            \draw (node1) -- (0,-1);
+            \draw (node2) -- (6,-1);
+            \path (0,5.9) node [right,font=\footnotesize] {$\mathsf{insert}(0, \text{``A''})$};
+            \node (a1) at (0,4.8) [state] {
+                \node [val] {\texttt{A}}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \&
+                \node [oid] {2}; \\
+            };
+            \node<2-> (a2) at (0,1.8) [draw,fill=white,text width=3cm,align=left,font=\footnotesize] {
+                $T((\mathsf{insert}, 2, \text{``D''}),$ \\
+                $\quad(\mathsf{insert}, 0, \text{``A''})) =$ \\
+                $\quad(\mathsf{insert}, 3, \text{``D''})$
+            };
+            \node<3-> (b2) at (6,1.8) [draw,fill=white,text width=3cm,align=left,font=\footnotesize] {
+                $T((\mathsf{insert}, 0, \text{``A''}),$ \\
+                $\quad(\mathsf{insert}, 2, \text{``D''})) =$ \\
+                $\quad(\mathsf{insert}, 0, \text{``A''})$
+            };
+            \node<2-> (a3) at (0,0) [state] {
+                \node [val] {\texttt{A}}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {\texttt{D}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \&
+                \node [oid] {2}; \&
+                \node [oid] {3}; \\
+            };
+            \path (6,5.9) node [right,font=\footnotesize] {$\mathsf{insert}(2, \text{``D''})$};
+            \node (b1) at (6,4.8) [state] {
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {\texttt{D}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \&
+                \node [oid] {2}; \\
+            };
+            \node<3-> (b3) at (6,0) [state] {
+                \node [val] {\texttt{A}}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {\texttt{D}}; \\
+                \node [oid] {0}; \&
+                \node [oid] {1}; \&
+                \node [oid] {2}; \&
+                \node [oid] {3}; \\
+            };
+            \draw<3-> (0,3.3) edge [bigarrow,out=0,in=160]
+                node [above,near start,font=\footnotesize] {$(\mathsf{insert}, 0, \text{``A''})$} (b2.north west);
+            \draw<2-> (6,3.3) edge [bigarrow,out=180,in=20]
+                node [above,near start,font=\footnotesize] {$(\mathsf{insert}, 2, \text{``D''})$} (a2.north east);
+            \useasboundingbox (-2,0) -- (8,0);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:op-transform}{}\label{l:op-transform}
+
+A node keeps track of the history of operations it has performed.
+When a node receives another node's operation that is concurrent to one or more of its own operations, it \emph{transforms} the incoming operation relative to its own, concurrent operations.
+
+The function $T(\mathit{op}_1, \mathit{op}_2)$ takes two operations: $\mathit{op}_1$ is an incoming operation, and $\mathit{op}_2$ is a concurrent local operation.
+$T$ returns a transformed operation $\mathit{op}_1'$ such that applying $\mathit{op}_1'$ to the local state has the effect originally intended by $\mathit{op}_1$.
+For example, if $\mathit{op}_1 = (\mathsf{insert}, 2, \text{``D''})$ and $\mathit{op}_2 = (\mathsf{insert}, 0, \text{``A''})$ then the transformed operation is $T(\mathit{op}_1, \mathit{op}_2) = (\mathsf{insert}, 3, \text{``D''})$ because the original insertion $\mathit{op}_1$ at index 2 now needs to be instead be performed at index 3 due to the concurrent insertion at index 0.
+On the other hand, $T(\mathit{op}_2, \mathit{op}_1) = \mathit{op}_2$ returns the unmodified $\mathit{op}_2$ because the insertion at index 0 is not affected by a concurrent insertion later in the document.
+
+The transformation function becomes more complicated when deletions, formatting etc.\ are taken into account, and we will skip the details.
+However, this approach is used in practice: for example, the conflict resolution algorithm in Google Docs uses an operational transformation approach based on the Xerox PARC research system Jupiter \citep{Nichols:1995}.
+A limitation of this approach is that it requires communication between users to use total order broadcast, requiring the use of a designated leader node to sequence the updates, or a consensus algorithm as in \autoref{sec:consensus}.
+
+An alternative to operational transformation, which avoids the need for total order broadcast, is to use a CRDT for text editing.
+Rather than identifying positions in the text using indexes, and thus necessitating operational transformation, text editing CRDTs work by attaching a unique identifier to each character.
+These identifiers remain unchanged, even as surrounding characters are inserted or deleted.
+
+Several constructions for these unique identifiers have been proposed, one of which is illustrated on \autoref{l:text-crdt}.
+Here, each character is assigned a rational number $i \in \mathbb{Q}$ with $0 < i < 1$, where 0 represents the beginning of the document, 1 is the end, and numbers in between identify the characters in the document in ascending order.
+We also use the symbol $\vdash$ to represent the beginning of document and $\dashv$ to represent the end; these symbols are part of the algorithm's internal state, not visible to the user.
+
+When we want to insert a new character between two existing adjacent characters with position numbers $i$ and $j$, we can assign that new character a position number of $\frac{i+j}{2}$, which always lies between $i$ and $j$.
+This new position always exists, provided that we use arbitrary-precision arithmetic (floating-point numbers have limited precision, so they would no longer work once the intervals get too small).
+It is possible for two different nodes to generate characters with the same position number if they concurrently insert at the same position, so we can use the ID of the node that generated a character to break ties for any characters that have the same position number.
+
+Using this approach, conflict resolution becomes easy: an insertion with a particular position number can simply be broadcast to other replicas, which then add that character to their set of characters, and sort by position number to obtain the current document.
+
+\begin{frame}
+    \label{s:text-crdt}
+    \frametitle{Text editing CRDT}
+    \begin{center}
+        \begin{tikzpicture}[ampersand replacement=\&]
+            \tikzstyle{state}=[draw,fill=white,matrix,column sep={20pt,between origins}]
+            \tikzstyle{val}=[draw,anchor=base,minimum width=20pt,text height=8pt,text depth=3pt]
+            \tikzstyle{oid}=[anchor=base,font=\scriptsize]
+            \node [rectangle,fill=red!10,draw] (node1) at (0,6.4) {user $A$};
+            \node [rectangle,fill=red!10,draw] (node2) at (6.5,6.4) {user $B$};
+            \draw (node1) -- (0,-1);
+            \draw (node2) -- (6.5,-1);
+            \node (a1) at (0,5) [state] {
+                \node [val] {$\vdash$}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {$\dashv$}; \\
+                \node [oid] {0.0}; \&
+                \node [oid] {0.5}; \&
+                \node [oid] {0.75}; \&
+                \node [oid] {1.0}; \\
+            };
+            \path<2-> (0,3.9) node [right,font=\footnotesize] {$\mathsf{insert}(0.25, \text{``A''})$};
+            \node<2-> (a2) at (0,2.8) [state] {
+                \node [val] {$\vdash$}; \&
+                \node [val] {\texttt{A}}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {$\dashv$}; \\
+                \node [oid] {0.0}; \&
+                \node [oid] {0.25}; \&
+                \node [oid] {0.5}; \&
+                \node [oid] {0.75}; \&
+                \node [oid] {1.0}; \\
+            };
+            \node<4-> (a3) at (0,0) [state] {
+                \node [val] {$\vdash$}; \&
+                \node [val] {\texttt{A}}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {\texttt{D}}; \&
+                \node [val] {$\dashv$}; \\
+                \node [oid] {0.0}; \&
+                \node [oid] {0.25}; \&
+                \node [oid] {0.5}; \&
+                \node [oid] {0.75}; \&
+                \node [oid] {0.875}; \&
+                \node [oid] {1.0}; \\
+            };
+            \node (b1) at (6.5,5) [state] {
+                \node [val] {$\vdash$}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {$\dashv$}; \\
+                \node [oid] {0.0}; \&
+                \node [oid] {0.5}; \&
+                \node [oid] {0.75}; \&
+                \node [oid] {1.0}; \\
+            };
+            \path<3-> (6.5,3.9) node [left,font=\footnotesize] {$\mathsf{insert}(0.875, \text{``D''})$};
+            \node<3-> (b2) at (6.5,2.8) [state] {
+                \node [val] {$\vdash$}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {\texttt{D}}; \&
+                \node [val] {$\dashv$}; \\
+                \node [oid] {0.0}; \&
+                \node [oid] {0.5}; \&
+                \node [oid] {0.75}; \&
+                \node [oid] {0.875}; \&
+                \node [oid] {1.0}; \\
+            };
+            \node<5-> (b3) at (6.5,0) [state] {
+                \node [val] {$\vdash$}; \&
+                \node [val] {\texttt{A}}; \&
+                \node [val] {\texttt{B}}; \&
+                \node [val] {\texttt{C}}; \&
+                \node [val] {\texttt{D}}; \&
+                \node [val] {$\dashv$}; \\
+                \node [oid] {0.0}; \&
+                \node [oid] {0.25}; \&
+                \node [oid] {0.5}; \&
+                \node [oid] {0.75}; \&
+                \node [oid] {0.875}; \&
+                \node [oid] {1.0}; \\
+            };
+            \draw<5-> (0,1.3) edge [bigarrow,out=0,in=160]
+                node [above right,at start,font=\footnotesize] {$(\mathsf{insert}, 0.25, \text{``A''})$} (b3.north west);
+            \draw<4-> (6.5,1.3) edge [bigarrow,out=180,in=20]
+                node [above left,at start,font=\footnotesize] {$(\mathsf{insert}, 0.875, \text{``D''})$} (a3.north east);
+            \useasboundingbox (-2.3,0) -- (8.8,0);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:text-crdt}{}\label{l:text-crdt}
+
+This algorithm is shown on the next two slides.
+The state of a replica is the set $\mathit{chars}$, which contains $(\mathit{position}, \mathit{nodeId}, \mathit{character})$ triples.
+
+\begin{frame}
+    \label{s:text-crdt-alg1}
+    \frametitle{Operation-based text CRDT (1/2)}
+    \footnotesize
+    \begin{algorithmic}
+        \Function{ElementAt}{$\mathit{chars}, \mathit{index}$}
+            \State $\mathit{min} = \text{the unique triple } (p,n,v) \in \mathit{chars}$ such that
+            \State \hspace{3.1em}$\nexists (p',n',v') \in \mathit{chars}.\; p' < p \vee (p' = p \wedge n' < n)\}$
+            \State \textbf{if} $\mathit{index}=0$ \textbf{then return} $\mathit{min}$
+            \State \textbf{else return} \Call{ElementAt}{$\mathit{chars} \setminus \{min\}, \mathit{index}-1$}
+        \EndFunction
+        \State
+        \On{initialisation}
+            \State $\mathit{chars} := \{(0, \mathsf{null}, \vdash),\, (1, \mathsf{null}, \dashv)\}$
+        \EndOn
+        \State
+        \On{request to read character at index $\mathit{index}$}
+            \State \textbf{let} $(p,n,v) := $ \Call{ElementAt}{$\mathit{chars}, \mathit{index}+1$}; \textbf{return} $v$
+        \EndOn
+        \State
+        \On{request to insert character $v$ at index $\mathit{index}$ at node $\mathit{nodeId}$}
+            \State \textbf{let} $(p_1,n_1,v_1) := $ \Call{ElementAt}{$\mathit{chars}, \mathit{index}$}
+            \State \textbf{let} $(p_2,n_2,v_2) := $ \Call{ElementAt}{$\mathit{chars}, \mathit{index}+1$}
+            \State \textbf{broadcast} $(\mathsf{insert}, (p_1+p_2)/2, \mathit{nodeId}, v)$ by causal broadcast
+        \EndOn
+    \end{algorithmic}
+\end{frame}
+\inlineslide{s:text-crdt-alg1}{}\label{l:text-crdt-alg1}
+
+\begin{frame}
+    \label{s:text-crdt-alg2}
+    \frametitle{Operation-based text CRDT (2/2)}
+    \begingroup\footnotesize
+    \begin{algorithmic}
+        \On{delivering $(\mathsf{insert}, p, n, v)$ by causal broadcast}
+            \State $\mathit{chars} := \mathit{chars} \cup \{(p,n,v)\}$
+        \EndOn
+        \State
+        \On{request to delete character at index $\mathit{index}$}
+            \State \textbf{let} $(p,n,v) := $ \Call{ElementAt}{$\mathit{chars}, \mathit{index} + 1$}
+            \State \textbf{broadcast} $(\mathsf{delete}, p, n)$ by causal broadcast
+        \EndOn
+        \State
+        \On{delivering $(\mathsf{delete}, p, n)$ by causal broadcast}
+            \State $\mathit{chars} := \{(p',n',v') \in \mathit{chars} \mid \neg (p' = p \wedge n' = n)\}$
+        \EndOn
+    \end{algorithmic}
+    \endgroup\vspace{1em}
+    \begin{itemize}
+        \item Use causal broadcast so that insertion of a character is delivered before its deletion
+        \item Insertion and deletion of different characters commute
+    \end{itemize}
+\end{frame}
+\inlineslide{s:text-crdt-alg2}{}\label{l:text-crdt-alg2}
+
+The function \textsc{ElementAt} iterates over the elements of $\mathit{chars}$ in ascending order of position number.
+It does this by first finding the minimum element, that is, the element for which there does not exist another element with a lower position number.
+If there are multiple elements with the same position number, the element with the lowest nodeId is chosen.
+If $\mathit{index}=0$ we return this minimum element, otherwise we remove the minimum element, decrement the index, and repeat.
+(This is a rather slow algorithm; a real implementation would make an effort to be more efficient.)
+
+A replica's $\mathit{chars}$ is initialised with elements for $\vdash$ and $\dashv$.
+To get the character at a particular index, we use the \textsc{ElementAt} we just defined, adding 1 to the index in order to skip the first element in $\mathit{chars}$, which is always $(0,\mathsf{null},\vdash)$.
+
+To insert a character at a particular position, we get the position numbers $p_1$ and $p_2$ of the immediate predecessor and successor, and then compute the new position number as $(p_1+p_2)/2$.
+We then disseminate this operation by causal broadcast.
+On delivery of an $\mathsf{insert}$ message we simply add the triple to $\mathit{chars}$.
+
+To delete a character at a particular position we use \textsc{ElementAt}, adding 1 to skip $\vdash$ as before, to find the position number and nodeId of that character.
+We then broadcast this information, which uniquely identifies a particular character, by causal broadcast as a $\mathsf{delete}$ message.
+On delivery of a $\mathsf{delete}$ message, a replica removes the element in $\mathit{chars}$ that matches both the position number and the nodeId in the message, if it exists.
+
+The reason for using causal broadcast (rather than just reliable broadcast) in this algorithm is to ensure that if a character is deleted, all replicas process the insertion of the character before processing the deletion.
+This restriction is necessary because the operations to insert and delete the same character do not commute.
+However, insertions and deletions of different characters commute, allowing this algorithm to ensure convergence and strong eventual consistency.
 
 \subsection{Google's Spanner}\label{sec:spanner}
 
