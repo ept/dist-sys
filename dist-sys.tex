@@ -3642,7 +3642,7 @@ As a result, the read does not return the value $v_1$ previously written by the 
             \draw<2-> [bigarrow] (4,1.2) -- node [above,sloped,pos=0.7] {$(t_0, v_0)$} (0,0.8);
         \end{tikzpicture}
     \end{center}%
-    \uncover<3->{Writing to one replica, reading from another: client does not read back the value it has read}\\[1em]%
+    \uncover<3->{Writing to one replica, reading from another: client does not read back the value it has written}\\[1em]%
     \uncover<4->{Require writing to/reading from both replicas $\Longrightarrow$ cannot write/read if one replica is unavailable}
 \end{frame}
 \inlineslide{s:read-after-write}{}\label{l:read-after-write}
