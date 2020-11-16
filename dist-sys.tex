@@ -1666,7 +1666,7 @@ Unfortunately, most networks do not give nodes any indication of the actual late
 \end{frame}
 \inlineslide{s:ntp-calculation}{}\label{l:ntp-calculation}
 
-\supervision{
+\supervision{\label{q:clock-sync-error}
     What is the maximum possible error in the NTP client's estimate of skew with regard to one particular server, assuming that both nodes correctly follow the protocol?
 }{
     The maximum possible error in $\theta$ is $\delta/2$.
@@ -4900,7 +4900,7 @@ Thanks to total order broadcast, all nodes are guaranteed to make the same decis
 \end{frame}
 \inlineslide{s:paxos-commit2}{}\label{l:paxos-commit2}
 
-\subsection{Linearizability}
+\subsection{Linearizability}\label{sec:linearizability}
 
 An atomic commitment protocol is a way of preserving consistency across multiple replicas in the face of faults, by ensuring that all participants of a transaction either commit or abort.
 However, when there are multiple nodes concurrently reading and modifying some shared data concurrently, ensuring the same commit or abort outcome for all nodes is not sufficient.
@@ -6219,6 +6219,14 @@ However, insertions and deletions of different characters commute, allowing this
 
 \subsection{Google's Spanner}\label{sec:spanner}
 
+Despite having ``strong'' in the name, strong eventual consistency is a fairly weak consistency property: for example, when reading a value, there is no guarantee that the operation will return the most up-to-date value, because it may take some time for updates to propagate from one replica to another.
+In contrast, let's now examine a different system that makes much stronger consistency guarantees.
+As always, these guarantees come at a cost, but for some applications this is the right choice.
+
+The Spanner database developed by Google \citep{Corbett:2012} is an example of a system that provides the strongest possible consistency guarantees: transactions with serializable isolation and atomic commitment, and linearizable reads and writes.
+Spanner achieves those properties while remaining very scalable, supporting large data volumes, large transaction throughput, and allowing data to be distributed worldwide.
+Spanner replicas are designed to be located in datacenters (unlike the collaboration software of the last section, where an end-user device may be a replica).
+
 \begin{frame}
     \label{s:spanner-intro}
     \frametitle{Google's Spanner}
@@ -6239,13 +6247,19 @@ However, insertions and deletions of different characters commute, allowing this
 \end{frame}
 \inlineslide{s:spanner-intro}{}\label{l:spanner-intro}
 
-Spanner \citep{Corbett:2012}
+Many of the techniques used by Spanner are very conventional, and we have seen them earlier in this course: it uses the Paxos consensus algorithm for state machine replication, two-phase locking to ensure serializable isolation between transactions, and two-phase commit to ensure atomic commitment.
+A lot of engineering effort goes into making these algorithms work well in practice, but at an architectural level, these well-established choices are quite unsurprising.
+
+However, Spanner is famous for one very unusual aspect of its design, namely its use of atomic clocks.
+This is the aspect that we will focus on in this section.
+The reason for this use of clocks is to enable lock-free read-only transactions.
 
 Some read-only transactions need to read a large number of objects in a database; for example, a backup or audit process needs to essentially read the entire database.
 Performing such transactions with two-phase locking would be extremely disruptive, since the backup may take a long time, and the read lock on the entire database would prevent any clients from writing to the database for the duration of the backup.
 For this reason, it is very important that large read-only transactions can execute in the background, without requiring any locks and thus without interfering with concurrent read-write transactions.
 
-
+Spanner avoids locks on read-only transactions by allowing a transaction to read from a \emph{consistent snapshot} of the database: that is, the transaction observes the entire database as it was at a single point in time, even if some parts of the database are subsequently updated by other transactions while the read-only transaction is running.
+The word ``consistent'' in the context of a snapshot means that it is consistent with causality: if transaction $T_1$ happened before transaction $T_2$, and if the snapshot contains the effects of $T_2$, then it must also contain the effects of $T_1$.
 
 \begin{frame}
     \label{s:snapshots}
@@ -6268,9 +6282,23 @@ For this reason, it is very important that large read-only transactions can exec
 \end{frame}
 \inlineslide{s:snapshots}{}\label{l:snapshots}
 
-Spanner's implementation of snapshot isolation uses \emph{multi-version concurrency control} (MVCC), a particular form of optimistic concurrency control similar to what was discussed in the first half of this course.
-MVCC is based on assigning a timestamp to every transaction; when a transaction 
+Spanner's implementation of snapshots uses \emph{multi-version concurrency control} (MVCC), a particular form of optimistic concurrency control similar to what was discussed in the first half of this course.
+MVCC is based on assigning a commit timestamp to every transaction; every data object is tagged with the timestamp of the transaction that wrote it.
+When an object is updated, we don't just overwrite it, but store several old versions (each tagged with a timestamp) in addition to the latest version.
+A read-only transaction's snapshot is also defined by a timestamp: namely, the transaction reads the most recent version of each object that precedes the snapshot timestamp, and ignores any object versions whose timestamp is greater than that of the snapshot.
 Many other databases also use MVCC, but what makes Spanner special is the way in which it assigns timestamps to transactions.
+
+In order to ensure that snapshots are consistent with causality, the MVCC algorithm requires that if transaction $T_1$ happened before transaction $T_2$, then the commit timestamp of $T_1$ must be less than that of $T_2$.
+However, recall from \autoref{l:physical-order} that timestamps from physical clocks do not necessarily satisfy this property.
+Thus, our natural response should be to use logical timestamps, such as Lamport timestamps, instead (\autoref{sec:logical-time}).
+
+Unfortunately, logical timestamps also have problems.
+Consider the example on \autoref{l:commit-timestamps}, where a user observes the results from transaction $T_1$, and then takes some action, which is executed in a transaction $T_2$.
+This means we have a real-time dependency (\autoref{sec:linearizability}) between the transactions: $T_1$ must have finished before $T_2$ started, and therefore we expect $T_2$ to have a greater timestamp than $T_1$.
+However, Lamport timestamps cannot necessarily ensure this ordering property: recall that they work by attaching a timestamp to every message that is communicated over the network, and taking the maximum every time such a message is received.
+However, in the example on \autoref{l:commit-timestamps}, there might not be any message sent from replica $A$, where $T_1$ is executed, to replica $B$, where $T_2$ is executed.
+Instead, the communication goes via a user, and we cannot expect a human to include a properly formed timestamp on every action they perform.
+Without a reliable mechanism for propagating the timestamp on every communication step, logical timestamps cannot provide the ordering guarantee we need.
 
 \begin{frame}
     \label{s:commit-timestamps}
@@ -6298,16 +6326,26 @@ Many other databases also use MVCC, but what makes Spanner special is the way in
 \end{frame}
 \inlineslide{s:commit-timestamps}{}\label{l:commit-timestamps}
 
-The MVCC algorithm of comparing transaction timestamps requires that if transaction $T_1$ happened before transaction $T_2$, then the timestamp of $T_1$ must be less than that of $T_2$.
-However, recall from \autoref{l:physical-order} that timestamps from physical clocks do not necessarily satisfy this property.
-Thus, our natural response should be to use logical timestamps, such as Lamport timestamps, instead (\autoref{sec:logical-time}).
+Another option for generating logical timestamps would be to have a single designated server that assigns timestamps to transactions.
+However, this approach breaks down in a globally distributed database, as that server would become a single point of failure and a performance bottleneck.
+Moreover, if transactions executing on a different continent from the timestamp server need to wait for a response, the inevitable round-trip time due to speed-of-light delays would make transactions slow to execute.
+A less centralised approach to timestamps is required.
 
-Unfortunately, logical timestamps also have problems.
+This is where Spanner's TrueTime mechanism comes in.
+TrueTime is a system of physical clocks that does not return a single timestamp, but rather returns an \emph{uncertainty interval}.
+Even though we cannot ensure perfectly synchronised clocks in practical systems (\autoref{sec:clock-sync}), we \emph{can} keep track of the errors that may be introduced at various points in the system.
+For atomic clocks, error bounds are reported by the manufacturer.
+For GPS receivers, the error depends on the quality of the signals from the satellites currently within range.
+The error introduced by synchronising clocks over a network depends on the round-trip time (\autoref{q:clock-sync-error}).
+The error of a quartz clock depends on its drift rate and the time since its last sync with a more accurate clock.
+
+When you ask TrueTime for the current timestamp, it returns an interval $[t_\mathsf{earliest}, t_\mathsf{latest}]$.
+The system does not know the true current physical timestamp $t_\mathsf{real}$, but it can ensure that $t_\mathsf{earliest} \le t_\mathsf{real} \le t_\mathsf{latest}$ with very high probability by taking all of the above sources of error into account.
 
 \begin{frame}
     \label{s:truetime}
     \frametitle{TrueTime: explicit physical clock uncertainty}
-    \uncover<2->{Spanner's TrueTime clock returns $(\mathit{earliest}, \mathit{latest})$.}\\%
+    \uncover<2->{Spanner's TrueTime clock returns $[t_\mathsf{earliest}, t_\mathsf{latest}]$.}\\%
     \uncover<2->{True physical timestamp must lie within that range.}\\%
     \uncover<3->{On commit, wait for uncertainty $\delta_i = t_{i,\mathsf{latest}} - t_{i,\mathsf{earliest}}$.}\\[0.5em]
     \begin{tikzpicture}
@@ -6346,7 +6384,7 @@ Unfortunately, logical timestamps also have problems.
 \end{frame}
 \inlineslide{s:truetime}{}\label{l:truetime}
 
-When transaction $T_i$ wants to commit, it gets a timestamp interval $[t_{i,\mathsf{earliest}}, t_{i,\mathsf{latest}}]$ from TrueTime, and assigns $t_{i,\mathsf{latest}}$ to be the commit timestamp of $T_i$.
+When transaction $T_i$ wants to commit in Spanner, it gets a timestamp interval $[t_{i,\mathsf{earliest}}, t_{i,\mathsf{latest}}]$ from TrueTime, and assigns $t_{i,\mathsf{latest}}$ to be the commit timestamp of $T_i$.
 However, before the transaction actually commits and releases its locks, it first pauses and waits for a duration equal to the clock uncertainty period $\delta_i = t_{i,\mathsf{latest}} - t_{i,\mathsf{earliest}}$.
 Only after this wait time has elapsed, the transaction is committed and its writes become visible to other transactions.
 
@@ -6354,11 +6392,10 @@ Even though we don't have perfectly synchronised clocks, and thus a node cannot 
 Therefore, if $T_2$ begins later in real time than $T_1$, the earliest possible timestamp that could be assigned to $T_2$ must be greater than $T_1$'s timestamp.
 Put another way, the waiting ensures that the timestamp intervals of $T_1$ and $T_2$ do not overlap, even if the transactions are executed on different nodes with no communication between the two transactions.
 
-Google assumes a node's quartz clock has a maximum drift rate of 200~ppm.
-Is this a safe assumption?
-According to the Spanner paper: ``Our machine statistics show that bad CPUs are 6 times more likely than bad clocks.
-That is, clock issues are extremely infrequent, relative to much more serious hardware problems.
-As a result, we believe that TrueTime's implementation is as trustworthy as any other piece of software upon which Spanner depends.'' \citep{Corbett:2012}.
+Since every transaction has to wait for the uncertainty interval to elapse, the challenge is now to keep that uncertainty interval as small as possible so that transactions remain fast.
+Google achieves this by installing atomic clocks and GPS receivers in every datacenter, and synchronising every node's quartz clock with a time server in the local datacenter every 30~seconds.
+In the local datacenter, round-trips are usually below 1~ms, so the clock error introduced by network latency is quite small.
+If the network latency increases, e.g.\ due to congestion, TrueTime's uncertainty interval grows accordingly to account for the increased error.
 
 \begin{frame}
     \label{s:truetime-sync}
@@ -6382,6 +6419,23 @@ As a result, we believe that TrueTime's implementation is as trustworthy as any 
     \end{tikzpicture}
 \end{frame}
 \inlineslide{s:truetime-sync}{}\label{l:truetime-sync}
+
+In between the periodic clock synchronisations every 30~seconds, a node's clock is determined only by its local quartz oscillator.
+The error introduced here depends on the drift rate of the quartz.
+To be on the safe side, Google assumes a maximum drift rate of 200~ppm, which is significantly higher than the drift observed under normal operating conditions (\autoref{l:quartz-drift}).
+Moreover, Google monitors the drift of each node and alerts administrators about any outliers.
+
+Is the drift rate of 200~ppm a safe assumption?
+According to the Spanner paper: ``Our machine statistics show that bad CPUs are 6 times more likely than bad clocks.
+That is, clock issues are extremely infrequent, relative to much more serious hardware problems.
+As a result, we believe that TrueTime's implementation is as trustworthy as any other piece of software upon which Spanner depends.'' \citep{Corbett:2012}.
+
+If we assume a quartz drift of 200~ppm, and it has been 30~seconds since the last clock sync, this implies a clock uncertainty of 6~ms due to quartz drift (on top of any uncertainty from network latency, GPS receiver and atomic clocks).
+The result is an uncertainty interval that grows gradually larger with the time since the last clock sync, up to about 7~ms, and which resets to about 1~ms (round-trip time + clock server uncertainty) on every clock sync, as shown on \autoref{l:truetime-sync}.
+
+The average uncertainty interval is therefore approximately 4~ms in normal operating conditions, and this 4~ms is therefore the average time that a transaction must wait before it can commit.
+This is much faster than transactions could be if they had to wait for an intercontinental network round-trip (which would take on the order of 100~ms or more).
+Using TrueTime thus allows Spanner to assign transaction commit timestamps that are consistent with causality and real-time order, while keeping transactions fast, and without placing any requirement on clients to propagate logical timestamps.
 
 \subsection{Distributed filesystems}
 
