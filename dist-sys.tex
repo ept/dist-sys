@@ -26,6 +26,8 @@
 % Lecture 5: 45.2 min
 % Lecture 6: 55.7 min
 % Lecture 7: 52.5 min
+% Lecture 8: 55.1 min
+% Total: 6.9 hours
 
 \fancypagestyle{plain}{%
   \renewcommand{\headrulewidth}{0pt}%
@@ -5534,7 +5536,7 @@ This hierarchy has some similarities to the concept of complexity classes of alg
 In this last lecture we will look at a couple of examples of distributed systems that need to manage concurrent access to data.
 In particular, we will include some case studies of practical, real-world systems that need to deal with concurrency, and which build upon the concepts from the rest of this course.
 
-\subsection{Collaboration and conflict resolution}
+\subsection{Collaboration and conflict resolution}\label{sec:collaboration}
 
 Collaboration software is a broad category of software that facilitates several people working together on some task.
 This includes applications such as Google Docs/Office 365 (multi-user text documents, spreadsheets, presentations, etc.), Overleaf (collaborative {\LaTeX} documents), multi-user graphics software (e.g.\ Figma), project planning tools (e.g.\ Trello), note-taking apps (e.g.\ OneNote, Evernote, Notion), and shared calendars between colleagues or family members (like the calendar sync we saw on \autoref{l:calendar}).
@@ -5567,7 +5569,7 @@ Instead, for the sake of better performance and better robustness to network int
         \item Operational Transformation (\textbf{OT})
     \end{itemize}
 \end{frame}
-\inlineslide{s:collaboration}{}\label{l:collaboration}
+\inlineslide{s:collaboration}{\href{https://www.youtube.com/watch?v=OqqliwwG0SM&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=22}{Start of video section 8.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/16.1_Collaboration.mp4}{mp4 download})}\label{l:collaboration}
 
 In this section we will look at some algorithms that are used for this kind of collaboration.
 As example, consider the calendar sync demo in the lecture recording of \autoref{sec:eventual-consistency}.
@@ -5662,7 +5664,7 @@ This means that we resolve concurrent updates to the same key using the last-wri
     Reliable broadcast may deliver updates in any order:
     \begin{itemize}
         \item broadcast $(\mathsf{set}, t_1, \text{``title''}, \text{``Lecture 1''})$
-        \item broadcast $(\mathsf{set}, t_1, \text{``time''}, \text{``10:00''})$\\[1em]\pause
+        \item broadcast $(\mathsf{set}, t_2, \text{``time''}, \text{``10:00''})$\\[1em]\pause
     \end{itemize}
     Recall \textbf{strong eventual consistency}:
     \begin{itemize}
@@ -6245,7 +6247,7 @@ Spanner replicas are designed to be located in datacenters (unlike the collabora
     \end{itemize}
     The interesting bit: read-only transactions require \textbf{no locks}!
 \end{frame}
-\inlineslide{s:spanner-intro}{}\label{l:spanner-intro}
+\inlineslide{s:spanner-intro}{\href{https://www.youtube.com/watch?v=oeycOVX70aE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=23}{Start of video section 8.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/16.2_Spanner.mp4}{mp4 download})}\label{l:spanner-intro}
 
 Many of the techniques used by Spanner are very conventional, and we have seen them earlier in this course: it uses the Paxos consensus algorithm for state machine replication, two-phase locking to ensure serializable isolation between transactions, and two-phase commit to ensure atomic commitment.
 A lot of engineering effort goes into making these algorithms work well in practice, but at an architectural level, these well-established choices are quite unsurprising.
@@ -6435,28 +6437,45 @@ The result is an uncertainty interval that grows gradually larger with the time 
 
 The average uncertainty interval is therefore approximately 4~ms in normal operating conditions, and this 4~ms is therefore the average time that a transaction must wait before it can commit.
 This is much faster than transactions could be if they had to wait for an intercontinental network round-trip (which would take on the order of 100~ms or more).
-Using TrueTime thus allows Spanner to assign transaction commit timestamps that are consistent with causality and real-time order, while keeping transactions fast, and without placing any requirement on clients to propagate logical timestamps.
 
-\subsection{Distributed filesystems}
+To summarise: through careful accounting of uncertainty, TrueTime provides upper and lower bounds on the current physical time; through high-precision clocks it keeps the uncertainty interval small; by waiting out the uncertainty, interval Spanner ensures that timestamps are consistent with causality; and by using those timestamps for MVCC, Spanner provides serializable transactions without requiring any locks for read-only transactions.
+This approach keeps transactions fast, without placing any requirement on clients to propagate logical timestamps.
 
-NFS \citep{Kirch:2006}
+\begin{frame}
+    \label{s:conclusions}
+    \frametitle{That's all, folks!}
+    \textbf{Any questions?} ~ Email mk428@cst.cam.ac.uk!\\[1em]
+    Summary:
+    \begin{itemize}
+        \item Distributed systems are everywhere
+        \item You use them every day: e.g.\ web apps
+        \item Key goals: availability, scalability, performance
+        \item Key problems: concurrency, faults, unbounded latency
+        \item Key abstractions: replication, broadcast, consensus
+        \item No one right way, just trade-offs
+    \end{itemize}
+\end{frame}
+\inlineslide{s:conclusions}{}\label{l:conclusions}
 
+This brings us to the end of the course on Concurrent and Distributed Systems.
+We started from a simple premise: when you send a message over the network and you don't get a response, you don't know what happened.
+Maybe the message got lost, or the response got lost, or either message got delayed, or the remote node crashed, and we cannot distinguish between these types of fault.
+
+Distributed systems are fascinating because we have to work with partial knowledge and uncertain truths.
+We never have certainty about the state of the system, because by the time we hear about something, that state may already be outdated.
+In this way it resembles real life more than most of computing!
+In real life you need to often make decisions with incomplete information.
+
+But distributed systems are also immensely practical: every web site and most apps are distributed systems, and the servers and databases that underlie most websites are in turn further distributed systems.
+After graduating, many of you will end up working on such systems.
+Hopefully, the ideas in this course have given you a solid grounding so that you can go and make those systems reliable and understandable.
+
+% Topics not covered due to lack of time:
 % NFS (including close-to-open consistency) versus Windows shared folders/network drives, Dropbox, Google Drive, OneDrive
-% CRDTs
 % peer-to-peer systems
-% MapReduce [covered in Part II cloud computing module], Spanner
+% MapReduce [covered in Part II cloud computing module]
 % Byzantine fault tolerance
 % Distributed mutual exclusion / locking
-
-% Distributed systems are fascinating because we have to work with partial knowledge and uncertain
-% truths. We never have certainty about the state of the system, because by the time we hear about
-% something, that state may already be outdated. In this way it resembles real life more than most of
-% computing! In real life you need to often make decisions with incomplete information.
-
-% Beamer documentation:
-% https://people.wou.edu/~beavers/LaTeX/beamer_guide.pdf
-% http://anorien.csc.warwick.ac.uk/mirrors/CTAN/macros/latex/contrib/beamer/doc/beameruserguide.pdf
-
 
 \footnotesize
 \bibliographystyle{plainnat}
