@@ -1461,6 +1461,9 @@ In fact, the speed of rotation of the planet is not even constant: it fluctuates
 \inlineslide{s:utc}{}\label{l:utc}
 % Image source: https://commons.wikimedia.org/wiki/File:Britannica_Figure_of_the_Earth.jpg (public domain)
 
+% Earth has slowed down, so there might not be another leap second for a while:
+% https://fanf.dreamwidth.org/133823.html
+
 The solution is \emph{Coordinated Universal Time} (UTC), which is based on atomic time, but includes corrections to account for variations in the Earth's rotation.
 In everyday life we use our local \emph{time zone}, which is specified as an offset to UTC.
 
@@ -1917,6 +1920,7 @@ Note that here, ``concurrent'' does not mean literally ``at the same time'', but
 
 \supervision{\label{q:strict-partial-order}
     A relation $R$ is a \emph{strict partial order} if it is irreflexive ($\nexists a.\; (a,a) \in R$) and transitive ($\forall a,b,c.\; (a,b) \in R \wedge (b,c) \in R \Longrightarrow (a,c) \in R$).
+    (These two conditions also imply that it $R$ asymmetric, i.e.\ that $\forall a,b.\; (a,b) \in R \Longrightarrow (b,a) \notin R$.)
     Prove that the happens-before relation is a strict partial order.
     You may assume that any two nodes are a nonzero distance apart, as well as the physical principle that information cannot travel faster than the speed of light.
 }{
@@ -4073,14 +4077,14 @@ Only the \emph{liveness} (namely, that a message is eventually delivered) depend
 
 At the core of most consensus algorithms is a process for electing a new leader when the existing leader becomes unavailable for whatever reason.
 The details differ between the algorithms; in this lecture we will concentrate on the approach taken by Raft, but many of the lessons from Raft are equally relevant to other consensus algorithms.
-\citet{Howard:2020} give a detailed comparison of Raft and Multi-Paxos.
+\citet{Howard:2020} give a detailed comparison of Raft and Multi-Paxos (however, Paxos/Multi-Paxos are not examinable).
 
 A leader election is initiated when the other nodes suspect the current leader to have failed, typically because they haven't received any message from the leader for some time.
 One of the other nodes becomes a \emph{candidate} and asks the other nodes to vote on whether they accept the candidate as their new leader.
 If a \emph{quorum} (\autoref{sec:quorums}) of nodes vote in favour of the candidate, it becomes the new leader.
 If a majority quorum is used, this vote can succeed as long as a majority of nodes (2 out of 3, or 3 out of 5, etc.) are working and able to communicate.
 
-If there were multiple leaders, they could make inconsistent decisions that lead to violations of the safety properties of total order broadcast (having multiple leaders is known as \emph{split brain}).
+If there were multiple leaders, they could make inconsistent decisions that lead to violations of the safety properties of total order broadcast (a situation known as \emph{split brain}).
 Therefore, the key thing we want of a leader election is that there should only be one leader at any one time.
 In Raft, the concept of ``at any one time'' is captured by having a \emph{term} number, which is just an integer that is incremented every time a leader election is started.
 If a leader is elected, the voting algorithm guarantees that that it is the only leader within that particular term.
@@ -4465,6 +4469,10 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
                     \EndIf
                     \State
                     \If{$\mathit{term} = \mathit{currentTerm} \wedge \mathit{logOk}$}
+                        % It might be that the local node is a candidate in the same term as the received LogRequest;
+                        % in this case we must transition to follower state. Strictly speaking, the next line should be
+                        % conditional only on term=currentTerm and not on logOk, but I'm putting it in the same "if"
+                        % statement to make it fit on the slide. I don't think the extra "and logOk" does any harm.
                         \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathit{leaderId}$
                         \State \Call{AppendEntries}{$\mathit{logLength}, \mathit{leaderCommit}, \mathit{entries}$}
                         \State $\mathit{ack} := \mathit{logLength} + \mathit{entries}.\mathsf{length}$
