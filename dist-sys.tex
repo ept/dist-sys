@@ -4439,15 +4439,14 @@ If $\mathit{sentLength}[\mathit{followerId}] = \mathit{log}.\mathsf{length}$, th
 More on committing log entries shortly.
 
 When a follower receives one of these $\mathsf{LogRequest}$ messages from the leader, it processes the message as shown on \autoref{l:raft6}.
-First, if the message is for a later term than the follower has previously seen, it updates its current term.
+First, if the message is for a later term than the follower has previously seen, it updates its current term and accepts the sender of the message as leader.
 
 Next, the follower checks if its log is consistent with that of the leader.
 $\mathit{logLength}$ is the number of log entries that precede the new $\mathit{entries}$ contained in the $\mathsf{LogRequest}$ message.
 The follower requires that its log is at least as long as $\mathit{logLength}$ (i.e.\ it is not missing any entries), and that the term of the last log entry in the $\mathit{logLength}$ prefix of the follower's log is the same as the term of the same log entry on the leader.
 If both of these checks pass, the $\mathit{logOk}$ variable is set to true.
 
-If the $\mathsf{LogRequest}$ message is for the expected term and if $\mathit{logOk}$, then the follower accepts the message.
-It recognises the sender of the message as its leader (if it has not already done this before), and it calls the \textsc{AppendEntries} function (defined on \autoref{l:raft7}) to add $\mathit{entries}$ to its own log.
+If the $\mathsf{LogRequest}$ message is for the expected term and if $\mathit{logOk}$, then the follower accepts the message and calls the \textsc{AppendEntries} function (defined on \autoref{l:raft7}) to add $\mathit{entries}$ to its own log.
 It then replies to the leader with a $\mathsf{LogResponse}$ message containing the follower's ID, the current term, an acknowledgement of the number of log entries received, and the value $\mathsf{true}$ indicating that the $\mathsf{LogRequest}$ was successful.
 If the message is from an outdated term or $\mathit{logOk}$ is false, the follower replies with a $\mathsf{LogResponse}$ containing $\mathsf{false}$ to indicate an error.
 
@@ -4462,18 +4461,14 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
                 \On{receiving $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{term}, \mathit{logLength}, \mathit{logTerm},$\\\hspace{58pt}$\mathit{leaderCommit}, \mathit{entries})$ at node $\mathit{nodeId}$}
                     \If{$\mathit{term} > \mathit{currentTerm}$}
                         \State $\mathit{currentTerm} := \mathit{term};\; \mathit{votedFor} := \mathsf{null}$
-                    \EndIf
-                    \State $\mathit{logOk} := (\mathit{log}.\mathsf{length} \ge \mathit{logLength})$
-                    \If{$\mathit{logOk} \wedge (\mathit{logLength} > 0)$}
-                        \State $\mathit{logOk} := (\mathit{logTerm} = \mathit{log}[\mathit{logLength} - 1].\mathsf{term})$
-                    \EndIf
-                    \State
-                    \If{$\mathit{term} = \mathit{currentTerm} \wedge \mathit{logOk}$}
-                        % It might be that the local node is a candidate in the same term as the received LogRequest;
-                        % in this case we must transition to follower state. Strictly speaking, the next line should be
-                        % conditional only on term=currentTerm and not on logOk, but I'm putting it in the same "if"
-                        % statement to make it fit on the slide. I don't think the extra "and logOk" does any harm.
                         \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathit{leaderId}$
+                    \EndIf
+                    \If{$\mathit{term} = \mathit{currentTerm} \wedge \mathit{currentRole} = \mathsf{candidate}$}
+                        \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathit{leaderId}$
+                    \EndIf
+                    \State $\mathit{logOk} := (\mathit{log}.\mathsf{length} \ge \mathit{logLength}) \;\wedge$
+                    \State \hspace{41.5pt}$(\mathit{logLength} = 0 \vee \mathit{logTerm} = \mathit{log}[\mathit{logLength} - 1].\mathsf{term})$
+                    \If{$\mathit{term} = \mathit{currentTerm} \wedge \mathit{logOk}$}
                         \State \Call{AppendEntries}{$\mathit{logLength}, \mathit{leaderCommit}, \mathit{entries}$}
                         \State $\mathit{ack} := \mathit{logLength} + \mathit{entries}.\mathsf{length}$
                         \State \textbf{send} $(\mathsf{LogResponse}, \mathit{nodeId}, \mathit{currentTerm}, \mathit{ack}, \mathsf{true})$ to $\mathit{leaderId}$
