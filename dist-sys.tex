@@ -1,11 +1,14 @@
 % Stuff that may change from year to year; also check slide s:other-courses
-\newcommand{\coursepath}{/teaching/2021/ConcDisSys}
+\newcommand{\coursepath}{/teaching/2122/ConcDisSys}
 \newcommand{\courseurl}{\url{https://www.cst.cam.ac.uk\coursepath}}
-\newcommand{\thisyear}{2020/21}
-\newcommand{\timestampexample}{2020-11-09T09:50:17+00:00}
+\newcommand{\thisyear}{2021/22}
+\newcommand{\timestampexample}{2021-11-09T09:50:17+00:00}
 \newcommand{\whenissecurity}{Part IB Easter term}
-\newcommand{\ledgersystems}{https://www.cst.cam.ac.uk/teaching/2021/L47}
-\newcommand{\multicore}{https://www.cst.cam.ac.uk/teaching/2021/L304}
+\newcommand{\whenisnetworking}{Part IB Lent term}
+\newcommand{\networking}{https://www.cl.cam.ac.uk/teaching/2122/CompNet/}
+\newcommand{\security}{https://www.cl.cam.ac.uk/teaching/2122/Security/}
+\newcommand{\ledgersystems}{https://www.cl.cam.ac.uk/teaching/2122/R47/}
+\newcommand{\multicore}{https://www.cl.cam.ac.uk/teaching/2122/L304/}
 
 % Lecture dates for 2020:
 % 2020-11-05
@@ -49,12 +52,12 @@ Lecture videos: \url{https://www.youtube.com/playlist?list=PLeKd45zvjcDFUEv_ohr_
 \author{Dr.\ Martin Kleppmann\\mk428@cst.cam.ac.uk}
 \date{}
 \maketitle
+\tableofcontents
 
 \def\sectionautorefname{Lecture}%
 \def\subsectionautorefname{Section}%
 \def\subsubsectionautorefname{Section}%
 
-% TODO: table of contents
 % TODO: have title slide with my name, course title, university crest for each video?
 
 \section{Introduction}\label{sec:introduction}
@@ -126,7 +129,7 @@ These notes and the lecture recordings should be self-contained, but if you woul
         \emph{Introduction to Reliable and Secure Distributed Programming}.
         Second edition, Springer, 2011. ISBN 978-3-642-15259-7.
 
-        Ebook download for Cambridge users: \url{https://link.springer.com/book/10.1007/978-3-642-15260-3} then click Log in $\rightarrow$ via Shibboleth $\rightarrow$ type \emph{University of Cambridge} $\rightarrow$ log in with Raven.
+        Ebook download for Cambridge users: \url{https://link.springer.com/book/10.1007/978-3-642-15260-3} then click Log in $\rightarrow$ via your Institution $\rightarrow$ type \emph{University of Cambridge} $\rightarrow$ log in with Raven.
 
         This book is more advanced, going into depth on several important distributed algorithms, and proving their correctness.
         Recommended if you want to explore the theory in greater depth than this course covers.
@@ -140,6 +143,7 @@ These notes and the lecture recordings should be self-contained, but if you woul
         Addison-Wesley, 2003. ISBN 978-0321117892.
 
         This book provides a link to the \emph{concurrent systems} half of the course, and to operating systems topics.
+        It is now sadly out of print, but you can find copies in many college libraries.
 \end{itemize}
 
 Where appropriate, these lecture notes also contain references to research papers and other useful background reading (these are given in square brackets, and the details appear at the end of this document).
@@ -157,11 +161,8 @@ However, only material covered in the lecture notes and videos is examinable.
 \end{frame}
 \inlineslide{s:reading}{}
 
-The syllabus, slides, and lecture notes for this course have been substantially revised for 2020/21.
-This means that new mistakes may have crept in.
-If you notice anything wrong, or if anything is unclear, please let me know by email (\url{mk428@cst.cam.ac.uk})!
-
 As for other courses, past exam questions are available at \url{https://www.cl.cam.ac.uk/teaching/exams/pastpapers/t-ConcurrentandDistributedSystems.html}.
+The syllabus, slides, and lecture notes for this course were substantially updated and revised in 2020/21.
 Because of syllabus changes, the following past exam questions are no longer applicable: 2018~P5~Q8; 2015~P5~Q8; 2014~P5~Q9~(a); 2013~P5~Q9; 2011~P5~Q8~(b).
 
 These notes also contain exercises, which are suggested material for discussion in supervisions.
@@ -179,7 +180,7 @@ This course is related to several other courses in the tripos, as shown on \auto
             (inter-process communication, scheduling)
         \item \textbf{Databases} -- Part IA\\
             (many modern databases are distributed)
-        \item \textbf{Computer Networking} -- Part IB Lent term\\
+        \item \textbf{Computer Networking} -- \whenisnetworking\\
             (distributed systems involve network communication)
         \item \textbf{Further Java} -- Part IB Michaelmas\\
             (distributed programming practical exercises)
@@ -298,8 +299,8 @@ The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's
 Indeed, if you want to send a very large message (think tens of terabytes), it would be slow to send that data over the Internet, and it is in fact faster to write that data to a bunch of hard drives, load them into a van, and to drive them to their destination.
 But from a distributed systems point of view, the method of delivering the message is not important: we only see an abstract communication channel with a certain \emph{latency} (delay from the time a message is sent until it is received) and \emph{bandwidth} (the volume of data that can be transferred per unit time).
 
-The Computer Networking course in Lent term focusses on the network protocols that enable messages to get to their destination.
-The study of distributed systems builds upon that facility, and instead focusses on how several nodes should coordinate in order to achieve some shared task.
+The \href{\networking}{Computer Networking} course (\whenisnetworking) focusses on the network protocols that enable messages to get to their destination.
+Distributed systems build upon that facility, and instead focus on how several nodes should coordinate in order to achieve some shared task.
 The design of distributed algorithms is about deciding what messages to send, and how to process the messages when they are received.
 
 \begin{frame}
@@ -371,9 +372,26 @@ Besides the path, the request also contains some extra information, such as the 
 The response message contains the file that was requested, and an indicator of its file format (the \emph{content-type}); in the case of a web page, this might be a HTML document, an image, a video, a PDF document, or any other type of file.
 
 Since the requests and responses can be larger than we can fit in a single network packet, the HTTP protocol runs on top of TCP, which breaks down a large chunk of data into a stream of small network packets (see \autoref{l:wireshark}), and puts them back together again at the recipient.
+(TCP will be discussed in detail in the \href{\networking}{Computer Networking} course.)
 HTTP also allows multiple requests and multiple responses to be sent over a single TCP connection.
 However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
 This keeps things independent of the underlying networking technology.
+
+\supervision{
+    A TCP connection allows two nodes to send each other arbitrarily long sequences of bytes.
+    You decide that you want to send multiple requests and responses over the same TCP connection.
+    What do you need to do in order to implement such a request-response protocol using TCP?
+}{
+    Once you have encoded a request or response message as a sequence of bytes, you need some way for the sender of a message to tell the recipient where one request/response ends and the next one begins.
+    This is known as \emph{message framing}.
+    One way is for each message to contain a header indicating the size of the following message in bytes.
+    Another approach is to reserve a certain sequence of bytes as message separator, and ensure that this sequence cannot occur in the middle of a message (for example, HTTP uses \texttt{{\char`\\}r{\char`\\}n{\char`\\}r{\char`\\}n} as message separator for requests).
+
+    Next, to associate requests and responses, one option is to rely on ordering: the first response sent by one node corresponds to the first request sent by the other node, and so on for the second, third, etc.\ request/response (HTTP/1.1 uses this approach).
+    A downside of this approach is that if one request is slow to process, all of the following requests must wait until the slow one is complete before their responses can be sent (this is known as \emph{head-of-line blocking}).
+    An alternative is to give each request a unique ID of some sort, and for each response to quote the ID of the request it is responding to.
+    That allows the responses to be sent in a different order from the requests, which means a response can be sent as soon as it is ready, without waiting for other requests (HTTP/2 works like this).
+}
 
 \begin{frame}[plain]
     \label{s:wireshark}
@@ -384,9 +402,6 @@ This keeps things independent of the underlying networking technology.
 \inlineslide{s:wireshark}{}\label{l:wireshark}
 
 \subsection{Example: Remote Procedure Calls (RPC)}\label{sec:rpc}
-
-Another example of an everyday distributed system is when you buy something online using a credit/debit card.
-When you enter your card number in some online shop, that shop will send a payment request over the Internet to a service that specialises in processing card payments.
 
 \begin{frame}
     \label{s:payment-example}
@@ -403,6 +418,9 @@ When you enter your card number in some online shop, that shop will send a payme
     \end{center}
 \end{frame}
 \inlineslide{s:payment-example}{\href{https://www.youtube.com/watch?v=S2osKiqQG9s&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=3}{Start of video section 1.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/09.3_Remote_Procedure_Call.mp4}{mp4 download})}
+
+Another example of an everyday distributed system is when you buy something online using a credit/debit card.
+When you enter your card number in some online shop, that shop will send a payment request over the Internet to a service that specialises in processing card payments.
 
 The payments service in turn communicates with a card network such as Visa or MasterCard, which communicates with the bank that issued your card in order to take the payment.
 
@@ -494,9 +512,13 @@ Thus, to the caller of the stub, it looks as if the function had executed locall
 \end{frame}
 \inlineslide{s:rpc-problems}{}
 
+The difficulty with RPC is that many things can go wrong, as networks and nodes might fail.
+If the client sends an RPC request but receives no response, it doesn't know whether or not the server received and processed the request.
+It could resend the request if it doesn't hear back for a while, but that might cause the request to be performed more than once (e.g.\ charging a credit card twice).
+Even if we retry, there is no guarantee that the retried messages will get through either.
+Waiting forever is not a good approach, so in practice the client will have to give up after some timeout.
+
 \supervision{
-    Networks and nodes might fail.
-    What are the implications for code that calls another node through RPC?
     How is RPC different from a local function call?
     Is location transparency achievable?
 }{
@@ -544,7 +566,7 @@ These principles include:
     \item resources (objects that can be inspected and manipulated) are represented by URLs, and
     \item the state of a resource is updated by making a HTTP request with a standard method type, such as \texttt{POST} or \texttt{PUT}, to the appropriate URL.
 \end{itemize}
-The popularity of REST is due to the fact that JavaScript code running in a web browser can easily make this type of HTTP request, as shown in \autoref{l:javascript-rpc}.
+The popularity of REST is due to the fact that JavaScript code running in a web browser can easily make this type of HTTP request, as shown on \autoref{l:javascript-rpc}.
 In modern websites it is very common to use JavaScript to make HTTP requests to a server without reloading the whole page.
 This technique is sometimes known as \emph{Ajax}.
 
@@ -594,13 +616,6 @@ The details of the language are not important for this course.
 \end{frame}
 \inlineslide{s:rpc-idl}{}\label{l:rpc-idl}
 
-% If the client sends the RPC request but receives no response, it doesn't know whether or not the server received and processed the request.
-% It could resend the request if it doesn't hear back for a while, but that might cause the request to be performed more than once (e.g.\ charging a credit card twice), unless we take care to make the request idempotent.
-% But even if we retry, there is no guarantee that the retried messages will get through either.
-%
-% Waiting forever is not a good approach, so in practice we have to give up after some timeout.
-% As the client has not received a response, the RPC stub will not be able to return a value of the function's return type, but rather it will need to somehow indicate to the calling code that a timeout occurred, e.g.\ by throwing an exception.
-
 \section{Models of distributed systems}\label{sec:system-models}
 
 \begin{frame}
@@ -617,16 +632,8 @@ To illustrate common system models, we will start this section by looking at two
 \subsection{The two generals problem}\label{sec:two-generals}
 
 In the two generals problem \citep{Gray:1978}, we imagine two generals, each leading an army, who want to capture a city.
-(Apologies for the militaristic analogy~-- I didn't come up with it!)
 The city's defences are strong, and if only one of the two armies attacks, the army will be defeated.
 However, if both armies attack at the same time, they will successfully capture the city.
-
-% A less militaristic analogy: The Romeo-and-Juliet problem.
-% R&J want to secretly meet in the forest and need to agree on a date. But if
-% only one of them arrives, the other becomes desperate and a tragedy occurs.
-% Unfortunately, their way of communication via doves is not very reliable.
-% They get distracted or lost or shot...
-% https://twitter.com/anne_biene/status/1386975750671187970
 
 \begin{frame}
     \label{s:two-generals}
@@ -659,7 +666,13 @@ Thus, the two generals need to coordinate their attack plan.
 This is made difficult by the fact that the two armies are camped some distance apart, and they can only communicate by messenger.
 The messengers must pass through territory controlled by the city, and so they are sometimes captured.
 Thus, a message sent by one general may or may not be received by the other general, and the sender does not know whether their message got through, except by receiving an explicit reply from the other party.
-If a general does not receive any messages, it is impossible to tell whether this is because the other general didn't send any messages, or because all messengers were captured.
+If a general does not receive any messages, it is impossible to tell whether this is because the other general didn't send any messages, or because all messengers were captured.\footnote{I am not a fan of this militaristic analogy, but we will stick with ``two generals'' since the problem is well-known under that name.
+Here is an alternative formulation, thanks to \href{https://twitter.com/anne_biene/status/1386975750671187970}{Annette Bieniusa}:
+Romeo and Juliet want to secretly meet in the forest and need to agree on a date.
+But if only one of them arrives at the meeting place, he or she becomes desperate and a tragedy occurs.
+It is therefore essential that they both go to the forest on the same date.
+Unfortunately, their way of communication via doves is not very reliable.
+The doves often get distracted or lost or shot\dots}
 
 \begin{frame}
     \label{s:two-generals-comms}
@@ -780,13 +793,17 @@ Again generals communicate by messengers, although this time we assume that if a
 \inlineslide{s:byzantine-generals}{\href{https://www.youtube.com/watch?v=LoGx_ldRBU0&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=5}{Start of video section 2.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.2_Byzantine_generals_problem.mp4}{mp4 download})}\label{l:byzantine-generals}
 
 The challenge in the Byzantine setting is that some generals might be ``traitors'': that is, they might try to deliberately and maliciously mislead and confuse the other generals.
+We call the traitors \emph{malicious}, and the others \emph{honest}.
 One example of such malicious behaviour is shown on \autoref{l:byzantine-generals-comms}: here, general 3 receives two contradictory messages from generals 1 and 2.
 General 1 tells general 3 to attack, whereas general 2 claims that general 1 ordered a retreat.
 It is impossible for general 3 to determine whether general 2 is lying (the first case), or whether general 2 is honest while general 1 is issuing contradictory orders (the second case).
 
+% TODO: this example does not apply if we can use digital signatures.
+% Use a better example: general 2 agrees to one attack date when talking to general 1, and a different date when talking to general 3.
+
 \begin{frame}
     \label{s:byzantine-generals-comms}
-    \frametitle{Generals that might lie}
+    \frametitle{Generals who might lie}
     \begin{center}
         \begin{tikzpicture}
             \node [rectangle,fill=red!10,draw] (gen1) at (0,2.6) {general 1};
@@ -818,9 +835,9 @@ It is impossible for general 3 to determine whether general 2 is lying (the firs
 The honest generals don't know who the malicious generals are, but the malicious generals may collude and secretly coordinate their actions.
 We might even assume that all of the malicious generals are controlled by an evil adversary.
 The Byzantine generals problem is then to ensure that all honest generals agree on the same plan (e.g.\ whether to attack or to retreat).
-It is impossible to specify what the malicious generals are going to do, so the best we can manage is to get the honest generals to agree.
+By definition, it is impossible to specify what the malicious generals are going to do, so the best we can manage is to get the honest generals to agree.
 
-This is difficult: in fact, it can be proved that some variants of the problem can be solved only if strictly fewer than one third of the generals are malicious.
+This is difficult: in fact, in a system with malicious generals and unpredictable communication delays, it can be proved that the Byzantine generals problem can be solved only if strictly fewer than one third of the generals are malicious \citep[Theorem 4.4]{Dwork:1988dr}.
 That is, in a system with $3f+1$ generals, no more than $f$ may be malicious.
 For example, a system with 4 generals can tolerate $f=1$ malicious general, and a system with 7 generals can tolerate $f=2$.
 
@@ -828,7 +845,8 @@ For example, a system with 4 generals can tolerate $f=1$ malicious general, and 
     \label{s:byzantine-discussion}
     \frametitle{The Byzantine generals problem}
     \begin{itemize}
-        \item Up to $f$ generals might behave maliciously\\[0.5em]
+        \item Each general is either \emph{malicious} or \emph{honest}\\[0.5em]
+        \item Up to $f$ generals might be malicious\\[0.5em]
         \item Honest generals don't know who the malicious ones are\\[0.5em]
         \item The malicious generals may collude\\[0.5em]
         \item Nevertheless, honest generals must agree on plan\\[2em]\pause
@@ -838,8 +856,8 @@ For example, a system with 4 generals can tolerate $f=1$ malicious general, and 
 \end{frame}
 \inlineslide{s:byzantine-discussion}{}
 
-The problem is made somewhat easier if generals use cryptography (\emph{digital signatures}) to prove who said what: for example, this would allow general 2 to prove to general 3 what general 1's order was, and thus demonstrate general 2's honesty.
-We will not go into details of digital signatures in this course, as they are covered in the Security course (\whenissecurity).
+The problem is made somewhat easier if generals use cryptography (\emph{digital signatures}) to prove who said what: for example, this would allow general 2 to prove to general 3 what general 1's order was.
+We will not go into details of digital signatures in this course, as they are covered in the \href{\security}{Security} course (\whenissecurity).
 However, even with signatures, the Byzantine generals problem remains challenging.
 
 Is the Byzantine generals problem of practical relevance?
@@ -872,6 +890,10 @@ The Byzantine generals problem is a simplification of such complex trust relatio
     \end{center}
 \end{frame}
 \inlineslide{s:byzantine-payment}{}\label{l:byzantine-payment}
+
+In distributed systems, some systems explicitly deal with the possibility that some nodes may be controlled by a malicious actor, and such systems are called \emph{Byzantine fault tolerant}.
+This idea has become popular in recent years in the context of blockchains and cryptocurrencies, which aim to provide certain guarantees even if some of the participants of the system are actively trying to cheat or undermine it.
+We will return to this topic in \autoref{sec:broadcast-replication}.
 
 Before we move on, a brief digression about the origin of the word ``Byzantine''.
 The term comes from the Byzantine empire, named after its capital city Byzantium or Constantinople, which is now Istanbul in Turkey.
@@ -980,10 +1002,20 @@ The TCP protocol, which we discussed briefly in \autoref{sec:networking}, perfor
 However, TCP is usually configured with a timeout, so it will give up and stop retrying after a certain time, typically on the order of one minute.
 To overcome network partitions that last for longer than this duration, a separate retry and deduplication mechanism needs to be implemented in addition to that provided by TCP.
 
+\supervision{
+    Say you have a client-server RPC system in which a client repeats an RPC request until it receives a response.
+    How could the server deduplicate the requests?
+}{
+    When the server receives several identical requests, it needs to somehow determine whether they are duplicates, or whether the client really wanted the action to take place several times.
+    One solution is for the client to attach a unique identifier to each distinct request, and to include the same identifier in all retries of that request.
+    The server can then keep track of all request identifiers it has processed, and ignore any requests with identifiers it has already seen.
+    This approach has the effect of making the RPC \emph{idempotent}, which we will discuss further in Lecture 5.
+}
+
 An arbitrary link is an accurate model for communication over the Internet: whenever your communication is routed through a network (be it a coffee shop wifi or an Internet backbone network), the operator of that network can potentially interfere with and manipulate your network packets in arbitrary ways.
 Someone who manipulates network traffic is also known as an \emph{active adversary}.
 Fortunately, it is \emph{almost} possible to turn an arbitrary link into a fair-loss link using cryptographic techniques.
-The \emph{Transport Layer Security} (TLS) protocol, which provides the ``s'' for ``secure'' in \verb|https://|, prevents an active adversary from eavesdropping, modifying, spoofing, or replaying traffic (more on this in the Security course, \whenissecurity).
+The \emph{Transport Layer Security} (TLS) protocol, which provides the ``s'' for ``secure'' in \verb|https://|, prevents an active adversary from eavesdropping, modifying, spoofing, or replaying traffic (more on this in the \href{\security}{Security} course, \whenissecurity).
 
 The only thing that TLS cannot prevent is the adversary dropping (blocking) communication.
 Thus, an arbitrary link can be converted into a fair-loss link only if we assume that the adversary does not block communication forever.
@@ -1003,7 +1035,8 @@ This brings us to the topic of node crashes.
             After crashing, it stops executing forever.\pause
         \item \textbf{Crash-recovery} (fail-recovery):\\
             A node may crash at any moment, losing its in-memory state.
-            It may resume executing sometime later.\pause
+            It may resume executing sometime later.\\
+            Data stored on disk survives the crash.\pause
         \item \textbf{Byzantine} (fail-arbitrary):\\
             A node is faulty if it deviates from the algorithm.\\
             Faulty nodes may do anything, including crashing or malicious behaviour.\\[1em]
@@ -1017,12 +1050,16 @@ This is a reasonable model for an unrecoverable hardware fault, or for the situa
 With a software crash, the crash-stop model might seem unrealistic, because we can just restart the node, after which it will recover.
 Nevertheless, some algorithms assume a crash-stop model, since that makes the algorithm simpler.
 In this case, a node that crashes and recovers would have to re-join the system as a new node.
+
 Alternatively, the \emph{crash-recovery} model explicitly allows nodes to restart and resume processing after a crash.
+When a node crashes and restarts, we assume that all of its in-memory state is lost, but any data it has stored persistently on disk is preserved.
+The model makes no assumptions about how long it may take for a crashed node to recover, and it is possible for a crashed node to never recover.
 
 Finally, the \emph{Byzantine} model is the most general model of node behaviour: as in the Byzantine generals problem, a faulty node may not only crash, but also deviate from the specified algorithm in arbitrary ways, including exhibiting malicious behaviour.
 A bug in the implementation of a node could also be classed as a Byzantine fault.
 However, if all of the nodes are running the same software, they will all have the same bug, and so any algorithm that is predicated on less than one third of nodes being Byzantine-faulty will not be able to tolerate such a bug.
 In principle, we could try using several different implementations of the same algorithm, but this is rarely a practical option.
+We therefore usually reserve the term \emph{Byzantine} when referring to deliberate deviation from the protocol, and not for bugs.
 
 In the case of the network, it was possible to convert one model to another using generic protocols.
 This is not the case with the different models of node behaviour.
@@ -1049,9 +1086,12 @@ For instance, an algorithm designed for a crash-recovery system model may look v
 
 The third part of a system model is the synchrony assumption, which is about timing.
 The three choices we can make here are \emph{synchronous}, \emph{asynchronous}, or \emph{partially synchronous} \citep{Dwork:1988dr}.
-(Note that the definitions of these terms differ somewhat across different parts of computer science; our definitions here are standard in the field of distributed computing.)
 
-% TODO explain that synchronous/asynchronous are also used e.g. in the context of RPC, in which case "synchronous" means "caller thread waits until response is received", and "asynchronous" means "caller thread continues doing other stuff (potentially making further RPC requests) while RPC is in progress"
+\begin{mdframed}
+Note: confusingly, these terms are also used with a different meaning in other contexts.
+For example, in the context of RPC and I/O operations, ``synchronous'' often means ``the caller blocks/waits for the operation to complete'', and ``asynchronous'' means ``the caller continues executing after issuing a request, without waiting for the result''.
+It's unfortunate that the same words are used with different meanings, but since these terms are widely used in the literature, we will stick with the standard terminology.
+\end{mdframed}
 
 A synchronous system is what we would love to have: a message sent over the network never takes longer than some known maximum latency, and nodes always execute their algorithm at a predictable speed.
 Many problems in distributed computing are much easier if you assume a synchronous system.
@@ -1103,6 +1143,10 @@ In a distributed system, this is particularly problematic, because for one node,
 Other nodes may even notice that the paused node is not responding, and assume that it has crashed.
 After a while, the paused node resumes processing, without even realising that it was paused for a significant period of time.
 
+Note that these execution pauses are not the same as a crash and restart as discussed on \autoref{l:model-nodes}.
+When an executing process or thread is paused, it normally does not notice it has been paused, unless it regularly checks the system clock to measure elapsed time.
+On the other hand, a restart is explicitly handled by the program, since its in-memory state is lost during the crash, and on restart it may load its persistent state from disk.
+
 Combined with the many reasons for variable network latency, this means that in practical systems, it is very rarely safe to assume a synchronous system model.
 Most distributed algorithms need to be designed for the asynchronous or partially synchronous model.
 
@@ -1128,16 +1172,6 @@ Most distributed algorithms need to be designed for the asynchronous or partiall
 As highlighted on \autoref{l:why-distribute}, one reason for building distributed systems is to achieve higher reliability than is possible with a single computer.
 We will now explore this idea further in the light of the system models we have discussed.
 
-From a business point of view, what usually matters most is the \emph{availability} of a service, such as a website.
-For example, an online shop wants to be able to sell products at any time of day or night: any outage of the website means a lost opportunity to make money.
-For other services, there may even be contractual agreements with customers requiring the service to be available.
-If a service is unavailable, this can also damage the reputation of the service provider.
-
-The availability of a service is typically measured in terms of its ability to respond correctly to requests within a certain time.
-The definition of whether a service is ``available'' or ``unavailable'' can be somewhat arbitrary: for example, if it takes 5 seconds to load a page, do we still consider that website to be available?
-What if it takes 30 seconds?
-An hour?
-
 \begin{frame}
     \label{s:availability}
     \frametitle{Availability}
@@ -1154,6 +1188,16 @@ An hour?
     \textbf{Service-Level Agreement} (SLA):\\ contract specifying some SLO, penalties for violation
 \end{frame}
 \inlineslide{s:availability}{\href{https://www.youtube.com/watch?v=43TDfUNsM3E&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=7}{Start of video section 2.4}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.4_Fault_tolerance.mp4}{mp4 download})}\label{l:availability}
+
+From a business point of view, what usually matters most is the \emph{availability} of a service, such as a website.
+For example, an online shop wants to be able to sell products at any time of day or night: any outage of the website means a lost opportunity to make money.
+For other services, there may even be contractual agreements with customers requiring the service to be available.
+If a service is unavailable, this can also damage the reputation of the service provider.
+
+The availability of a service is typically measured in terms of its ability to respond correctly to requests within a certain time.
+The definition of whether a service is ``available'' or ``unavailable'' can be somewhat arbitrary: for example, if it takes 5 seconds to load a page, do we still consider that website to be available?
+What if it takes 30 seconds?
+An hour?
 
 Typically, the availability expectations of a service are formalised as a \emph{service-level objective} (SLO), which typically specifies the percentage of requests that need to return a correct response within a specified timeout, as measured by a certain client over a certain period of time.
 A \emph{service-level agreement} (SLA) is a contract that specifies some SLO, as well as the consequences if the SLO is not met (for example, the service provider may need to offer a refund to its customers).
@@ -1173,20 +1217,21 @@ Instead, fault tolerance is the approach taken by many distributed systems.
         \item Network fault: dropping or significantly delaying messages\\[1em]
     \end{itemize}
     \textbf{Fault tolerance}:\\system as a whole continues working, despite faults\\
-    (some maximum number of faults assumed)\\[1em]
+    (up to some maximum number of faults)\\[1em]
     \textbf{Single point of failure} (SPOF):\\ node/network link whose fault leads to failure
 \end{frame}
 \inlineslide{s:fault-tolerance}{}\label{l:fault-tolerance}
 
-If all nodes crash and don't recover, then no algorithm will be able to get any work done, so it does not make sense to tolerate arbitrary numbers of faults.
-Rather, an algorithm is designed to tolerate some specified number of faults: for example, some distributed algorithms are able to make progress provided that fewer than half of the nodes have crashed.
+Fault tolerance is always relative to the maximum number of faults that can be tolerated: for example, some distributed algorithms are able to make progress provided that fewer than half of the nodes have crashed, but they stop working if more than half the nodes crash.
+It does not make sense to want to tolerate an unlimited number of faults: if all nodes crash and don't recover, then no algorithm will be able to get any work done, no matter how clever it might be.
 
-In fault-tolerant systems we want to avoid \emph{single points of failure} (SPOF), i.e.\ components that would cause an outage if they were to become faulty.
+In some systems, a single component becoming faulty would cause an outage of the entire system.
+Such a component is called a \emph{single point of failure} (SPOF), and fault-tolerant generally systems try to avoid having any SPOF.
 For example, the Internet is designed to have no SPOF: there is no one server or router whose destruction would bring down the entire Internet (although the loss of some components, such as key intercontinental fibre links, does cause noticeable disruption).
 % Also BGP hijacking...
 
 The first step towards tolerating faults is to detect faults, which is often done with a \emph{failure detector}.
-(``Fault detector'' would be more logical, but ``failure detector'' is the conventional term.)
+(``Fault detector'' would be a more logical name, but ``failure detector'' is the conventional term.)
 A failure detector usually detects crash faults.
 Byzantine faults are not always detectable, although in some cases Byzantine behaviour does leave evidence that can be used to identify and exclude malicious nodes.
 
@@ -1227,7 +1272,7 @@ However, there is a useful failure detector that exists in partially synchronous
 We will see later how to use such a failure detector to design fault-tolerance mechanisms and to automatically recover from node crashes.
 Using such algorithms it is possible to build systems that are highly available.
 Tolerating crashes also makes day-to-day operations easier: for example, if a service can tolerate one out of three nodes being unavailable, then a software upgrade can be rolled out by installing it and restarting one node at a time, while the remaining two nodes continue running the service.
-Being able to roll out software upgrades in this way, without clients noticing any interruption, is important for many organisations that are continually working on their software.
+Being able to roll out software upgrades in this way, without clients noticing any interruption, is important for many organisations that are continually working to improve their software.
 
 %\begin{frame}
     %\label{s:availability-discuss}
@@ -1237,7 +1282,7 @@ Being able to roll out software upgrades in this way, without clients noticing a
 %\inlineslide{s:availability-discuss}{}\label{l:availability-discuss}
 
 For safety-critical applications, such as air-traffic control systems, it is undoubtedly important to invest in good fault-tolerance mechanisms.
-However, it is not the case that higher availability is always better.
+However, it is not always the case that higher availability is better.
 Reaching extremely high availability requires a highly focussed engineering effort, and often conservative design choices.
 For example, the old-fashioned fixed-line telephone network is designed for ``five nines'' availability, but the downside of this focus on availability is that it has been very slow to evolve.
 Most Internet services do not even reach four nines because of diminishing returns: beyond some point, the additional cost of achieving higher availability exceeds the cost of occasional downtime, so it is economically rational to accept a certain amount of downtime.
@@ -1283,7 +1328,6 @@ Most Internet services do not even reach four nines because of diminishing retur
     If so, the information about such in-progress operations will also need to be written to non-volatile storage.
 }
 
-\newpage
 \section{Time, clocks, and ordering of events}\label{sec:time}
 
 \begin{frame}
