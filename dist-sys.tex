@@ -385,7 +385,7 @@ This keeps things independent of the underlying networking technology.
     Once you have encoded a request or response message as a sequence of bytes, you need some way for the sender of a message to tell the recipient where one request/response ends and the next one begins.
     This is known as \emph{message framing}.
     One way is for each message to contain a header indicating the size of the following message in bytes.
-    Another approach is to reserve a certain sequence of bytes as message separator, and ensure that this sequence cannot occur in the middle of a message (for example, HTTP uses \texttt{{\char`\\}r{\char`\\}n{\char`\\}r{\char`\\}n} as message separator for requests).
+    Another approach is to reserve a certain sequence of bytes as message separator, and ensure that this sequence cannot occur in the middle of a message (for example, HTTP/1.1 uses \texttt{{\char`\\}r{\char`\\}n{\char`\\}r{\char`\\}n} as message separator for requests).
 
     Next, to associate requests and responses, one option is to rely on ordering: the first response sent by one node corresponds to the first request sent by the other node, and so on for the second, third, etc.\ request/response (HTTP/1.1 uses this approach).
     A downside of this approach is that if one request is slow to process, all of the following requests must wait until the slow one is complete before their responses can be sent (this is known as \emph{head-of-line blocking}).
@@ -1381,10 +1381,10 @@ All of these require more or less accurate measurements of time.
 
 \subsection{Physical clocks}\label{sec:physical-clocks}
 
-% Physical clocks are sometimes also called wall clocks, even though they need not be attached to an actual wall
-We will start by discussing \emph{physical clocks}, which are the types of clocks you are familiar with from everyday usage.
-Physical clocks include analogue/mechanical clocks based on pendulums or similar mechanisms, and digital clocks based e.g.\ on a vibrating quartz crystal.
+\emph{Physical clocks} measure the time in seconds.
+They include analogue/mechanical clocks based on pendulums or similar mechanisms, and digital clocks based e.g.\ on a vibrating quartz crystal.
 Quartz clocks are found in most wristwatches, in every computer and mobile phone, in microwave ovens that display the time, and many other everyday objects.
+Physical clocks are sometimes also called wall clocks, even though they need not be attached to an actual wall.
 
 \begin{frame}
     \label{s:quartz-clocks}
@@ -1436,6 +1436,10 @@ The rate by which a clock runs fast or slow is called \emph{drift}.
 \end{frame}
 \inlineslide{s:quartz-drift}{}\label{l:quartz-drift}
 
+When greater accuracy is required, atomic clocks are used.
+These clocks are based on quantum-mechanical properties of certain atoms, such as caesium or rubidium.
+In fact, the time unit of \emph{one second} in the International System of Units (SI) is defined to be exactly 9,192,631,770 periods of a particular resonant frequency of the caesium-133 atom.
+
 \begin{frame}
     \label{s:atomic-clocks}
     \frametitle{Atomic clocks}
@@ -1457,9 +1461,11 @@ The rate by which a clock runs fast or slow is called \emph{drift}.
 \end{frame}
 \inlineslide{s:atomic-clocks}{}\label{l:atomic-clocks}
 
-When greater accuracy is required, atomic clocks are used.
-These clocks are based on quantum-mechanical properties of certain atoms, such as caesium or rubidium.
-In fact, the time unit of \emph{one second} in the International System of Units (SI) is defined to be exactly 9,192,631,770 periods of a particular resonant frequency of the caesium-133 atom.
+Another high-accuracy method of obtaining the time is to rely on the GPS satellite positioning system, or similar systems such as Galileo or GLONASS.
+These systems work by having several satellites orbiting the Earth and broadcasting the current time at very high resolution.
+Receivers measure the time it took the signal from each satellite to reach them, and use this to compute their distance from each satellite, and hence their location.
+By connecting a GPS receiver to a computer, it is possible to obtain a clock that is accurate to within a fraction of a microsecond, provided that the receiver is able to get a clear signal from the satellites.
+In a datacenter, there is generally too much electromagnetic interference to get a good signal, so a GPS receiver requires an antenna on the roof of the datacenter building.
 
 \begin{frame}
     \label{s:gps-time}
@@ -1482,15 +1488,17 @@ In fact, the time unit of \emph{one second} in the International System of Units
 \end{frame}
 \inlineslide{s:gps-time}{}\label{l:gps-time}
 
-Another high-accuracy method of obtaining the time is to rely on the GPS satellite positioning system, or similar systems such as Galileo or GLONASS.
-These systems work by having several satellites orbiting the Earth and broadcasting the current time at very high resolution.
-Receivers measure the time it took the signal from each satellite to reach them, and use this to compute their distance from each satellite, and hence their location.
-By connecting a GPS receiver to a computer, it is possible to obtain a clock that is accurate to within a fraction of a microsecond, provided that the receiver is able to get a clear signal from the satellites.
-In a datacenter, there is generally too much electromagnetic interference to get a good signal, so a GPS receiver requires an antenna on the roof of the datacenter building.
-
-We now have a problem: we have two different definitions of time~-- one based on quantum mechanics, the other based on astronomy~-- and those two definitions don't match up precisely.
+The system of time measurement based on atomic clocks (International Atomic Time, TAI) works well, but it is disconnected from our everyday perception of time, which is based around sunrise and sunset.
 One rotation of planet Earth around its own axis does not take exactly $24 \times 60 \times 60 \times \text{9,192,631,770}$ periods of caesium-133's resonant frequency.
 In fact, the speed of rotation of the planet is not even constant: it fluctuates due to the effects of tides, earthquakes, glacier melting, and some unexplained factors.
+We now have a problem: we have two different definitions of time~-- one based on quantum mechanics, the other based on astronomy~-- and those two definitions don't match up precisely.
+
+The solution is \emph{Coordinated Universal Time} (UTC), which is based on atomic time, but includes corrections to account for variations in the Earth's rotation.
+In everyday life we use our local \emph{time zone}, which is specified as an offset to UTC.
+
+The UK's local time zone is called \emph{Greenwich Mean Time} (GMT) in winter, and \emph{British Summer Time} (BST) in summer, where GMT is defined to be equal to UTC, and BST is defined to be UTC~+~1~hour.
+Confusingly, the term \emph{Greenwich Mean Time} was originally used to refer to mean solar time on the Greenwich meridian, i.e.\ it used to be defined in terms of astronomy, while now it is defined in terms of atomic clocks.
+Today, the term \emph{UT1} is used to refer to mean solar time at 0{\textdegree} longitude.
 
 \begin{frame}
     \label{s:utc}
@@ -1514,13 +1522,6 @@ In fact, the speed of rotation of the planet is not even constant: it fluctuates
 
 % Earth has slowed down, so there might not be another leap second for a while:
 % https://fanf.dreamwidth.org/133823.html
-
-The solution is \emph{Coordinated Universal Time} (UTC), which is based on atomic time, but includes corrections to account for variations in the Earth's rotation.
-In everyday life we use our local \emph{time zone}, which is specified as an offset to UTC.
-
-The UK's local time zone is called \emph{Greenwich Mean Time} (GMT) in winter, and \emph{British Summer Time} (BST) in summer, where GMT is defined to be equal to UTC, and BST is defined to be UTC~+~1~hour.
-Confusingly, the term \emph{Greenwich Mean Time} was originally used to refer to mean solar time on the Greenwich meridian, i.e.\ it used to be defined in terms of astronomy, while now it is defined in terms of atomic clocks.
-Today, the term \emph{UT1} is used to refer to mean solar time at 0{\textdegree} longitude.
 
 The difference between UTC and TAI is that UTC includes \emph{leap seconds}, which are added as needed to keep UTC roughly in sync with the rotation of the Earth.
 
@@ -1546,11 +1547,6 @@ Due to leap seconds, it is not true that an hour always as 3600 seconds, and a d
 In the UTC timescale, a day can be 86,399 seconds, 86,400 seconds, or 86,401 seconds long due to a leap second.
 This complicates software that needs to work with dates and times.
 
-In computing, a \emph{timestamp} is a representation of a particular point in time.
-Two representations of timestamps are commonly used: Unix time and ISO~8601.
-For Unix time, zero corresponds to the arbitrarily chosen date of 1 January 1970, known as the \emph{epoch}.
-There are minor variations: for example, Java's \verb|System.currentTimeMillis()| is like Unix time, but uses milliseconds rather than seconds.
-
 \begin{frame}
     \label{s:time-representation}
     \frametitle{How computers represent timestamps}
@@ -1569,6 +1565,11 @@ There are minor variations: for example, Java's \verb|System.currentTimeMillis()
     \end{itemize}
 \end{frame}
 \inlineslide{s:time-representation}{}\label{l:time-representation}
+
+In computing, a \emph{timestamp} is a representation of a particular point in time.
+Two representations of timestamps are commonly used: Unix time and ISO~8601.
+For Unix time, zero corresponds to the arbitrarily chosen date of 1 January 1970, known as the \emph{epoch}.
+There are minor variations: for example, Java's \verb|System.currentTimeMillis()| is like Unix time, but uses milliseconds rather than seconds.
 
 To be correct, software that works with timestamps needs to know about leap seconds.
 For example, if you want to calculate how many seconds elapsed between two timestamps, you need to know how many leap seconds were inserted between those two dates.
@@ -1590,7 +1591,7 @@ The documentation is silent about this question.
 
 Poor handling of the leap second on 30 June 2012 is what caused the simultaneous failures of many services on that day (\autoref{l:mystery}).
 Due to a bug in the Linux kernel, the leap second had a high probability of triggering a livelock condition when running a multithreaded process \citep{Allen:2013,Minar:2012}.
-Even a reboot did not fix the problem instead, but setting the system clock reset the bad state in the kernel.
+Even a reboot did not fix the problem, but setting the system clock reset the bad state in the kernel.
 
 \begin{frame}
     \label{s:leap-second-handling}
@@ -1635,6 +1636,7 @@ However, it is a pragmatic alternative to making all software aware of and robus
     Our department's Markus Kuhn tried to get this standardised in 2006: \url{https://www.cl.cam.ac.uk/~mgk25/time/utc-sls/}
 }
 
+\newpage
 \subsection{Clock synchronisation and monotonic clocks}\label{sec:clock-sync}
 
 \begin{frame}
@@ -1651,9 +1653,8 @@ However, it is a pragmatic alternative to making all software aware of and robus
 \inlineslide{s:clock-sync}{\href{https://www.youtube.com/watch?v=mAyW-4LeXZo&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=9}{Start of video section 3.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/11.2_Clock_synchronisation.mp4}{mp4 download})}\label{l:clock-sync}
 
 Atomic clocks are too expensive and bulky to build into every computer and phone, so quartz clocks are used.
-As discussed on \autoref{l:quartz-drift}, these clocks drift, and need adjustment from time to time.
-The most common approach is to use the \emph{Network Time Protocol} (NTP).
-All mainstream operating systems have NTP clients built in; for example, \autoref{l:ntp-config} shows the NTP settings dialog in macOS.
+Since these clocks drift, they need adjustment from time to time, which is most commonly done using the \emph{Network Time Protocol} (NTP).
+All mainstream operating systems have NTP clients built in.
 
 \begin{frame}
     \label{s:ntp-config}
@@ -2050,7 +2051,7 @@ Whether one event truly ``caused'' another is a philosophical question that we d
     \uncover<6->{Let $\prec$ be a strict total order on events.\\
     If $(a \rightarrow b) \Longrightarrow (a \prec b)$ then $\prec$ is a \textbf{causal order}\\
     (or: $\prec$ is ``consistent with causality'').\\
-    NB. ``causal'' $\neq$ ``casual''!}
+    \textbf{NB.} ``causal'' $\neq$ ``casual''!}
 \end{frame}
 \inlineslide{s:causality}{}\label{l:causality}
 
@@ -2076,7 +2077,6 @@ In distributed systems, we usually work with messages on a network rather than b
 
 In this lecture we will examine \emph{broadcast protocols} (also known as \emph{multicast protocols}), that is, algorithms for delivering one message to multiple recipients.
 These are a useful building blocks for higher-level distributed algorithms, as we will see in \autoref{sec:replication}.
-
 Several different broadcast protocols are used in practice, and their main difference is the \emph{order} in which they deliver messages.
 As we saw in the last lecture, the concept of ordering is closely related to clocks and time.
 Hence we will start this lecture by examining more closely how clocks can help us keep track of ordering within a distributed system.
@@ -2084,12 +2084,6 @@ Hence we will start this lecture by examining more closely how clocks can help u
 \subsection{Logical time}\label{sec:logical-time}
 
 \againframe<3>{physical-order}
-
-Physical clocks, which we discussed in \autoref{sec:physical-clocks}, measure the number of seconds elapsed.
-However, recall that on \autoref{l:physical-order}, we saw that timestamps from physical clocks can be inconsistent with causality, even if those clocks are synchronised using something like NTP.
-That is, if $\mathsf{send}(m)$ is the event of sending message $m$, and if the happens-before relation indicates that $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$, then it could nevertheless be the case that the the physical timestamp of $\mathsf{send}(m_1)$ (according to the clock of $m_1$'s sender) is less than the physical timestamp of $\mathsf{send}(m_2)$ (according to the clock of $m_2$'s sender).
-
-In contrast, \emph{logical clocks} focus on correctly capturing the order of events in a distributed system.
 
 \begin{frame}
     \label{s:logical-clocks}
@@ -2109,6 +2103,10 @@ In contrast, \emph{logical clocks} focus on correctly capturing the order of eve
 \end{frame}
 \inlineslide{s:logical-clocks}{\href{https://www.youtube.com/watch?v=x-D8iFU1d-o&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=11}{Start of video section 4.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/12.1_Logical_time.mp4}{mp4 download})}\label{l:logical-clocks}
 
+Recall that on \autoref{l:physical-order}, we saw that timestamps from physical clocks can be inconsistent with causality, even if those clocks are synchronised using something like NTP.
+That is, if $\mathsf{send}(m)$ is the event of sending message $m$, and if the happens-before relation indicates that $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$, then it could nevertheless happen that the the physical timestamp of $\mathsf{send}(m_1)$ (according to the clock of $m_1$'s sender) is less than the physical timestamp of $\mathsf{send}(m_2)$ (according to the clock of $m_2$'s sender).
+
+In contrast, \emph{logical clocks} focus on correctly capturing the order of events in a distributed system.
 The first type of logical clock we will examine is the Lamport clock, introduced by \citet{Lamport:1978} in one of the seminal papers of distributed computing.
 
 \begin{frame}
@@ -2354,9 +2352,8 @@ If we do want to detect when events are concurrent, we need a different type of 
 While Lamport timestamps are just a single integer (possibly with a node name attached), vector timestamps are a list of integers, one for each node in the system.
 By convention, if we put the $n$ nodes into a vector $\langle N_1, N_2, \dots, N_n \rangle$, then a vector timestamp is a similar vector $\langle t_1, t_2, \dots, t_n \rangle$ where $t_i$ is the entry corresponding to node $N_i$.
 Concretely, $t_i$ is the number of events known to have occurred at node $N_i$.
-
-% TODO: change this to be zero-indexed, to match with the notation used for Raft in lecture 6
 In a vector $T = \langle t_1, t_2, \dots, t_n \rangle$ we refer to element $t_i$ as $T[i]$, like an index into an array.
+% TODO: change this to be zero-indexed, to match with the notation used for Raft in lecture 6
 
 \begin{frame}
     \label{s:vector-clocks}
@@ -2592,12 +2589,6 @@ The system model assumptions about node behaviour (\autoref{l:model-nodes}) and 
 \end{frame}
 \inlineslide{s:broadcast-intro}{\href{https://www.youtube.com/watch?v=A8oamrHf_cQ&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=12}{Start of video section 4.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/12.2_Broadcast_delivery_order.mp4}{mp4 download})}\label{l:broadcast-intro}
 
-Before we go into the details, we should clarify some terminology.
-When an application wants to send a message to all nodes in the group, it uses an algorithm to \emph{broadcast} it.
-To make this happen, the broadcast algorithm then \emph{sends} some messages to other nodes over point-to-point links, and another node \emph{receives} such a message when it arrives over the point-to-point link.
-Finally, the broadcast algorithm may \emph{deliver} the message to the application.
-As we shall see shortly, there is sometimes a delay between the time when a message is received and when it is delivered.
-
 \begin{frame}
     \label{s:receive-deliver}
     \frametitle{Receiving versus delivering}
@@ -2621,6 +2612,12 @@ As we shall see shortly, there is sometimes a delay between the time when a mess
     it may buffer/queue it before \textbf{\color{blue}delivering} to the application}
 \end{frame}
 \inlineslide{s:receive-deliver}{}\label{l:receive-deliver}
+
+Before we go into the details, we should clarify some terminology.
+When an application wants to send a message to all nodes in the group, it uses an algorithm to \emph{broadcast} it.
+To make this happen, the broadcast algorithm then \emph{sends} some messages to other nodes over point-to-point links, and another node \emph{receives} such a message when it arrives over the point-to-point link.
+Finally, the broadcast algorithm may \emph{deliver} the message to the application.
+As we shall see shortly, there is sometimes a delay between the time when a message is received and when it is delivered.
 
 We will examine three different forms of broadcast.
 All of these are \emph{reliable}: every message is eventually delivered to every non-faulty node, with no timing guarantees.
@@ -2834,6 +2831,9 @@ Likewise, on \autoref{l:total-order2}, node $B$'s delivery of $m_2$ to itself mu
 \end{frame}
 \inlineslide{s:total-order2}{}\label{l:total-order2}
 
+Finally, \emph{FIFO-total order broadcast} is like total order broadcast, but with the additional FIFO requirement that any messages broadcast by the same node are delivered in the order they were sent.
+The examples on \autoref{l:total-order1} and \ref{l:total-order2} are in fact valid FIFO-total order broadcast executions, since $m_1$ is delivered before $m_3$ in both.
+
 \begin{frame}
     \label{s:broadcast-hierarchy}
     \frametitle{Relationships between broadcast models}
@@ -2859,8 +2859,8 @@ Likewise, on \autoref{l:total-order2}, node $B$'s delivery of $m_2$ to itself mu
 \end{frame}
 \inlineslide{s:broadcast-hierarchy}{}\label{l:broadcast-hierarchy}
 
-Finally, \emph{FIFO-total order broadcast} is like total order broadcast, but with the additional FIFO requirement that any messages broadcast by the same node are delivered in the order they were sent.
-The examples on \autoref{l:total-order1} and \ref{l:total-order2} are in fact valid FIFO-total order broadcast executions, since $m_1$ is delivered before $m_3$ in both.
+We can arrange these various broadcast protocols into a hierarchy as shown on \autoref{l:broadcast-hierarchy}.
+For example, FIFO-total order broadcast is a strictly stronger model than causal broadcast; in other words, every valid FIFO-total order broadcast protocol is also a valid causal broadcast protocol (but not the opposite), and so on for the other protocols.
 
 \supervision{\label{q:broadcast-strength}
     Prove that causal broadcast also satisfies the requirements of FIFO broadcast, and that FIFO-total order broadcast also satisfies the requirements of causal broadcast.
@@ -3162,6 +3162,10 @@ Each FIFO broadcast message sent by node $N_i$ is tagged with the sending node n
 The local state at each node consists of the sequence number \emph{sendSeq} (counting the number of messages broadcast by this node), \emph{delivered} (a vector with one entry per node, counting the number of messages from each sender that this node has delivered), and \emph{buffer} (a buffer for holding back messages until they are ready to be delivered).
 The algorithm checks for messages from any sender that match the expected next sequence number, and then increments that number, ensuring that messages from each particular sender are delivered in order of increasing sequence number.
 
+The causal broadcast algorithm is somewhat similar to FIFO broadcast; instead of attaching a sequence number to every message that is broadcast, we attach a vector of integers.
+This algorithm is sometimes called a \emph{vector clock} algorithm, even though it is quite different from the algorithm on \autoref{l:vector-definition}.
+In the vector clock algorithm from \autoref{l:vector-definition} the vector elements count the number of \emph{events} that have occurred at each node, while in the causal broadcast algorithm, the vector elements count the number of \emph{messages} from each sender that have been delivered.
+
 \begin{frame}
     \label{s:causal-algorithm}
     \frametitle{Causal broadcast algorithm}
@@ -3190,10 +3194,6 @@ The algorithm checks for messages from any sender that match the expected next s
 \inlineslide{s:causal-algorithm}{}\label{l:causal-algorithm}
 
 \againframe<1>{vector-ordering}
-
-The causal broadcast algorithm is somewhat similar to FIFO broadcast; instead of attaching a sequence number to every message that is broadcast, we attach a vector of integers.
-This algorithm is sometimes called a \emph{vector clock} algorithm, even though it is quite different from the algorithm on \autoref{l:vector-definition}.
-In the vector clock algorithm from \autoref{l:vector-definition} the vector elements count the number of \emph{events} that have occurred at each node, while in the causal broadcast algorithm, the vector elements count the number of \emph{messages} from each sender that have been delivered.
 
 The local state at each node consists of \emph{sendSeq}, \emph{delivered}, and \emph{buffer}, which have the same meaning as in the FIFO broadcast algorithm.
 When a node wants to broadcast a message, we attach the sending node number $i$ and $\mathit{deps}$, a vector indicating the \emph{causal dependencies} of that message.
@@ -3571,7 +3571,7 @@ Whether or not this is a problem depends on the application: in some systems, di
 When discarding concurrent updates is not acceptable, we need to use a type of timestamp that allows us to detect when updates happen concurrently, such as vector clocks.
 With such partially ordered timestamps, we can tell when a new value should overwrite an old value (when the old update happened before the new update), and when several updates are concurrent, we can keep all of the concurrently written values.
 These concurrently written values are called \emph{conflicts}, or sometimes \emph{siblings}.
-The application can later merge conflicts back into a single value, as discussed in \autoref{sec:concurrency-control}.
+The application can later merge conflicts back into a single value, as discussed in \autoref{sec:case-studies}.
 
 A downside of vector clocks is that they can become expensive: every client needs an entry in the vector, and in systems with large number of clients (or where clients assume a new identity every time they are restarted), these vectors can become large, potentially taking up more space than the data itself.
 Further types of logical clocks, such as \emph{dotted version vectors} \citep{Preguica:2010}, have been developed to optimise this type of system.
@@ -3621,8 +3621,7 @@ Further types of logical clocks, such as \emph{dotted version vectors} \citep{Pr
 \subsection{Quorums}\label{sec:quorums}
 
 As discussed at the start of this lecture, replication is useful since it allows us to improve the reliability of a system: when one replica is unavailable, the remaining replicas can continue processing requests.
-Unavailability could be due to a faulty node (e.g.\ a crash or a hardware failure), or due to a network partition (inability to reach a node over the network), or planned maintenance (e.g.\ rebooting a node to install software updates).
-% Previously discussed in \autoref{sec:fault-tolerance}
+Unavailability could be due to a faulty node (e.g.\ a crash or a hardware failure), due to a network partition (inability to reach a node over the network), or planned maintenance (e.g.\ rebooting a node to install software updates, as discussed in \autoref{sec:fault-tolerance}).
 
 However, the details of how exactly the replication is performed have a big impact on the reliability of the system.
 Without fault tolerance, having multiple replicas would make reliability \emph{worse}: the more replicas you have, the greater the probability that \emph{any one} of the replicas is faulty at any one time (assuming faults are not perfectly correlated).
@@ -3706,7 +3705,7 @@ As a result, the read does not return the value $v_1$ previously written by the 
 
 This scenario is problematic, since from the client's point of view it looks as if the value it has written has been lost.
 Imagine you post an update on a social network, then refresh the page, and don't see the update you have just posted.
-As this behaviour is confusing for users, many systems require \emph{read-after-write consistency} (also known as \emph{read-your-writes consistency}), in which we ensure that after a client writes a value, the same client will be able to read back the same value from the database.
+As this behaviour is confusing for users, many systems require \emph{read-after-write consistency} (also known as \emph{read-your-writes consistency}), in which we ensure that after a client writes a value, the same client will be able to read back the value it has just written.
 
 Strictly speaking, with read-after-write consistency, after writing a client may not read the value it wrote because concurrently another client may have overwritten the value.
 Therefore we say that read-after-write consistency requires reading either the last value written, or a later value.
@@ -3766,7 +3765,7 @@ In general, in a system with an odd number of nodes $n$, any subset of size $\fr
 With an even number of nodes $n$, this needs to be rounded up to $\left\lceil\frac{n+1}{2}\right\rceil = \frac{n+2}{2}$.
 For example, 3 out of 4 form a majority quorum.
 Majority quorums have the property that any two quorums always have at least one element in common.
-However, other quorum constructions besides majorities are also possible.
+However, other quorum constructions besides majorities are also possible \citep{Whittaker:2021}.
 
 \begin{frame}
     \label{s:quorum}
@@ -3948,7 +3947,7 @@ This principle is also widely used for database replication: many database syste
 Any transactions that wish to modify the database must be executed on the leader replica.
 As shown on \autoref{l:leader-database}, the leader may execute multiple transactions concurrently; however, it \emph{commits} those transactions in a total order.
 When a transaction commits, the leader replica broadcasts the data changes from that transaction to all the follower replicas, and the followers apply those changes in commit order.
-This approach is known as \emph{passive replication}, and we can see that it is equivalent to total order broadcast of transaction commit records.
+This approach is known as \emph{passive replication} or \emph{primary-backup replication}, and we can see that it is equivalent to total order broadcast of transaction commit records.
 
 So much on using total order broadcast for replication.
 What about the other broadcast models from \autoref{sec:broadcast}~-- can we use them for replication too?
@@ -3957,7 +3956,7 @@ It is not sufficient to merely ensure that the state update is deterministic.
 
 For example, we can use causal broadcast, which ensures the same delivery order across replicas when one update happened before another, but which may deliver concurrent updates in any order.
 If we want to ensure that replicas end up in the same state, no matter in which order concurrent updates are delivered, we need to make those updates \emph{commutative}: that is, we have to ensure that the final result is the same, no matter in which order those updates are applied.
-This can be done, and we will see some techniques for commutativity in \autoref{sec:concurrency-control}.
+This can be done, and we will see some techniques for commutativity in \autoref{sec:case-studies}.
 
 \begin{frame}
     \label{s:causal-replication}
@@ -4077,7 +4076,7 @@ Paxos and Raft assume a system model with fair-loss links (\autoref{l:model-netw
 The assumptions on network and node behaviour can be weakened to Byzantine, and such algorithms are used in blockchains.
 However, Byzantine fault-tolerant consensus algorithms are significantly more complicated and less efficient than non-Byzantine ones.
 We will focus on fair-loss, crash-recovery algorithms for now, which are useful in many practical settings (such as datacenters with trusted private networks).
-The \href{\ledgersystems}{L47 unit in Part~III} goes into detail of Byzantine consensus.
+The \href{\ledgersystems}{R47 unit in Part~III} goes into detail of Byzantine consensus.
 
 On the other hand, the assumption of partial synchrony cannot be weakened to asynchrony.
 The reason is that consensus requires a failure detector (\autoref{l:failure-detector}), which in turn requires a local clock to trigger timeouts \citep{Chandra:1996}.
@@ -4092,7 +4091,6 @@ For this reason, consensus algorithms need to guarantee their \emph{safety prope
 Only the \emph{liveness} (namely, that a message is eventually delivered) depends on clocks and timing.
 
 % TODO: introduce the concept of safety and liveness properties explicitly?
-% Make clearer that safety depends only on an asynchronous system model, and only liveness requires partial synchrony.
 
 \begin{frame}
     \label{s:leader-election}
@@ -4512,9 +4510,14 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
                 \On{receiving $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{term}, \mathit{logLength}, \mathit{logTerm},$\\\hspace{58pt}$\mathit{leaderCommit}, \mathit{entries})$ at node $\mathit{nodeId}$}
                     \If{$\mathit{term} > \mathit{currentTerm}$}
                         \State $\mathit{currentTerm} := \mathit{term};\; \mathit{votedFor} := \mathsf{null}$
-                        \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathit{leaderId}$
+                        \State cancel election timer
                     \EndIf
-                    \If{$\mathit{term} = \mathit{currentTerm} \wedge \mathit{currentRole} = \mathsf{candidate}$}
+                    % Originally the following condition had an extra term $\wedge \mathit{currentRole} = \mathsf{candidate}$.
+                    % This was supposed to mirror the "return to follower state" step in Diego's thesis, p. 211 lines 342--346.
+                    % However, this had the effect that currentLeader would not get set if the local node was only a follower
+                    % and not a candidate. Diego's TLA+ version doesn't have this problem since it doesn't have a variable
+                    % for tracking the nodeId of the leader.
+                    \If{$\mathit{term} = \mathit{currentTerm}$}
                         \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathit{leaderId}$
                     \EndIf
                     \State $\mathit{logOk} := (\mathit{log}.\mathsf{length} \ge \mathit{logLength}) \;\wedge$
@@ -4599,6 +4602,7 @@ What remains is to switch back to the leader, and to show how it processes the $
                         \State $\mathit{currentTerm} := \mathit{term}$
                         \State $\mathit{currentRole} := \mathsf{follower}$
                         \State $\mathit{votedFor} := \mathsf{null}$
+                        \State cancel election timer
                         % Can't set currentLeader as the response didn't tell us who it is
                     \EndIf
                 \EndOn
@@ -5578,12 +5582,12 @@ This hierarchy has some similarities to the concept of complexity classes of alg
 \inlineslide{s:model-requirements}{}\label{l:model-requirements}
 
 
-\section{Concurrency control in applications}\label{sec:concurrency-control}
+\section{Case studies}\label{sec:case-studies}
 
 \begin{frame}
     \begin{center}
         Lecture 8\\[2em]
-        \Large{\color{darkblue}{Concurrency control in applications}}
+        \Large{\color{darkblue}{Case studies}}
     \end{center}
 \end{frame}
 
