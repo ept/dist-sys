@@ -1303,13 +1303,13 @@ Most Internet services do not even reach four nines because of diminishing retur
         \State
         \On{request to send message $m$ over FIFO link}
             \State \textit{lastSent}++
-            \State send $(m, \mathit{lastSent})$ via the underlying network link
+            \State \textbf{send} $(m, \mathit{lastSent})$ via the underlying network link
         \EndOn
         \State
         \On{receiving $(m, n)$ via the underlying network link}
             \State $\mathit{buffer} := \mathit{buffer} \cup \{(m,n)\}$
             \While{$\exists m'.\; (m', \mathit{nextReceived}) \in \mathit{buffer}$}
-                \State deliver $m'$ to the application
+                \State \textbf{deliver} $m'$ to the application
                 \State \textit{nextReceived}++
             \EndWhile
         \EndOn
@@ -3406,6 +3406,7 @@ In the first scenario a client first adds $x$ to both replicas of the database, 
 However, the remove request to replica $B$ is lost, and the client crashes before it is able to retry.
 In the second scenario a client tries to add $x$ to both replicas, but the request to replica $A$ is lost, and again the client crashes.
 
+% TODO: change "add(x)" notation to "(add, x)" here and similarly on many following slides in this lecture and lecture 7
 \begin{frame}
     \label{s:add-remove}
     \frametitle{Another problem with adding and removing}
@@ -5219,9 +5220,63 @@ The $\mathsf{get}$ operation finishes only after the client is sure that the mos
 This approach is known as the \emph{ABD algorithm}, after its authors Attiya, Bar-Noy, and Dolev \citep{Attiya:1995}.
 It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and $\mathsf{set}$ operation finishes, we know that the value read or written is present on a quorum of replicas, and therefore any subsequent quorum read is guaranteed to observe that value (or a later value).
 
+\supervision{
+    Give pseudocode for the ABD algorithm.
+}{
+    Each replica executes the following:
+    \begin{algorithmic}
+        \On{initialisation}
+            \State $\mathit{values} := \{\}$
+        \EndOn
+        \State
+        \On{receiving $(\mathsf{get}, k)$ from a client}
+            \State \textbf{send} $\{(t,v) \mid (t,k,v) \in \mathit{values}\}$ as response
+        \EndOn
+        \State
+        \On{receiving $(\mathsf{set}, t, k, v)$ from a client}
+            \If{$\nexists t', v'.\; (t', k, v') \in \mathit{values} \wedge t < t'$}
+                \State $\mathit{values} := \{(t',k',v') \in \mathit{values} \mid k' \neq k\} \,\cup\, \{(t,k,v)\}$
+            \EndIf
+            \State \textbf{send} $\mathsf{ok}$ as response
+        \EndOn
+        \State
+    \end{algorithmic}
+
+    % TODO: This does not handle the case when the replica returns an empty set because it has no value for the given key
+    \noindent Each client executes the following:
+    \begin{algorithmic}
+        \On{request to read value for key $k$}
+            \State \textbf{send} $(\mathsf{get}, k)$ to each replica in $\mathit{replicas}$
+            \State $\mathit{responses} := \{\}$
+            \While{$|\mathit{responses}| < \left\lceil \frac{|\mathit{replicas}| + 1}{2} \right\rceil$}
+                \State \textbf{receive response} $(t,v)$ from replica $i$
+                \State $\mathit{responses} := \mathit{responses} \,\cup\, \{(i,t,v)\}$
+            \EndWhile
+            \State $\mathit{maxt} := \max(\{t \mid \exists i,v.\; (i,t,v) \in \mathit{responses}\})$
+            \State $\mathit{maxv} := \text{the unique value } v \text{ such that } \exists i.\; (i,\mathit{maxt},v) \in \mathit{responses}$
+            \State \textbf{send} $(\mathsf{set}, \mathit{maxt}, k, \mathit{maxv})$ to each replica in $\mathit{replicas} \setminus \{i \mid (i, \mathit{maxt}, \mathit{maxv}) \in \mathit{responses}\}$
+            \While{$|\{i \mid (i, \mathit{maxt}, \mathit{maxv}) \in \mathit{responses}\}| < \left\lceil \frac{|\mathit{replicas}| + 1}{2} \right\rceil$}
+                \State \textbf{receive response} $\mathsf{ok}$ from replica $i$
+                \State $\mathit{responses} := \mathit{responses} \,\cup\, \{(i, \mathit{maxt}, \mathit{maxv})\}$
+            \EndWhile
+            \State \textbf{return} $\mathit{maxv}$
+        \EndOn
+        \State
+        \On{request to set key $k$ to value $v$}
+            \State $t := \mathrm{newTimestamp}()$ \Comment{globally unique, e.g. Lamport timestamp~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+            \State \textbf{send} $(\mathsf{set}, t, k, v)$ to each replica in $\mathit{replicas}$
+            \State $\mathit{responses} := \{\}$
+            \While{$|\mathit{responses}| < \left\lceil \frac{|\mathit{replicas}| + 1}{2} \right\rceil$}
+                \State \textbf{receive response} $\mathsf{ok}$ from replica $i$
+                \State $\mathit{responses} := \mathit{responses} \,\cup\, \{i\}$
+            \EndWhile
+        \EndOn
+    \end{algorithmic}
+}
+
 \begin{frame}
     \label{s:non-linearizable-3}
-    \frametitle{Making quorum reads/writes linearizable}
+    \frametitle{ABD: Making quorum reads/writes linearizable}
     \begin{tikzpicture}
         \node [rectangle,fill=red!10,draw] (node1) at (0,5.9) {client 1};
         \node [rectangle,fill=red!10,draw] (node2) at (2,5.9) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
@@ -5277,8 +5332,6 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
     \end{itemize}
 \end{frame}
 \inlineslide{s:cas-1}{}\label{l:cas-1}
-
-% TODO exercise: write pseudocode for the ABD algorithm.
 
 The $\mathsf{set}$ operation for which the ABD algorithm ensures linearizability is a so-called \emph{blind write} (unconditional write): it simply overwrites the value of a data item, regardless of its previous value.
 If multiple clients concurrently write to the same item, and if a last-writer-wins conflict resolution policy is used (\autoref{l:concurrent-writes}), then one of those writes will end up as the ``winner'' and the other values will be silently discarded.
@@ -5835,6 +5888,7 @@ The definition of $\mathit{values}$ and the function for reading the value for a
 However, updates are handled differently: instead of broadcasting each operation, we directly update $\mathit{values}$ and then broadcast the whole of $\mathit{values}$.
 On delivering this message at another replica, we merge together the two replicas' states using a merge function $\sqcup$.
 This merge function compares the timestamps of entries with the same key, and keeps those with the greater timestamp.
+This approach of broadcasting the entire replica state and merging it with another replica's state is called a \emph{state-based CRDT}.
 
 \begin{frame}
     \label{s:state-crdt-map}
@@ -5864,12 +5918,6 @@ This merge function compares the timestamps of entries with the same key, and ke
 \end{frame}
 \inlineslide{s:state-crdt-map}{}\label{l:state-crdt-map}
 
-This approach of broadcasting the entire replica state and merging it with another replica's state is called a \emph{state-based CRDT}.
-The downside of the state-based approach is that the broadcast messages are likely to be larger than in the operation-based approach.
-The advantage of the state-based approach is that it can tolerate lost or duplicated messages: as long as two replicas eventually succeed in exchanging their latest states, they will converge to the same state, even if some earlier messages were lost.
-Duplicated messages are also fine because the merge operator is idempotent (cf.\ \autoref{l:idempotence}).
-This is why a state-based CRDT can use unreliable best-effort broadcast, while an operation-based CRDT requires reliable broadcast (and some even require causal broadcast).
-
 \begin{frame}
     \label{s:state-crdt}
     \frametitle{State-based CRDTs}
@@ -5890,6 +5938,11 @@ This is why a state-based CRDT can use unreliable best-effort broadcast, while a
     \end{itemize}
 \end{frame}
 \inlineslide{s:state-crdt}{}\label{l:state-crdt}
+
+The downside of the state-based approach is that the broadcast messages are likely to be larger than in the operation-based approach.
+The advantage of the state-based approach is that it can tolerate lost or duplicated messages: as long as two replicas eventually succeed in exchanging their latest states, they will converge to the same state, even if some earlier messages were lost.
+Duplicated messages are also fine because the merge operator is idempotent (cf.\ \autoref{l:idempotence}).
+This is why a state-based CRDT can use unreliable best-effort broadcast, while an operation-based CRDT requires reliable broadcast (and some even require causal broadcast).
 
 Moreover, state-based CRDTs are not limited to replication systems that use broadcast.
 Other methods of replication, such as the quorum write algorithms and anti-entropy protocols we saw in \autoref{sec:replication}, can also use CRDTs for conflict resolution (see \autoref{l:reconcile}).
@@ -5913,15 +5966,6 @@ The video of this lecture includes a demo of Google Docs showing this conflict r
 We can think of a collaboratively editable text document as a list of characters, where each user can insert or delete characters at any index in the list.
 Fonts, formatting, embedded images, tables, and so on add further complexity, so we will just concentrate on plain text for now.
 When several users may concurrently update a text document, a particular problem arises, which is demonstrated in the example on \autoref{l:text-editing}.
-
-In this example, two users $A$ and $B$ both start with the same document, ``BC''.
-User $A$ adds the character ``A'' at the beginning of the document, so that it reads ``ABC''.
-Concurrently, user $B$ adds the character ``D'' at the end of the document, so that it reads ``BCD''.
-As $A$ and $B$ merge their edits, we would expect that the final document should read ``ABCD''.
-
-On \autoref{l:text-editing}, the users' replicas communicate by sending each other the operations they have performed.
-User $A$ sends $(\mathsf{insert}, 0, \text{``A''})$ to $B$, and $B$ applies this operation, leading to the desired outcome ``ABCD''.
-However, when $B$ sends $(\mathsf{insert}, 2, \text{``D''})$ to $A$, and $A$ inserts the character ``D'' at index 2, the result is ``ABDC'', not the expected ``ABCD''.
 
 \begin{frame}
     \label{s:text-editing}
@@ -5997,6 +6041,15 @@ However, when $B$ sends $(\mathsf{insert}, 2, \text{``D''})$ to $A$, and $A$ ins
     \end{center}
 \end{frame}
 \inlineslide{s:text-editing}{}\label{l:text-editing}
+
+In this example, two users $A$ and $B$ both start with the same document, ``BC''.
+User $A$ adds the character ``A'' at the beginning of the document, so that it reads ``ABC''.
+Concurrently, user $B$ adds the character ``D'' at the end of the document, so that it reads ``BCD''.
+As $A$ and $B$ merge their edits, we would expect that the final document should read ``ABCD''.
+
+On \autoref{l:text-editing}, the users' replicas communicate by sending each other the operations they have performed.
+User $A$ sends $(\mathsf{insert}, 0, \text{``A''})$ to $B$, and $B$ applies this operation, leading to the desired outcome ``ABCD''.
+However, when $B$ sends $(\mathsf{insert}, 2, \text{``D''})$ to $A$, and $A$ inserts the character ``D'' at index 2, the result is ``ABDC'', not the expected ``ABCD''.
 
 The problem is that at the time when $B$ performed the operation $\mathsf{insert}(2, \text{``D''})$, index 2 referred to the position after character ``C''.
 However, $A$'s concurrent insertion at index 0 had the effect of increasing the indexes of all subsequent characters by 1, so the position after ``C'' is now index 3, not index 2.
@@ -6099,7 +6152,6 @@ We also use the symbol $\vdash$ to represent the beginning of document and $\das
 When we want to insert a new character between two existing adjacent characters with position numbers $i$ and $j$, we can assign that new character a position number of $\frac{i+j}{2}$, which always lies between $i$ and $j$.
 This new position always exists, provided that we use arbitrary-precision arithmetic (floating-point numbers have limited precision, so they would no longer work once the intervals get too small).
 It is possible for two different nodes to generate characters with the same position number if they concurrently insert at the same position, so we can use the ID of the node that generated a character to break ties for any characters that have the same position number.
-
 Using this approach, conflict resolution becomes easy: an insertion with a particular position number can simply be broadcast to other replicas, which then add that character to their set of characters, and sort by position number to obtain the current document.
 
 \begin{frame}
@@ -6198,9 +6250,6 @@ Using this approach, conflict resolution becomes easy: an insertion with a parti
 \end{frame}
 \inlineslide{s:text-crdt}{}\label{l:text-crdt}
 
-This algorithm is shown on the next two slides.
-The state of a replica is the set $\mathit{chars}$, which contains $(\mathit{position}, \mathit{nodeId}, \mathit{character})$ triples.
-
 \begin{frame}
     \label{s:text-crdt-alg1}
     \frametitle{Operation-based text CRDT (1/2)}
@@ -6256,6 +6305,8 @@ The state of a replica is the set $\mathit{chars}$, which contains $(\mathit{pos
 \end{frame}
 \inlineslide{s:text-crdt-alg2}{}\label{l:text-crdt-alg2}
 
+This algorithm is shown on Slides \ref{l:text-crdt-alg1} and \ref{l:text-crdt-alg2}.
+The state of a replica is the set $\mathit{chars}$, which contains $(\mathit{position}, \mathit{nodeId}, \mathit{character})$ triples.
 The function \textsc{ElementAt} iterates over the elements of $\mathit{chars}$ in ascending order of position number.
 It does this by first finding the minimum element, that is, the element for which there does not exist another element with a lower position number.
 If there are multiple elements with the same position number, the element with the lowest nodeId is chosen.
