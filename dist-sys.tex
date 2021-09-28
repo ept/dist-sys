@@ -4340,6 +4340,8 @@ The message contains the $\mathit{nodeId}$ of the candidate, its $\mathit{curren
             \If{$\mathit{cTerm} > \mathit{currentTerm}$}
                 \State $\mathit{currentTerm} := \mathit{cTerm};\; \mathit{currentRole} := \mathsf{follower}$
                 \State $\mathit{votedFor} := \mathsf{null}$
+                % TODO do we want to cancel election timer here? maybe not, as otherwise a node with higher term
+                % but outdated log could keep sending us VoteRequests that never lead to a successful leader election
             \EndIf
             \State $\mathit{lastTerm} := 0$
             \State \textbf{if} $\mathit{log}.\mathsf{length} > 0$ \textbf{then} $\mathit{lastTerm} := \mathit{log}[\mathit{log}.\mathsf{length} - 1].\mathsf{term}$; \textbf{end if}
@@ -4363,17 +4365,15 @@ The message contains the $\mathit{nodeId}$ of the candidate, its $\mathit{curren
 \inlineslide{s:raft2}{}\label{l:raft2}
 
 \autoref{l:raft2} shows what happens when a node receives a $\mathsf{VoteRequest}$ message from a candidate.
-A node will only vote for a candidate if the candidate's log is at least as up-to-date as the voter's log; this prevents a candidate with an outdated log from becoming leader, which could lead to the loss of committed log entries.
+If the candidate's term is greater than the recipient's current term, the recipient becomes a follower in that term (even if it was a leader in a previous term).
+It then checks whether the candidate's log is at least as up-to-date as its own log; this prevents a candidate with an outdated log from becoming leader, which could lead to the loss of committed log entries.
 The candidate's log is acceptable if the term of its last log entry is higher than the term of the last log entry on the node that received the $\mathsf{VoteRequest}$ message.
 Moreover, the log is also acceptable if the terms are the same and the candidate's log contains at least as many entries as the recipient's log.
 This logic is reflected in the $\mathit{logOk}$ variable.
 
-Moreover, a node will not vote for a candidate if it has already voted for another candidate in the same term or a later term.
-The variable $\mathit{termOk}$ is true if it is okay to vote for the candidate according to this rule.
 The $\mathit{votedFor}$ variable keeps track of any previous vote by the current node in $\mathit{currentTerm}$.
-
-If both $\mathit{logOk}$ and $\mathit{termOk}$, then the node updates its current term to the candidate's term, records its vote in $\mathit{votedFor}$, and sends a $\mathsf{VoteResponse}$ message containing $\mathsf{true}$ (indicating success) to the candidate.
-Otherwise, the node sends a $\mathsf{VoteResponse}$ message containing $\mathsf{false}$ (indicating a refusal to vote for the candidate).
+If the candidate's term is the most recent we have seen, and if the candidate's log is up-to-date, and if we have not already voted for another candidate in this term, then we vote in favour of the candidate by recording it in $\mathit{votedFor}$, and sending a $\mathsf{VoteResponse}$ message containing $\mathsf{true}$ (indicating success) to the candidate.
+Otherwise, we send a $\mathsf{VoteResponse}$ message containing $\mathsf{false}$ (indicating a refusal to vote for the candidate).
 Besides the flag for success or failure, the response message contains the $\mathit{nodeId}$ of the node sending the vote, and the term of the vote.
 
 \begin{frame}
