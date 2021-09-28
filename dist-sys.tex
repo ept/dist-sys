@@ -54,7 +54,7 @@ Lecture videos: \url{https://www.youtube.com/playlist?list=PLeKd45zvjcDFUEv_ohr_
 \maketitle
 \tableofcontents
 
-\vspace{10pt}\noindent Thank you to Alexandre Fruchaud and Rishabh Jain for reporting mistakes in an earlier version of these notes.
+\vspace{10pt}\noindent Thank you to Jean-Pascal Billaud, Alexandre Fruchaud, and Rishabh Jain for reporting mistakes in an earlier version of these notes.
 
 \def\sectionautorefname{Lecture}%
 \def\subsectionautorefname{Section}%
@@ -5212,7 +5212,8 @@ This behaviour is not allowed in a linearizable system.
 \inlineslide{s:non-linearizable-2}{}\label{l:non-linearizable-2}
 
 Fortunately, it is possible to make $\mathsf{get}$ and $\mathsf{set}$ operations linearizable using quorum reads and writes.
-$\mathsf{set}$ operations don't change: as before, they send the update to all replicas, and wait for acknowledgement from a quorum of replicas.
+First, for simplicity, assume that $\mathsf{set}$ operations are only performed by one designated node (we will remove this assumption later).
+In this model, $\mathsf{set}$ operations don't change: as before, they send the update to all replicas, and wait for acknowledgement from a quorum of replicas.
 
 For $\mathsf{get}$ operations, another step is required, as shown on \autoref{l:non-linearizable-3}.
 A client must first send the $\mathsf{get}$ request to replicas, and wait for responses from a quorum.
@@ -5247,6 +5248,10 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
     % TODO: This does not handle the case when the replica returns an empty set because it has no value for the given key
     \noindent Each client executes the following:
     \begin{algorithmic}
+        \On{initialisation}
+            \State $\mathit{writes} := 0$
+        \EndOn
+        \State
         \On{request to read value for key $k$}
             \State \textbf{send} $(\mathsf{get}, k)$ to each replica in $\mathit{replicas}$
             \State $\mathit{responses} := \{\}$
@@ -5256,7 +5261,7 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
             \EndWhile
             \State $\mathit{maxt} := \max(\{t \mid \exists i,v.\; (i,t,v) \in \mathit{responses}\})$
             \State $\mathit{maxv} := \text{the unique value } v \text{ such that } \exists i.\; (i,\mathit{maxt},v) \in \mathit{responses}$
-            \State \textbf{send} $(\mathsf{set}, \mathit{maxt}, k, \mathit{maxv})$ to each replica in $\mathit{replicas} \setminus \{i \mid (i, \mathit{maxt}, \mathit{maxv}) \in \mathit{responses}\}$
+            \State \textbf{send} $(\mathsf{set}, \mathit{maxt}, k, \mathit{maxv})$ to each replica in $\{i \in \mathit{replicas} \mid (i, \mathit{maxt}, \mathit{maxv}) \notin \mathit{responses}\}$
             \While{$|\{i \mid (i, \mathit{maxt}, \mathit{maxv}) \in \mathit{responses}\}| < \left\lceil \frac{|\mathit{replicas}| + 1}{2} \right\rceil$}
                 \State \textbf{receive response} $\mathsf{ok}$ from replica $i$
                 \State $\mathit{responses} := \mathit{responses} \,\cup\, \{(i, \mathit{maxt}, \mathit{maxv})\}$
@@ -5264,9 +5269,9 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
             \State \textbf{return} $\mathit{maxv}$
         \EndOn
         \State
-        \On{request to set key $k$ to value $v$}
-            \State $t := \mathrm{newTimestamp}()$ \Comment{globally unique, e.g. Lamport timestamp~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
-            \State \textbf{send} $(\mathsf{set}, t, k, v)$ to each replica in $\mathit{replicas}$
+        \On{request to set key $k$ to value $v$} \Comment{NOTE: only one designated node may perform writes}
+            \State $\mathit{writes} := \mathit{writes} + 1$
+            \State \textbf{send} $(\mathsf{set}, \mathit{writes}, k, v)$ to each replica in $\mathit{replicas}$
             \State $\mathit{responses} := \{\}$
             \While{$|\mathit{responses}| < \left\lceil \frac{|\mathit{replicas}| + 1}{2} \right\rceil$}
                 \State \textbf{receive response} $\mathsf{ok}$ from replica $i$
@@ -5315,6 +5320,17 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
 \end{frame}
 \inlineslide{s:non-linearizable-3}{}\label{l:non-linearizable-3}
 
+To generalise the ABD algorithm to a setting where multiple nodes may perform $\mathsf{set}$ operations, we need to ensure timestamps reflect the real-time ordering of operations.
+Say operation $\mathsf{set}(x, v_1)$ has a timestamp of $t_1$, operation $\mathsf{set}(x, v_2)$ has a timestamp of $t_2$, and the first operation finishes before the second operation starts: then we must ensure that $t_1 < t_2$.
+
+We can do this by having each $\mathsf{set}$ operation first request the latest timestamp from each replica and waiting for responses from a quorum (like in a $\mathsf{get}$ operation).
+The logical timestamp for the $\mathsf{set}$ operation is then one plus the maximum timestamp received from the quorum, and for two operations with the same timestamp we break ties based on the ID of the node performing the operation.
+(This definition is similar to the Lamport timestamps we saw on \autoref{l:lamport-definition} to \ref{l:lamport-example}.)
+Since the quorum is guaranteed to contain at least one replica that has observed any $\mathsf{set}$ operation that has completed, we get the required ordering of timestamps.
+This algorithm ensures linearizable $\mathsf{get}$ and $\mathsf{set}$ operations for any number of nodes \citep{Cachin:2011,Lynch:1997}.
+
+% TODO: add a slide explaining single-writer ABD and the multi-writer generalisation, including logical timestamps construction
+
 \begin{frame}
     \label{s:cas-1}
     \frametitle{Linearizability for different types of operation}
@@ -5336,7 +5352,7 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
 \inlineslide{s:cas-1}{}\label{l:cas-1}
 
 The $\mathsf{set}$ operation for which the ABD algorithm ensures linearizability is a so-called \emph{blind write} (unconditional write): it simply overwrites the value of a data item, regardless of its previous value.
-If multiple clients concurrently write to the same item, and if a last-writer-wins conflict resolution policy is used (\autoref{l:concurrent-writes}), then one of those writes will end up as the ``winner'' and the other values will be silently discarded.
+If multiple clients concurrently write to the same item, it uses a last-writer-wins conflict resolution policy (\autoref{l:concurrent-writes}), i.e.\ one of those writes will end up as the ``winner'' and the other values will silently be discarded.
 
 In some applications, we want to be more careful and overwrite a value only if it has not been concurrently modified by another node.
 This can be achieved with an \emph{atomic compare-and-swap} (CAS) operation.
