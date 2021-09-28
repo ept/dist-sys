@@ -5512,9 +5512,6 @@ We would like the appointments and entries in this app to sync across all of our
 Moreover, we would like to be able to view, modify, and add calendar events even while a device is offline (e.g.\ due to poor mobile network coverage).
 If the calendar app's replication protocol was linearizable, this would not be possible, since an offline device cannot communicate with a quorum of replicas.
 
-Instead, calendar apps allow the user to read and write events in their calendar even while a device is offline, and they sync any updates between devices sometime later, in the background, when an internet connection is available.
-The video of this lecture includes a demonstration of offline updates to a calendar.
-
 % This is how to record a video of an iOS device and a macOS app side-by-side:
 % https://computers.tutsplus.com/tutorials/two-different-ways-to-mirror-an-ios-device-to-a-mac--cms-23533
 % Connect the iOS device to the mac with a cable, and say yes to the pop-up about trusting the device.
@@ -5531,6 +5528,9 @@ The video of this lecture includes a demonstration of offline updates to a calen
     \end{tikzpicture}
 \end{frame}
 \inlineslide{s:calendar}{}\label{l:calendar}
+
+Instead, calendar apps allow the user to read and write events in their calendar even while a device is offline, and they sync any updates between devices sometime later, in the background, when an internet connection is available.
+The video of this lecture includes a demonstration of offline updates to a calendar.
 
 This trade-off is known as the \emph{CAP theorem} (named after \emph{consistency}, \emph{availability}, and \emph{partition tolerance}), which states that if there is a network partition in a system, we must choose between one of the following options \citep{Gilbert:2002}:
 \begin{enumerate}
@@ -5621,16 +5621,6 @@ A more refined approach might merge the updates to the time and the title, as sh
 This brings us to the end of our discussion of consistency models.
 \autoref{l:model-requirements} summarises some of the key properties of the models we have seen, in descending order of the minimum strength of assumptions that they must make about the system model.
 
-Atomic commit makes the strongest assumptions, since it must wait for communication with all nodes participating in a transaction (potentially all of the nodes in the system) in order to complete successfully.
-Consensus, total order broadcast, and linearizable algorithms make weaker assumptions since they only require waiting for communication with a quorum, so they can tolerate some unavailable nodes.
-The FLP result (\autoref{l:consensus-model}) showed us that consensus and total order broadcast require partial synchrony.
-It can be shown that a linearizable CAS operation is equivalent to consensus \citep{Herlihy:1991}, and thus also requires partial synchrony.
-On the other hand, the ABD algorithm for linearizable $\mathsf{get}$/$\mathsf{set}$ is asynchronous, since it does not require any clocks or timeouts.
-Finally, eventual consistency and strong eventual consistency make the weakest assumptions: operations can be processed without waiting for any communication with other nodes, and without any timing assumptions.
-Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, etc.), a node broadcasting a message can immediately deliver it to itself without waiting for communication with other nodes, as discussed in \autoref{sec:delivery-order}; this corresponds to a replica immediately processing its own operations without waiting for communication with other replicas.
-
-This hierarchy has some similarities to the concept of complexity classes of algorithms~-- for example, sorting generally is $O(n \log n)$~-- in the sense that it captures the unavoidable minimum communication and synchrony requirements for a range of common problems in distributed systems.
-
 \begin{frame}
     \label{s:model-requirements}
     \frametitle{Summary of minimum system model requirements}
@@ -5651,6 +5641,16 @@ This hierarchy has some similarities to the concept of complexity classes of alg
     \end{tabular}
 \end{frame}
 \inlineslide{s:model-requirements}{}\label{l:model-requirements}
+
+Atomic commit makes the strongest assumptions, since it must wait for communication with all nodes participating in a transaction (potentially all of the nodes in the system) in order to complete successfully.
+Consensus, total order broadcast, and linearizable algorithms make weaker assumptions since they only require waiting for communication with a quorum, so they can tolerate some unavailable nodes.
+The FLP result (\autoref{l:consensus-model}) showed us that consensus and total order broadcast require partial synchrony.
+It can be shown that a linearizable CAS operation is equivalent to consensus \citep{Herlihy:1991}, and thus also requires partial synchrony.
+On the other hand, the ABD algorithm for linearizable $\mathsf{get}$/$\mathsf{set}$ is asynchronous, since it does not require any clocks or timeouts.
+Finally, eventual consistency and strong eventual consistency make the weakest assumptions: operations can be processed without waiting for any communication with other nodes, and without any timing assumptions.
+Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, etc.), a node broadcasting a message can immediately deliver it to itself without waiting for communication with other nodes, as discussed in \autoref{sec:delivery-order}; this corresponds to a replica immediately processing its own operations without waiting for communication with other replicas.
+
+This hierarchy has some similarities to the concept of complexity classes of algorithms~-- for example, sorting generally is $O(n \log n)$~-- in the sense that it captures the unavoidable minimum communication and synchrony requirements for a range of common problems in distributed systems.
 
 
 \section{Case studies}\label{sec:case-studies}
@@ -6268,6 +6268,21 @@ Using this approach, conflict resolution becomes easy: an insertion with a parti
 \end{frame}
 \inlineslide{s:text-crdt}{}\label{l:text-crdt}
 
+This algorithm is shown on Slides \ref{l:text-crdt-alg1} and \ref{l:text-crdt-alg2}.
+The state of a replica is the set $\mathit{chars}$, which contains $(\mathit{position}, \mathit{nodeId}, \mathit{character})$ triples.
+The function \textsc{ElementAt} iterates over the elements of $\mathit{chars}$ in ascending order of position number.
+It does this by first finding the minimum element, that is, the element for which there does not exist another element with a lower position number.
+If there are multiple elements with the same position number, the element with the lowest nodeId is chosen.
+If $\mathit{index}=0$ we return this minimum element, otherwise we remove the minimum element, decrement the index, and repeat.
+(This is a rather slow algorithm; a real implementation would make an effort to be more efficient.)
+
+A replica's $\mathit{chars}$ is initialised with elements for $\vdash$ and $\dashv$.
+To get the character at a particular index, we use the \textsc{ElementAt} we just defined, adding 1 to the index in order to skip the first element in $\mathit{chars}$, which is always $(0,\mathsf{null},\vdash)$.
+
+To insert a character at a particular position, we get the position numbers $p_1$ and $p_2$ of the immediate predecessor and successor, and then compute the new position number as $(p_1+p_2)/2$.
+We then disseminate this operation by causal broadcast.
+On delivery of an $\mathsf{insert}$ message we simply add the triple to $\mathit{chars}$.
+
 \begin{frame}
     \label{s:text-crdt-alg1}
     \frametitle{Operation-based text CRDT (1/2)}
@@ -6323,21 +6338,6 @@ Using this approach, conflict resolution becomes easy: an insertion with a parti
 \end{frame}
 \inlineslide{s:text-crdt-alg2}{}\label{l:text-crdt-alg2}
 
-This algorithm is shown on Slides \ref{l:text-crdt-alg1} and \ref{l:text-crdt-alg2}.
-The state of a replica is the set $\mathit{chars}$, which contains $(\mathit{position}, \mathit{nodeId}, \mathit{character})$ triples.
-The function \textsc{ElementAt} iterates over the elements of $\mathit{chars}$ in ascending order of position number.
-It does this by first finding the minimum element, that is, the element for which there does not exist another element with a lower position number.
-If there are multiple elements with the same position number, the element with the lowest nodeId is chosen.
-If $\mathit{index}=0$ we return this minimum element, otherwise we remove the minimum element, decrement the index, and repeat.
-(This is a rather slow algorithm; a real implementation would make an effort to be more efficient.)
-
-A replica's $\mathit{chars}$ is initialised with elements for $\vdash$ and $\dashv$.
-To get the character at a particular index, we use the \textsc{ElementAt} we just defined, adding 1 to the index in order to skip the first element in $\mathit{chars}$, which is always $(0,\mathsf{null},\vdash)$.
-
-To insert a character at a particular position, we get the position numbers $p_1$ and $p_2$ of the immediate predecessor and successor, and then compute the new position number as $(p_1+p_2)/2$.
-We then disseminate this operation by causal broadcast.
-On delivery of an $\mathsf{insert}$ message we simply add the triple to $\mathit{chars}$.
-
 To delete a character at a particular position we use \textsc{ElementAt}, adding 1 to skip $\vdash$ as before, to find the position number and nodeId of that character.
 We then broadcast this information, which uniquely identifies a particular character, by causal broadcast as a $\mathsf{delete}$ message.
 On delivery of a $\mathsf{delete}$ message, a replica removes the element in $\mathit{chars}$ that matches both the position number and the nodeId in the message, if it exists.
@@ -6387,9 +6387,6 @@ Some read-only transactions need to read a large number of objects in a database
 Performing such transactions with two-phase locking would be extremely disruptive, since the backup may take a long time, and the read lock on the entire database would prevent any clients from writing to the database for the duration of the backup.
 For this reason, it is very important that large read-only transactions can execute in the background, without requiring any locks and thus without interfering with concurrent read-write transactions.
 
-Spanner avoids locks on read-only transactions by allowing a transaction to read from a \emph{consistent snapshot} of the database: that is, the transaction observes the entire database as it was at a single point in time, even if some parts of the database are subsequently updated by other transactions while the read-only transaction is running.
-The word ``consistent'' in the context of a snapshot means that it is consistent with causality: if transaction $T_1$ happened before transaction $T_2$, and if the snapshot contains the effects of $T_2$, then it must also contain the effects of $T_1$.
-
 \begin{frame}
     \label{s:snapshots}
     \frametitle{Consistent snapshots}
@@ -6410,6 +6407,9 @@ The word ``consistent'' in the context of a snapshot means that it is consistent
     \end{itemize}
 \end{frame}
 \inlineslide{s:snapshots}{}\label{l:snapshots}
+
+Spanner avoids locks on read-only transactions by allowing a transaction to read from a \emph{consistent snapshot} of the database: that is, the transaction observes the entire database as it was at a single point in time, even if some parts of the database are subsequently updated by other transactions while the read-only transaction is running.
+The word ``consistent'' in the context of a snapshot means that it is consistent with causality: if transaction $T_1$ happened before transaction $T_2$, and if the snapshot contains the effects of $T_2$, then it must also contain the effects of $T_1$.
 
 Spanner's implementation of snapshots uses \emph{multi-version concurrency control} (MVCC), a particular form of optimistic concurrency control similar to what was discussed in the first half of this course.
 MVCC is based on assigning a commit timestamp to every transaction; every data object is tagged with the timestamp of the transaction that wrote it.
