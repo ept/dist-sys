@@ -4463,18 +4463,19 @@ This serves multiple purposes: it lets the followers know that the leader is sti
     \frametitle{Raft (5/9): replicating from leader to followers}
     \footnotesize
     Called on the leader whenever there is a new message in the log, and also periodically.
-    If there are no new messages, $\mathit{entries}$ is the empty list.
-    $\mathsf{LogRequest}$ messages with $\mathit{entries} = \langle\rangle$ serve as heartbeats, letting followers know that the leader is still alive.\\[1em]
+    If there are no new messages, $\mathit{suffix}$ is the empty list.
+    $\mathsf{LogRequest}$ messages with $\mathit{suffix} = \langle\rangle$ serve as heartbeats, letting followers know that the leader is still alive.\\[1em]
     \begin{algorithmic}
         \Function{ReplicateLog}{$\mathit{leaderId}, \mathit{followerId}$}
-            \State $i := \mathit{sentLength}[\mathit{followerId}]$
-            \State $\mathit{entries} := \langle\mathit{log}[i],\, \mathit{log}[i + 1],\, \dots,\, \mathit{log}[\mathit{log}.\mathsf{length} - 1]\rangle$
-            \State $\mathit{prevLogTerm} := 0$
-            \If{$i > 0$}
-                \State $\mathit{prevLogTerm} := \mathit{log}[i - 1].\mathsf{term}$
+            \State $\mathit{prefixLen} := \mathit{sentLength}[\mathit{followerId}]$
+            \State $\mathit{suffix} := \langle\mathit{log}[\mathit{prefixLen}],\, \mathit{log}[\mathit{prefixLen} + 1],\, \dots,$
+            \State \hspace{45pt}$\mathit{log}[\mathit{log}.\mathsf{length} - 1]\rangle$
+            \State $\mathit{prefixTerm} := 0$
+            \If{$\mathit{prefixLen} > 0$}
+                \State $\mathit{prefixTerm} := \mathit{log}[\mathit{prefixLen} - 1].\mathsf{term}$
             \EndIf
-            \State \textbf{send} $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{currentTerm}, i, \mathit{prevLogTerm},$
-            \State \hspace{25pt}$\mathit{commitLength}, \mathit{entries})$ to $\mathit{followerId}$
+            \State \textbf{send} $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{currentTerm}, \mathit{prefixLen},$
+            \State \hspace{25pt}$\mathit{prefixTerm}, \mathit{commitLength}, \mathit{suffix})$ to $\mathit{followerId}$
         \EndFunction
         \State
     \end{algorithmic}
@@ -4483,22 +4484,22 @@ This serves multiple purposes: it lets the followers know that the leader is sti
 
 The \textsc{ReplicateLog} function is shown on \autoref{l:raft5}.
 Its purpose is to send any new log entries from the leader to the follower node with ID $\mathit{followerId}$.
-It first sets the variable $\mathit{entries}$ to the suffix of the log starting with index $\mathit{sentLength}[\mathit{followerId}]$, if it exists.
-That is, if $\mathit{sentLength}[\mathit{followerId}]$ is the number of log entries already sent to $\mathit{followerId}$, then $\mathit{entries}$ contains the remaining entries that have not yet been sent.
-If $\mathit{sentLength}[\mathit{followerId}] = \mathit{log}.\mathsf{length}$, the variable $\mathit{entries}$ is set to the empty array.
+It first sets the variable $\mathit{suffix}$ to the suffix of the log starting with index $\mathit{sentLength}[\mathit{followerId}]$, if it exists.
+That is, if $\mathit{sentLength}[\mathit{followerId}]$ is the number of log entries already sent to $\mathit{followerId}$, then $\mathit{suffix}$ contains the remaining entries that have not yet been sent.
+If $\mathit{sentLength}[\mathit{followerId}] = \mathit{log}.\mathsf{length}$, the variable $\mathit{suffix}$ is set to the empty array.
 
-\textsc{ReplicateLog} then sends a $\mathsf{LogRequest}$ message to $\mathit{followerId}$ containing $\mathit{entries}$ as well as several other values: the ID of the leader; its current term; the length of the log prefix that precedes $\mathit{entries}$; the term of the last log entry preceding $\mathit{entries}$; and $\mathit{commitLength}$, which is the number of log entries that have been committed, as counted from the start of the log.
+\textsc{ReplicateLog} then sends a $\mathsf{LogRequest}$ message to $\mathit{followerId}$ containing $\mathit{suffix}$ as well as several other values: the ID of the leader; its current term; the length of the log prefix that precedes $\mathit{suffix}$; the term of the last log entry preceding $\mathit{suffix}$; and $\mathit{commitLength}$, which is the number of log entries that have been committed, as counted from the start of the log.
 More on committing log entries shortly.
 
 When a follower receives one of these $\mathsf{LogRequest}$ messages from the leader, it processes the message as shown on \autoref{l:raft6}.
 First, if the message is for a later term than the follower has previously seen, it updates its current term and accepts the sender of the message as leader.
 
 Next, the follower checks if its log is consistent with that of the leader.
-$\mathit{logLength}$ is the number of log entries that precede the new $\mathit{entries}$ contained in the $\mathsf{LogRequest}$ message.
-The follower requires that its log is at least as long as $\mathit{logLength}$ (i.e.\ it is not missing any entries), and that the term of the last log entry in the $\mathit{logLength}$ prefix of the follower's log is the same as the term of the same log entry on the leader.
+$\mathit{prefixLen}$ is the number of log entries that precede the new $\mathit{suffix}$ contained in the $\mathsf{LogRequest}$ message.
+The follower requires that its log is at least as long as $\mathit{prefixLen}$ (i.e.\ it is not missing any entries), and that the term of the last log entry in the $\mathit{prefixLen}$ prefix of the follower's log is the same as the term of the same log entry on the leader.
 If both of these checks pass, the $\mathit{logOk}$ variable is set to true.
 
-If the $\mathsf{LogRequest}$ message is for the expected term and if $\mathit{logOk}$, then the follower accepts the message and calls the \textsc{AppendEntries} function (defined on \autoref{l:raft7}) to add $\mathit{entries}$ to its own log.
+If the $\mathsf{LogRequest}$ message is for the expected term and if $\mathit{logOk}$, then the follower accepts the message and calls the \textsc{AppendEntries} function (defined on \autoref{l:raft7}) to add $\mathit{suffix}$ to its own log.
 It then replies to the leader with a $\mathsf{LogResponse}$ message containing the follower's ID, the current term, an acknowledgement of the number of log entries received, and the value $\mathsf{true}$ indicating that the $\mathsf{LogRequest}$ was successful.
 If the message is from an outdated term or $\mathit{logOk}$ is false, the follower replies with a $\mathsf{LogResponse}$ containing $\mathsf{false}$ to indicate an error.
 
@@ -4510,7 +4511,7 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
         \begin{minipage}{11cm}
             \raggedright
             \begin{algorithmic}
-                \On{receiving $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{term}, \mathit{logLength}, \mathit{logTerm},$\\\hspace{58pt}$\mathit{leaderCommit}, \mathit{entries})$ at node $\mathit{nodeId}$}
+                \On{receiving $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{term}, \mathit{prefixLen}, \mathit{prefixTerm},$\\\hspace{58pt}$\mathit{leaderCommit}, \mathit{suffix})$ at node $\mathit{nodeId}$}
                     \If{$\mathit{term} > \mathit{currentTerm}$}
                         \State $\mathit{currentTerm} := \mathit{term};\; \mathit{votedFor} := \mathsf{null}$
                         \State cancel election timer
@@ -4523,11 +4524,11 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
                     \If{$\mathit{term} = \mathit{currentTerm}$}
                         \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathit{leaderId}$
                     \EndIf
-                    \State $\mathit{logOk} := (\mathit{log}.\mathsf{length} \ge \mathit{logLength}) \;\wedge$
-                    \State \hspace{41.5pt}$(\mathit{logLength} = 0 \vee \mathit{logTerm} = \mathit{log}[\mathit{logLength} - 1].\mathsf{term})$
+                    \State $\mathit{logOk} := (\mathit{log}.\mathsf{length} \ge \mathit{prefixLen}) \;\wedge$
+                    \State \hspace{41.5pt}$(\mathit{prefixLen} = 0 \vee \mathit{log}[\mathit{prefixLen} - 1].\mathsf{term} = \mathit{prefixTerm})$
                     \If{$\mathit{term} = \mathit{currentTerm} \wedge \mathit{logOk}$}
-                        \State \Call{AppendEntries}{$\mathit{logLength}, \mathit{leaderCommit}, \mathit{entries}$}
-                        \State $\mathit{ack} := \mathit{logLength} + \mathit{entries}.\mathsf{length}$
+                        \State \Call{AppendEntries}{$\mathit{prefixLen}, \mathit{leaderCommit}, \mathit{suffix}$}
+                        \State $\mathit{ack} := \mathit{prefixLen} + \mathit{suffix}.\mathsf{length}$
                         \State \textbf{send} $(\mathsf{LogResponse}, \mathit{nodeId}, \mathit{currentTerm}, \mathit{ack}, \mathsf{true})$ to $\mathit{leaderId}$
                     \Else
                         \State \textbf{send} $(\mathsf{LogResponse}, \mathit{nodeId}, \mathit{currentTerm}, 0, \mathsf{false})$ to $\mathit{leaderId}$
@@ -4544,15 +4545,15 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
     \frametitle{Raft (7/9): updating followers' logs}
     \footnotesize
     \begin{algorithmic}
-        \Function{AppendEntries}{$\mathit{logLength}, \mathit{leaderCommit}, \mathit{entries}$}
-            \If{$\mathit{entries}.\mathsf{length} > 0 \;\wedge\; \mathit{log}.\mathsf{length} > \mathit{logLength}$}
-                \If{$\mathit{log}[\mathit{logLength}].\mathsf{term} \neq \mathit{entries}[0].\mathsf{term}$}
-                    \State $\mathit{log} := \langle\mathit{log}[0],\, \mathit{log}[1],\, \dots,\, \mathit{log}[\mathit{logLength} - 1]\rangle$
+        \Function{AppendEntries}{$\mathit{prefixLen}, \mathit{leaderCommit}, \mathit{suffix}$}
+            \If{$\mathit{suffix}.\mathsf{length} > 0 \;\wedge\; \mathit{log}.\mathsf{length} > \mathit{prefixLen}$}
+                \If{$\mathit{log}[\mathit{prefixLen}].\mathsf{term} \neq \mathit{suffix}[0].\mathsf{term}$}
+                    \State $\mathit{log} := \langle\mathit{log}[0],\, \mathit{log}[1],\, \dots,\, \mathit{log}[\mathit{prefixLen} - 1]\rangle$
                 \EndIf
             \EndIf
-            \If{$\mathit{logLength} + \mathit{entries}.\mathsf{length} > \mathit{log}.\mathsf{length}$}
-                \For{$i := \mathit{log}.\mathsf{length} - \mathit{logLength}$ \textbf{to} $\mathit{entries}.\mathsf{length} - 1$}
-                    \State append $\mathit{entries}[i]$ to $\mathit{log}$
+            \If{$\mathit{prefixLen} + \mathit{suffix}.\mathsf{length} > \mathit{log}.\mathsf{length}$}
+                \For{$i := \mathit{log}.\mathsf{length} - \mathit{prefixLen}$ \textbf{to} $\mathit{suffix}.\mathsf{length} - 1$}
+                    \State append $\mathit{suffix}[i]$ to $\mathit{log}$
                 \EndFor
             \EndIf
             \If{$\mathit{leaderCommit} > \mathit{commitLength}$}
@@ -4568,13 +4569,13 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
 \inlineslide{s:raft7}{}\label{l:raft7}
 
 \autoref{l:raft7} shows the \textsc{AppendEntries} function, which a follower calls to extend its log with entries received from the leader.
-$\mathit{logLength}$ is the number of log entries (counted from the beginning of the log) that precede the new $\mathit{entries}$.
-If the follower's log already contains entries at $\mathit{log}[\mathit{logLength}]$ and beyond, it compares the term of that existing entry with the term of the first new entry received from the leader.
+$\mathit{prefixLen}$ is the number of log entries (counted from the beginning of the log) that precede the new $\mathit{suffix}$.
+If the follower's log already contains entries at $\mathit{log}[\mathit{prefixLen}]$ and beyond, it compares the term of that existing entry with the term of the first new entry received from the leader.
 If they are inconsistent, the follower discards those existing entries by truncating the log.
 This happens if the existing log entries came from a previous leader, which has now been superseded by a new leader.
 
-Next, any new $\mathit{entries}$ that are not already present in the follower's log are appended to the log.
-In the case of message duplication, this operation is idempotent, since the new entries are understood to begin at index $\mathit{logLength}$ in the log.
+Next, any new entries that are not already present in the follower's log are appended to the log.
+In the case of message duplication, this operation is idempotent, since the new entries are understood to begin at index $\mathit{prefixLen}$ in the log.
 
 Finally, the follower checks whether the integer $\mathit{leaderCommit}$ in the $\mathsf{LogRequest}$ message is greater than its local variable $\mathit{commitLength}$.
 If so, this means that new records are ready to be committed and delivered to the application.
