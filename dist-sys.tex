@@ -4227,9 +4227,9 @@ When a node first starts running, or when it crashes and recovers, it starts up 
 If it receives no messages from a leader or candidate for some period of time, the follower suspects that the leader is unavailable, and it may attempt to become leader itself.
 The timeout for detecting leader failure is randomised, to reduce the probability of several nodes becoming candidates concurrently and competing to become leader.
 
-When a node suspects the leader to have failed, it transitions to the candidate state, increments the term number, and starts a leader election in that term.
+When a node suspects the leader to have failed, it transitions to the candidate state, increments the term number, and starts a leader election in that term, asking other nodes to vote for it.
 During this election, if the node hears from another candidate or leader with a higher term, it moves back into the follower state.
-But if the election succeeds and it receives votes from a quorum of nodes, the candidate transitions to leader state.
+But if the election succeeds and it receives votes from a quorum of nodes, the candidate transitions to the leader state.
 If not enough votes are received within some period of time, the election times out, and the candidate restarts the election with a higher term.
 
 Once a node is in the leader state, it remains leader until it is shut down or crashes, or until it receives a message from a leader or candidate with a term higher than its own.
@@ -4491,13 +4491,15 @@ If $\mathit{sentLength}[\mathit{followerId}] = \mathit{log}.\mathsf{length}$, th
 \textsc{ReplicateLog} then sends a $\mathsf{LogRequest}$ message to $\mathit{followerId}$ containing $\mathit{suffix}$ as well as several other values: the ID of the leader; its current term; the length of the log prefix that precedes $\mathit{suffix}$; the term of the last log entry preceding $\mathit{suffix}$; and $\mathit{commitLength}$, which is the number of log entries that have been committed, as counted from the start of the log.
 More on committing log entries shortly.
 
-When a follower receives one of these $\mathsf{LogRequest}$ messages from the leader, it processes the message as shown on \autoref{l:raft6}.
+When a follower receives a $\mathsf{LogRequest}$ message from the leader it processes the message as shown on \autoref{l:raft6}.
 First, if the message is for a later term than the follower has previously seen, it updates its current term and accepts the sender of the message as leader.
+The recipient of the message may also be a candidate in the same term; if so, it also becomes a follower and recognises the sender as leader.
 
 Next, the follower checks if its log is consistent with that of the leader.
 $\mathit{prefixLen}$ is the number of log entries that precede the new $\mathit{suffix}$ contained in the $\mathsf{LogRequest}$ message.
 The follower requires that its log is at least as long as $\mathit{prefixLen}$ (i.e.\ it is not missing any entries), and that the term of the last log entry in the $\mathit{prefixLen}$ prefix of the follower's log is the same as the term of the same log entry on the leader.
-If both of these checks pass, the $\mathit{logOk}$ variable is set to true.
+Raft ensures that if two nodes have the same term number at the same index of the log, then their logs are identical up to and including that index.
+Therefore, if the $\mathit{logOk}$ variable is set to true, that means the follower's first $\mathit{prefixLen}$ log entries are identical to the corresponding log prefix on the leader.
 
 If the $\mathsf{LogRequest}$ message is for the expected term and if $\mathit{logOk}$, then the follower accepts the message and calls the \textsc{AppendEntries} function (defined on \autoref{l:raft7}) to add $\mathit{suffix}$ to its own log.
 It then replies to the leader with a $\mathsf{LogResponse}$ message containing the follower's ID, the current term, an acknowledgement of the number of log entries received, and the value $\mathsf{true}$ indicating that the $\mathsf{LogRequest}$ was successful.
@@ -4577,7 +4579,7 @@ If they are inconsistent we have to truncate the log, keeping only the first $\m
 Such inconsistency could happen if the existing log entries came from a previous leader, which has now been superseded by a new leader.
 
 Next, any new entries that are not already present in the follower's log are appended to the log.
-In the case of message duplication, this operation is idempotent, since the new entries are understood to begin at index $\mathit{prefixLen}$ in the log.
+This operation is idempotent in case the $\mathsf{LogRequest}$ message is duplicated.
 
 Finally, the follower checks whether the integer $\mathit{leaderCommit}$ in the $\mathsf{LogRequest}$ message is greater than its local variable $\mathit{commitLength}$.
 If so, this means that new records are ready to be committed and delivered to the application.
