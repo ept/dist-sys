@@ -4547,7 +4547,8 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
     \begin{algorithmic}
         \Function{AppendEntries}{$\mathit{prefixLen}, \mathit{leaderCommit}, \mathit{suffix}$}
             \If{$\mathit{suffix}.\mathsf{length} > 0 \;\wedge\; \mathit{log}.\mathsf{length} > \mathit{prefixLen}$}
-                \If{$\mathit{log}[\mathit{prefixLen}].\mathsf{term} \neq \mathit{suffix}[0].\mathsf{term}$}
+                \State $\mathit{index} := \min(\mathit{log}.\mathsf{length}, \mathit{prefixLen} + \mathit{suffix}.\mathsf{length}) - 1$
+                \If{$\mathit{log}[\mathit{index}].\mathsf{term} \neq \mathit{suffix}[\mathit{index} - \mathit{prefixLen}].\mathsf{term}$}
                     \State $\mathit{log} := \langle\mathit{log}[0],\, \mathit{log}[1],\, \dots,\, \mathit{log}[\mathit{prefixLen} - 1]\rangle$
                 \EndIf
             \EndIf
@@ -4569,10 +4570,11 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
 \inlineslide{s:raft7}{}\label{l:raft7}
 
 \autoref{l:raft7} shows the \textsc{AppendEntries} function, which a follower calls to extend its log with entries received from the leader.
-$\mathit{prefixLen}$ is the number of log entries (counted from the beginning of the log) that precede the new $\mathit{suffix}$.
-If the follower's log already contains entries at $\mathit{log}[\mathit{prefixLen}]$ and beyond, it compares the term of that existing entry with the term of the first new entry received from the leader.
-If they are inconsistent, the follower discards those existing entries by truncating the log.
-This happens if the existing log entries came from a previous leader, which has now been superseded by a new leader.
+$\mathit{prefixLen}$ is the number of log entries that precede the new $\mathit{suffix}$.
+If the follower's log already contains entries at $\mathit{log}[\mathit{prefixLen}]$ and beyond, we need to check whether they match the log entries in $\mathit{suffix}$.
+We pick the last log index we can compare between leader and follower (either the last entry in the follower's log or the last entry in $\mathit{suffix}$, whichever comes first) and compare the terms at that log index.
+If they are inconsistent we have to truncate the log, keeping only the first $\mathit{prefixLen}$ entries and discarding the rest.
+Such inconsistency could happen if the existing log entries came from a previous leader, which has now been superseded by a new leader.
 
 Next, any new entries that are not already present in the follower's log are appended to the log.
 In the case of message duplication, this operation is idempotent, since the new entries are understood to begin at index $\mathit{prefixLen}$ in the log.
