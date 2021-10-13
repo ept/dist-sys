@@ -114,7 +114,7 @@ In this course we don't distinguish them: a node can be any type of communicatin
     \end{itemize}
     \hfill\includegraphics<1>[height=4cm]{images/lamport.jpg}
 \end{frame}
-\inlineslide{s:dist-sys-definition}{\href{https://www.youtube.com/watch?v=UEAMfLPZZhE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=1}{Start of video section 1.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/09.1_Distributed_systems_introduction.mp4}{mp4 download})}\label{l:dist-sys-definition}
+\inlineslide{s:dist-sys-definition}{\href{https://www.youtube.com/watch?v=UEAMfLPZZhE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=1}{Start of video section 1.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/09.1_Distributed_systems_introduction.mp4}{mp4 download})}\label{l:dist-sys-definition}
 % reference for Lamport quote: https://www.microsoft.com/en-us/research/publication/distribution/
 % License for photo: https://commons.wikimedia.org/wiki/File:Leslie_Lamport.jpg
 
@@ -281,7 +281,7 @@ When studying distributed systems, we usually work with a high-level abstraction
         \item \textbf{Physical communication:}\\ electric current, radio waves, laser, hard drives in a van\dots
     \end{itemize}
 \end{frame}
-\inlineslide{s:networking}{\href{https://www.youtube.com/watch?v=1F3DEq8ML1U&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=2}{Start of video section 1.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/09.2_Computer_networking.mp4}{mp4 download})}
+\inlineslide{s:networking}{\href{https://www.youtube.com/watch?v=1F3DEq8ML1U&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=2}{Start of video section 1.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/09.2_Computer_networking.mp4}{mp4 download})}
 
 In this course, we just assume that there is some way for one node to send a message to another node.
 We don't particularly care how that message is physically represented or encoded~-- the network protocols, informally known as the \emph{bytes on the wire}~-- because the basic principle of sending and receiving messages remains the same, even as particular networking technologies come and go.
@@ -419,7 +419,7 @@ This keeps things independent of the underlying networking technology.
         \end{tikzpicture}
     \end{center}
 \end{frame}
-\inlineslide{s:payment-example}{\href{https://www.youtube.com/watch?v=S2osKiqQG9s&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=3}{Start of video section 1.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/09.3_Remote_Procedure_Call.mp4}{mp4 download})}
+\inlineslide{s:payment-example}{\href{https://www.youtube.com/watch?v=S2osKiqQG9s&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=3}{Start of video section 1.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/09.3_Remote_Procedure_Call.mp4}{mp4 download})}
 
 Another example of an everyday distributed system is when you buy something online using a credit/debit card.
 When you enter your card number in some online shop, that shop will send a payment request over the Internet to a service that specialises in processing card payments.
@@ -662,7 +662,7 @@ However, if both armies attack at the same time, they will successfully capture 
         \textbf{Desired:} army 1 attacks \emph{if and only if} army 2 attacks
     \end{center}
 \end{frame}
-\inlineslide{s:two-generals}{\href{https://www.youtube.com/watch?v=MDuWnzVnfpI&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=4}{Start of video section 2.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.1_Two_generals_problem.mp4}{mp4 download})}\label{l:two-generals}
+\inlineslide{s:two-generals}{\href{https://www.youtube.com/watch?v=MDuWnzVnfpI&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=4}{Start of video section 2.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/10.1_Two_generals_problem.mp4}{mp4 download})}\label{l:two-generals}
 
 Thus, the two generals need to coordinate their attack plan.
 This is made difficult by the fact that the two armies are camped some distance apart, and they can only communicate by messenger.
@@ -792,7 +792,7 @@ Again generals communicate by messengers, although this time we assume that if a
         \textbf{Problem:} some of the generals might be traitors
     \end{center}
 \end{frame}
-\inlineslide{s:byzantine-generals}{\href{https://www.youtube.com/watch?v=LoGx_ldRBU0&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=5}{Start of video section 2.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.2_Byzantine_generals_problem.mp4}{mp4 download})}\label{l:byzantine-generals}
+\inlineslide{s:byzantine-generals}{\href{https://www.youtube.com/watch?v=LoGx_ldRBU0&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=5}{Start of video section 2.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/10.2_Byzantine_generals_problem.mp4}{mp4 download})}\label{l:byzantine-generals}
 
 The challenge in the Byzantine setting is that some generals might be ``traitors'': that is, they might try to deliberately and maliciously mislead and confuse the other generals.
 We call the traitors \emph{malicious}, and the others \emph{honest}.
@@ -937,7 +937,7 @@ When designing a distributed algorithm, a \emph{system model} is how we specify 
     \end{itemize}
     Choice of models for each of these parts.
 \end{frame}
-\inlineslide{s:system-model}{\href{https://www.youtube.com/watch?v=y8f7ZG_UnGI&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=6}{Start of video section 2.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.3_System_models.mp4}{mp4 download})}\label{l:system-model}
+\inlineslide{s:system-model}{\href{https://www.youtube.com/watch?v=y8f7ZG_UnGI&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=6}{Start of video section 2.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/10.3_System_models.mp4}{mp4 download})}\label{l:system-model}
 
 \begin{frame}
     \label{s:shark-bite}
@@ -1189,7 +1189,7 @@ We will now explore this idea further in the light of the system models we have 
     \textbf{Service-Level Objective} (SLO):\\ e.g. ``99.9\% of requests in a day get a response in 200~ms''\\[1em]
     \textbf{Service-Level Agreement} (SLA):\\ contract specifying some SLO, penalties for violation
 \end{frame}
-\inlineslide{s:availability}{\href{https://www.youtube.com/watch?v=43TDfUNsM3E&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=7}{Start of video section 2.4}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/10.4_Fault_tolerance.mp4}{mp4 download})}\label{l:availability}
+\inlineslide{s:availability}{\href{https://www.youtube.com/watch?v=43TDfUNsM3E&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=7}{Start of video section 2.4}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/10.4_Fault_tolerance.mp4}{mp4 download})}\label{l:availability}
 
 From a business point of view, what usually matters most is the \emph{availability} of a service, such as a website.
 For example, an online shop wants to be able to sell products at any time of day or night: any outage of the website means a lost opportunity to make money.
@@ -1349,7 +1349,7 @@ Let's start with a riddle, which will be resolved later in this lecture.
     Some airlines could not process any reservations or check-ins for several hours.\\[1em]
     What happened?
 \end{frame}
-\inlineslide{s:mystery}{\href{https://www.youtube.com/watch?v=FQ_2N3AQu0M&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=8}{Start of video section 3.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/11.1_Physical_time.mp4}{mp4 download})}\label{l:mystery}
+\inlineslide{s:mystery}{\href{https://www.youtube.com/watch?v=FQ_2N3AQu0M&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=8}{Start of video section 3.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/11.1_Physical_time.mp4}{mp4 download})}\label{l:mystery}
 
 In this lecture we will look at the concept of time in distributed systems.
 We have already seen that our assumptions about timing form a key part of the system model that distributed algorithms rely on.
@@ -1652,7 +1652,7 @@ However, it is a pragmatic alternative to making all software aware of and robus
     accurate time source (atomic clock or GPS receiver)\\[1em]
     Protocols: Network Time Protocol (\textbf{NTP}),\\ Precision Time Protocol (\textbf{PTP})
 \end{frame}
-\inlineslide{s:clock-sync}{\href{https://www.youtube.com/watch?v=mAyW-4LeXZo&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=9}{Start of video section 3.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/11.2_Clock_synchronisation.mp4}{mp4 download})}\label{l:clock-sync}
+\inlineslide{s:clock-sync}{\href{https://www.youtube.com/watch?v=mAyW-4LeXZo&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=9}{Start of video section 3.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/11.2_Clock_synchronisation.mp4}{mp4 download})}\label{l:clock-sync}
 
 Atomic clocks are too expensive and bulky to build into every computer and phone, so quartz clocks are used.
 Since these clocks drift, they need adjustment from time to time, which is most commonly done using the \emph{Network Time Protocol} (NTP).
@@ -1868,7 +1868,7 @@ The database instructions only make sense if $m_1$ is processed before $m_2$.
     \uncover<2->{$m_2 = $ ``B says: Oh no it isn't!''}\\[1em]%
     \uncover<3->{C sees $m_2$ first, $m_1$ second,\\even though logically $m_1$ \textbf{happened before} $m_2$.}
 \end{frame}
-\inlineslide{s:moon-cheese}{\href{https://www.youtube.com/watch?v=OKHIdpOAxto&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=10}{Start of video section 3.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/11.3_Causality_and_happens-before.mp4}{mp4 download})}\label{l:moon-cheese}
+\inlineslide{s:moon-cheese}{\href{https://www.youtube.com/watch?v=OKHIdpOAxto&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=10}{Start of video section 3.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/11.3_Causality_and_happens-before.mp4}{mp4 download})}\label{l:moon-cheese}
 
 How can C determine the correct order in which it should put the messages?
 A monotonic clock won't work since its timestamps are not comparable across nodes.
@@ -2103,7 +2103,7 @@ Hence we will start this lecture by examining more closely how clocks can help u
         \item Vector clocks
     \end{itemize}
 \end{frame}
-\inlineslide{s:logical-clocks}{\href{https://www.youtube.com/watch?v=x-D8iFU1d-o&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=11}{Start of video section 4.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/12.1_Logical_time.mp4}{mp4 download})}\label{l:logical-clocks}
+\inlineslide{s:logical-clocks}{\href{https://www.youtube.com/watch?v=x-D8iFU1d-o&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=11}{Start of video section 4.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/12.1_Logical_time.mp4}{mp4 download})}\label{l:logical-clocks}
 
 Recall that on \autoref{l:physical-order}, we saw that timestamps from physical clocks can be inconsistent with causality, even if those clocks are synchronised using something like NTP.
 That is, if $\mathsf{send}(m)$ is the event of sending message $m$, and if the happens-before relation indicates that $\mathsf{send}(m_1) \rightarrow \mathsf{send}(m_2)$, then it could nevertheless happen that the the physical timestamp of $\mathsf{send}(m_1)$ (according to the clock of $m_1$'s sender) is less than the physical timestamp of $\mathsf{send}(m_2)$ (according to the clock of $m_2$'s sender).
@@ -2589,7 +2589,7 @@ The system model assumptions about node behaviour (\autoref{l:model-nodes}) and 
             $\Longrightarrow$ \textbf{no upper bound} on message latency
     \end{itemize}
 \end{frame}
-\inlineslide{s:broadcast-intro}{\href{https://www.youtube.com/watch?v=A8oamrHf_cQ&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=12}{Start of video section 4.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/12.2_Broadcast_delivery_order.mp4}{mp4 download})}\label{l:broadcast-intro}
+\inlineslide{s:broadcast-intro}{\href{https://www.youtube.com/watch?v=A8oamrHf_cQ&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=12}{Start of video section 4.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/12.2_Broadcast_delivery_order.mp4}{mp4 download})}\label{l:broadcast-intro}
 
 \begin{frame}
     \label{s:receive-deliver}
@@ -2930,7 +2930,7 @@ In this situation, one of the nodes will never receive that message.
         \end{tikzpicture}
     \end{center}%
 \end{frame}
-\inlineslide{s:broadcast-alg}{\href{https://www.youtube.com/watch?v=77qpCahU3fo&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=13}{Start of video section 4.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/12.3_Broadcast_algorithms.mp4}{mp4 download})}\label{l:broadcast-alg}
+\inlineslide{s:broadcast-alg}{\href{https://www.youtube.com/watch?v=77qpCahU3fo&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=13}{Start of video section 4.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/12.3_Broadcast_algorithms.mp4}{mp4 download})}\label{l:broadcast-alg}
 
 To improve the reliability, we can enlist the help of the other nodes.
 For example, we could say that the first time a node receives a particular message, it forwards it to every other node (this is called \emph{eager reliable broadcast}).
@@ -3281,7 +3281,7 @@ It is one of the main mechanisms we have for achieving \emph{fault tolerance}: i
         \item Replicas can be distributed around the world, near users
     \end{itemize}
 \end{frame}
-\inlineslide{s:replication-intro}{\href{https://www.youtube.com/watch?v=mBUCF1WGI_I&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=14}{Start of video section 5.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/13.1_Replication.mp4}{mp4 download})}\label{l:replication-intro}
+\inlineslide{s:replication-intro}{\href{https://www.youtube.com/watch?v=mBUCF1WGI_I&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=14}{Start of video section 5.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/13.1_Replication.mp4}{mp4 download})}\label{l:replication-intro}
 
 \subsection{Manipulating remote state}
 
@@ -3649,7 +3649,7 @@ However, if the system continues working despite some faulty replicas, then reli
         100 & 0.63 & $6 \cdot 10^{-74}$ & $10^{-200}$ \\\hline
     \end{tabular}
 \end{frame}
-\inlineslide{s:fault-probability}{\href{https://www.youtube.com/watch?v=uNxl3BFcKSA&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=15}{Start of video section 5.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/13.2_Quorums.mp4}{mp4 download})}\label{l:fault-probability}
+\inlineslide{s:fault-probability}{\href{https://www.youtube.com/watch?v=uNxl3BFcKSA&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=15}{Start of video section 5.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/13.2_Quorums.mp4}{mp4 download})}\label{l:fault-probability}
 
 % Python 3 code to compute the failure probabilities above
 % (using arbitrary-precision integer arithmetic to avoid floating-point error):
@@ -3867,7 +3867,7 @@ Let's first consider FIFO-total order broadcast, the strongest form of broadcast
             $\Longrightarrow$ all replicas end up in the same state
     \end{itemize}
 \end{frame}
-\inlineslide{s:smr}{\href{https://www.youtube.com/watch?v=mlWOQuO55PE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=16}{Start of video section 5.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/13.3_State_machine_replication.mp4}{mp4 download})}\label{l:smr}
+\inlineslide{s:smr}{\href{https://www.youtube.com/watch?v=mlWOQuO55PE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=16}{Start of video section 5.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/13.3_State_machine_replication.mp4}{mp4 download})}\label{l:smr}
 
 Using FIFO-total order broadcast it is easy to build a replicated system: we broadcast every update request to the replicas, which update their state based on each message as it is delivered.
 This is called \emph{state machine replication} (SMR), because a replica acts as a state machine whose inputs are message deliveries.
@@ -4019,7 +4019,7 @@ The answer is yes, and this is exactly what consensus algorithms do.
         \item Can we \textbf{automatically choose a new leader}?
     \end{itemize}
 \end{frame}
-\inlineslide{s:failover}{\href{https://www.youtube.com/watch?v=rN6ma561tak&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=17}{Start of video section 6.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/14.1_Consensus.mp4}{mp4 download})}\label{l:failover}
+\inlineslide{s:failover}{\href{https://www.youtube.com/watch?v=rN6ma561tak&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=17}{Start of video section 6.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/14.1_Consensus.mp4}{mp4 download})}\label{l:failover}
 
 \subsection{Introduction to consensus}
 
@@ -4256,7 +4256,7 @@ On hearing about a higher term, the former leader steps down to become a followe
         \end{tikzpicture}
     \end{center}%
 \end{frame}
-\inlineslide{s:raft-states}{\href{https://www.youtube.com/watch?v=IPnesACYRck&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=18}{Start of video section 6.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/14.2_Raft.mp4}{mp4 download})}\label{l:raft-states}
+\inlineslide{s:raft-states}{\href{https://www.youtube.com/watch?v=uXEYuDwm7e4&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=18}{Start of video section 6.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/14.2_Raft.mp4}{mp4 download})}\label{l:raft-states}
 
 % TODO: show examples of log consistency/invariants before going into the details of the code?
 
@@ -4768,7 +4768,7 @@ We will see more models in this lecture.
         \item \textbf{Consistency model}: many to choose from
     \end{itemize}
 \end{frame}
-\inlineslide{s:consistency}{\href{https://www.youtube.com/watch?v=-_rdWB9hN1c&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=19}{Start of video section 7.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/15.1_Two-phase_commit.mp4}{mp4 download})}\label{l:consistency}
+\inlineslide{s:consistency}{\href{https://www.youtube.com/watch?v=-_rdWB9hN1c&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=19}{Start of video section 7.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/15.1_Two-phase_commit.mp4}{mp4 download})}\label{l:consistency}
 
 \subsection{Two-phase commit}
 
@@ -4993,7 +4993,7 @@ It is possible for a system to provide both serializability and linearizability:
     \end{itemize}
     Note: linearizability $\neq$ serializability!
 \end{frame}
-\inlineslide{s:linearizability}{\href{https://www.youtube.com/watch?v=noUNH3jDLC0&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=20}{Start of video section 7.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/15.2_Linearizability.mp4}{mp4 download})}\label{l:linearizability}
+\inlineslide{s:linearizability}{\href{https://www.youtube.com/watch?v=noUNH3jDLC0&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=20}{Start of video section 7.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/15.2_Linearizability.mp4}{mp4 download})}\label{l:linearizability}
 
 The main purpose of linearizability is to guarantee that nodes observe the system in an ``up-to-date'' state; that is, they do not read \emph{stale} (outdated) values.
 We have previously seen this concept of reading an ``up-to-date'' value in the context of read-after-write consistency (\autoref{l:read-after-write}).
@@ -5496,7 +5496,7 @@ Even though the node may be running, such a communication failure makes it effec
     \textbf{Eventual consistency}: a weaker model than linearizability.\\
     Different trade-off choices.
 \end{frame}
-\inlineslide{s:eventual-1}{\href{https://www.youtube.com/watch?v=9uCP3qHNbWw&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=21}{Start of video section 7.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/15.3_Eventual_consistency.mp4}{mp4 download})}\label{l:eventual-1}
+\inlineslide{s:eventual-1}{\href{https://www.youtube.com/watch?v=9uCP3qHNbWw&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=21}{Start of video section 7.3}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/15.3_Eventual_consistency.mp4}{mp4 download})}\label{l:eventual-1}
 
 As an example, consider the calendar app that you can find on most phones, tablets, and computers.
 We would like the appointments and entries in this app to sync across all of our devices; in other words, we want it to be replicated such that each device is a replica.
@@ -5689,7 +5689,7 @@ Instead, for the sake of better performance and better robustness to network int
         \item Operational Transformation (\textbf{OT})
     \end{itemize}
 \end{frame}
-\inlineslide{s:collaboration}{\href{https://www.youtube.com/watch?v=OqqliwwG0SM&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=22}{Start of video section 8.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/16.1_Collaboration.mp4}{mp4 download})}\label{l:collaboration}
+\inlineslide{s:collaboration}{\href{https://www.youtube.com/watch?v=OqqliwwG0SM&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=22}{Start of video section 8.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/16.1_Collaboration.mp4}{mp4 download})}\label{l:collaboration}
 
 In this section we will look at some algorithms that are used for this kind of collaboration.
 As example, consider the calendar sync demo in the lecture recording of \autoref{sec:eventual-consistency}.
@@ -6365,7 +6365,7 @@ Spanner replicas are designed to be located in datacenters (unlike the collabora
     \end{itemize}
     The interesting bit: read-only transactions require \textbf{no locks}!
 \end{frame}
-\inlineslide{s:spanner-intro}{\href{https://www.youtube.com/watch?v=oeycOVX70aE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=23}{Start of video section 8.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2021/ConcDisSys/video/16.2_Spanner.mp4}{mp4 download})}\label{l:spanner-intro}
+\inlineslide{s:spanner-intro}{\href{https://www.youtube.com/watch?v=oeycOVX70aE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=23}{Start of video section 8.2}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/16.2_Spanner.mp4}{mp4 download})}\label{l:spanner-intro}
 
 Many of the techniques used by Spanner are very conventional, and we have seen them earlier in this course: it uses the Paxos consensus algorithm for state machine replication, two-phase locking to ensure serializable isolation between transactions, and two-phase commit to ensure atomic commitment.
 A lot of engineering effort goes into making these algorithms work well in practice, but at an architectural level, these well-established choices are quite unsurprising.
