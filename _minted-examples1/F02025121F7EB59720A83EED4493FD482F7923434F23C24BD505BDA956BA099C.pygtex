@@ -1,0 +1,49 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+cp}{\PYGZlt{}!DOCTYPE html\PYGZgt{}}
+\PYG{p}{\PYGZlt{}}\PYG{n+nt}{h1}\PYG{p}{\PYGZgt{}}My task list\PYG{p}{\PYGZlt{}/}\PYG{n+nt}{h1}\PYG{p}{\PYGZgt{}}
+\PYG{p}{\PYGZlt{}}\PYG{n+nt}{ul} \PYG{n+na}{id}\PYG{o}{=}\PYG{l+s}{\PYGZdq{}tasks\PYGZdq{}}\PYG{p}{\PYGZgt{}}
+\PYG{p}{\PYGZlt{}/}\PYG{n+nt}{ul}\PYG{p}{\PYGZgt{}}
+
+\PYG{p}{\PYGZlt{}}\PYG{n+nt}{form} \PYG{n+na}{id}\PYG{o}{=}\PYG{l+s}{\PYGZdq{}new\PYGZus{}task\PYGZdq{}}\PYG{p}{\PYGZgt{}}
+\PYG{p}{\PYGZlt{}}\PYG{n+nt}{p}\PYG{p}{\PYGZgt{}\PYGZlt{}}\PYG{n+nt}{input} \PYG{n+na}{type}\PYG{o}{=}\PYG{l+s}{\PYGZdq{}text\PYGZdq{}} \PYG{n+na}{id}\PYG{o}{=}\PYG{l+s}{\PYGZdq{}text\PYGZdq{}}\PYG{p}{\PYGZgt{}} \PYG{p}{\PYGZlt{}}\PYG{n+nt}{button} \PYG{n+na}{type}\PYG{o}{=}\PYG{l+s}{\PYGZdq{}submit\PYGZdq{}}\PYG{p}{\PYGZgt{}}Add task\PYG{p}{\PYGZlt{}/}\PYG{n+nt}{button}\PYG{p}{\PYGZgt{}\PYGZlt{}/}\PYG{n+nt}{p}\PYG{p}{\PYGZgt{}}
+\PYG{p}{\PYGZlt{}/}\PYG{n+nt}{form}\PYG{p}{\PYGZgt{}}
+
+\PYG{p}{\PYGZlt{}}\PYG{n+nt}{script}\PYG{p}{\PYGZgt{}}
+\PYG{n+nx}{loadTasks}\PYG{p}{()}
+
+\PYG{n+nx}{async} \PYG{k+kd}{function} \PYG{n+nx}{loadTasks}\PYG{p}{()} \PYG{p}{\PYGZob{}}
+  \PYG{k+kr}{const} \PYG{n+nx}{response} \PYG{o}{=} \PYG{n+nx}{await} \PYG{p}{(}\PYG{n+nx}{await} \PYG{n+nx}{fetch}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}/tasks\PYGZsq{}}\PYG{p}{)).}\PYG{n+nx}{json}\PYG{p}{()}
+  \PYG{n+nb}{document}\PYG{p}{.}\PYG{n+nx}{getElementById}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}tasks\PYGZsq{}}\PYG{p}{).}\PYG{n+nx}{innerHTML} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}\PYGZsq{}}
+  \PYG{k}{for} \PYG{p}{(}\PYG{k+kd}{let} \PYG{n+nx}{task} \PYG{k}{of} \PYG{n+nx}{response}\PYG{p}{)} \PYG{n+nx}{renderTask}\PYG{p}{(}\PYG{n+nx}{task}\PYG{p}{)}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n+nb}{document}\PYG{p}{.}\PYG{n+nx}{getElementById}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}new\PYGZus{}task\PYGZsq{}}\PYG{p}{).}\PYG{n+nx}{addEventListener}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}submit\PYGZsq{}}\PYG{p}{,} \PYG{n+nx}{async} \PYG{p}{(}\PYG{n+nx}{event}\PYG{p}{)} \PYG{p}{=\PYGZgt{}} \PYG{p}{\PYGZob{}}
+  \PYG{n+nx}{event}\PYG{p}{.}\PYG{n+nx}{preventDefault}\PYG{p}{()}
+  \PYG{k+kr}{const} \PYG{n+nx}{input} \PYG{o}{=} \PYG{n+nb}{document}\PYG{p}{.}\PYG{n+nx}{getElementById}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}text\PYGZsq{}}\PYG{p}{)}
+  \PYG{k+kr}{const} \PYG{n+nx}{request} \PYG{o}{=} \PYG{k}{new} \PYG{n+nx}{URLSearchParams}\PYG{p}{(\PYGZob{}}\PYG{n+nx}{text}\PYG{o}{:} \PYG{n+nx}{input}\PYG{p}{.}\PYG{n+nx}{value}\PYG{p}{\PYGZcb{})}
+  \PYG{k+kr}{const} \PYG{n+nx}{response} \PYG{o}{=} \PYG{n+nx}{await} \PYG{n+nx}{fetch}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}/tasks\PYGZsq{}}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{n+nx}{method}\PYG{o}{:} \PYG{l+s+s1}{\PYGZsq{}POST\PYGZsq{}}\PYG{p}{,} \PYG{n+nx}{body}\PYG{o}{:} \PYG{n+nx}{request}\PYG{p}{\PYGZcb{})}
+  \PYG{n+nx}{renderTask}\PYG{p}{(}\PYG{n+nx}{await} \PYG{n+nx}{response}\PYG{p}{.}\PYG{n+nx}{json}\PYG{p}{())}
+  \PYG{n+nx}{input}\PYG{p}{.}\PYG{n+nx}{value} \PYG{o}{=} \PYG{l+s+s1}{\PYGZsq{}\PYGZsq{}}
+\PYG{p}{\PYGZcb{})}
+
+\PYG{k+kd}{function} \PYG{n+nx}{renderTask}\PYG{p}{(}\PYG{n+nx}{task}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+  \PYG{k+kr}{const} \PYG{n+nx}{list} \PYG{o}{=} \PYG{n+nb}{document}\PYG{p}{.}\PYG{n+nx}{getElementById}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}tasks\PYGZsq{}}\PYG{p}{)}
+  \PYG{n+nx}{list}\PYG{p}{.}\PYG{n+nx}{insertAdjacentHTML}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}beforeend\PYGZsq{}}\PYG{p}{,}
+    \PYG{l+s+sb}{`\PYGZlt{}li\PYGZgt{}\PYGZlt{}input type=\PYGZdq{}checkbox\PYGZdq{} id=\PYGZdq{}task}\PYG{l+s+si}{\PYGZdl{}\PYGZob{}}\PYG{n+nx}{task}\PYG{p}{.}\PYG{n+nx}{id}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+sb}{\PYGZdq{}\PYGZgt{} `} \PYG{o}{+}
+    \PYG{l+s+sb}{`\PYGZlt{}label for=\PYGZdq{}task}\PYG{l+s+si}{\PYGZdl{}\PYGZob{}}\PYG{n+nx}{task}\PYG{p}{.}\PYG{n+nx}{id}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+sb}{\PYGZdq{}\PYGZgt{}\PYGZlt{}/label\PYGZgt{}\PYGZlt{}/li\PYGZgt{}`}\PYG{p}{)}
+  \PYG{n+nx}{list}\PYG{p}{.}\PYG{n+nx}{lastElementChild}\PYG{p}{.}\PYG{n+nx}{querySelector}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}label\PYGZsq{}}\PYG{p}{).}\PYG{n+nx}{innerText} \PYG{o}{=} \PYG{n+nx}{task}\PYG{p}{.}\PYG{n+nx}{text}
+
+  \PYG{k+kr}{const} \PYG{n+nx}{checkbox} \PYG{o}{=} \PYG{n+nx}{list}\PYG{p}{.}\PYG{n+nx}{lastElementChild}\PYG{p}{.}\PYG{n+nx}{querySelector}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}input\PYGZsq{}}\PYG{p}{)}
+  \PYG{n+nx}{checkbox}\PYG{p}{.}\PYG{n+nx}{checked} \PYG{o}{=} \PYG{n+nx}{task}\PYG{p}{.}\PYG{n+nx}{done}
+  \PYG{n+nx}{checkbox}\PYG{p}{.}\PYG{n+nx}{addEventListener}\PYG{p}{(}\PYG{l+s+s1}{\PYGZsq{}click\PYGZsq{}}\PYG{p}{,} \PYG{p}{(}\PYG{n+nx}{event}\PYG{p}{)} \PYG{p}{=\PYGZgt{}} \PYG{p}{\PYGZob{}}
+    \PYG{n+nx}{setTaskDone}\PYG{p}{(}\PYG{n+nx}{task}\PYG{p}{.}\PYG{n+nx}{id}\PYG{p}{,} \PYG{n+nx}{event}\PYG{p}{.}\PYG{n+nx}{target}\PYG{p}{.}\PYG{n+nx}{checked}\PYG{p}{)}
+  \PYG{p}{\PYGZcb{})}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{n+nx}{async} \PYG{k+kd}{function} \PYG{n+nx}{setTaskDone}\PYG{p}{(}\PYG{n+nx}{taskId}\PYG{p}{,} \PYG{n+nx}{done}\PYG{p}{)} \PYG{p}{\PYGZob{}}
+  \PYG{k+kr}{const} \PYG{n+nx}{request} \PYG{o}{=} \PYG{k}{new} \PYG{n+nx}{URLSearchParams}\PYG{p}{(\PYGZob{}}\PYG{n+nx}{done}\PYG{p}{\PYGZcb{})}
+  \PYG{k+kr}{const} \PYG{n+nx}{response} \PYG{o}{=} \PYG{n+nx}{await} \PYG{n+nx}{fetch}\PYG{p}{(}\PYG{l+s+sb}{`/tasks/}\PYG{l+s+si}{\PYGZdl{}\PYGZob{}}\PYG{n+nx}{taskId}\PYG{l+s+si}{\PYGZcb{}}\PYG{l+s+sb}{`}\PYG{p}{,} \PYG{p}{\PYGZob{}}\PYG{n+nx}{method}\PYG{o}{:} \PYG{l+s+s1}{\PYGZsq{}POST\PYGZsq{}}\PYG{p}{,} \PYG{n+nx}{body}\PYG{o}{:} \PYG{n+nx}{request}\PYG{p}{\PYGZcb{})}
+  \PYG{n+nx}{console}\PYG{p}{.}\PYG{n+nx}{log}\PYG{p}{(}\PYG{n+nx}{await} \PYG{n+nx}{response}\PYG{p}{.}\PYG{n+nx}{json}\PYG{p}{())}
+\PYG{p}{\PYGZcb{}}
+\PYG{p}{\PYGZlt{}/}\PYG{n+nt}{script}\PYG{p}{\PYGZgt{}}
+\end{Verbatim}

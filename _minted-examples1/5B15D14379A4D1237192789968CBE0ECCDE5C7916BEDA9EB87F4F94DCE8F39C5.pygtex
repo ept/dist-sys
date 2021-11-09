@@ -1,0 +1,6 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+curl \PYGZhy{}i \PYGZhy{}F \PYG{n+nv}{text}\PYG{o}{=}hello http://127.0.0.1:5000/tasks
+curl \PYGZhy{}i http://127.0.0.1:5000/tasks
+curl \PYGZhy{}i http://127.0.0.1:5000/tasks/1
+curl \PYGZhy{}i \PYGZhy{}F \PYG{k}{done}\PYG{o}{=}\PYG{n+nb}{true} http://127.0.0.1:5000/tasks/1
+\end{Verbatim}
