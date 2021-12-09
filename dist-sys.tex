@@ -1047,6 +1047,17 @@ This brings us to the topic of node crashes.
 \end{frame}
 \inlineslide{s:model-nodes}{}\label{l:model-nodes}
 
+% Some distinguish between crash failures (cannot distinguish from slowness)
+% and fail-stop (can detect accurately whether node has failed)
+% https://twitter.com/lindsey/status/1465082487730700290
+
+% Cachin et al. (page 17) define the following classes of *algorithm* (not of fault!):
+% 1. fail-stop algorithms, designed under the assumption that processes can fail by
+% crashing but the crashes can be reliably detected by all the other processes;
+% 2. fail-silent algorithms, where process crashes can never be reliably detected;
+% 3. fail-noisy algorithms, where processes can fail by crashing and the crashes can
+% be detected, but not always in an accurate manner (accuracy is only eventual);
+
 In the \emph{crash-stop} model, we assume that after a node crashes, it never recovers.
 This is a reasonable model for an unrecoverable hardware fault, or for the situation where a person drops their phone in the toilet, after which it is permanently out of order.
 With a software crash, the crash-stop model might seem unrealistic, because we can just restart the node, after which it will recover.
@@ -4973,6 +4984,8 @@ Interestingly, on a computer with multiple CPU cores (pretty much all servers, l
 This is because each CPU core has its own caches, and an update made by one core is not immediately reflected in another core's cache.
 Thus, even a single computer starts behaving a bit like a replicated system.
 The \href{\multicore}{L304 unit in Part~III} goes into detail of multicore memory behaviour.
+% TODO: Introduction to Computer Architecture discusses multicore cache coherence and barriers https://www.cl.cam.ac.uk/teaching/2122/IntComArch/
+% This course runs in part IB in the first 5 weeks of Michaelmas term, just before this lecture
 
 Don't confuse linearizability with serializability, even though both words seem to mean something like ``can be arranged into a sequential order''.
 Serializability means that transactions have the same effect as if they had been executed in \emph{some} serial order, but it does not define what that order should be.
