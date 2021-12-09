@@ -22,12 +22,15 @@
 
 \section{Time in Distributed Systems}
 
-Load \url{https://www.cst.cam.ac.uk} in browser, click padlock, view certificate expiry date
+Load \url{https://www.cst.cam.ac.uk} in Firefox, click padlock, view certificate expiry date.
+Set system clock to a date after the expiry, then click shift+reload, and we should see an expired certificate error.
+(This seems to be more reliably reproducible in Firefox than in Chrome.)
 
-\texttt{dig www.cst.cam.ac.uk} --- see how the TTL counts down. To make the output less verbose:
+\texttt{dig www.cst.cam.ac.uk} --- see how the TTL counts down. To make the output \href{https://jvns.ca/blog/2021/12/04/how-to-use-dig/}{less verbose}:
 \begin{minted}{bash}
-dig www.cst.cam.ac.uk CNAME +nocomments +nostats
+dig www.cst.cam.ac.uk +noall +answer
 \end{minted}
+Note: does not count down when on Eduroam!
 
 \section{RPC Demo}
 
