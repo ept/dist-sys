@@ -2651,6 +2651,9 @@ It turns out that this difference in ordering has very fundamental consequences 
 \end{frame}
 \inlineslide{s:broadcast-order}{}\label{l:broadcast-order}
 
+% TODO: the use of \rightarrow in the definitions above is problematic, because broadcast protocols make a distinction between "receiving" and "delivering" a message; when m1 is received but not delivered before m2 is broadcast, it's unclear whether broadcast(m1) -> broadcast(m2) or not.
+% A better definition of causal broadcast might be: if m2 is broadcast by node i, and m1 is broadcast by i or delivered by i before m2 is broadcast, then m1 must be delivered before m2 on all nodes.
+
 The weakest type of broadcast is called \emph{FIFO broadcast}, which is closely related to FIFO links (see \autoref{q:fifo-links}).
 In this model, messages sent by the same node are delivered in the order they were sent.
 For example, on \autoref{l:fifo-broadcast}, $m_1$ must be delivered before $m_3$, since they were both sent by $A$.
@@ -4016,6 +4019,8 @@ Even in the best case, it will take several minutes for an operator to respond, 
 
 This raises the question: can we automatically transfer the leadership from one node to another in the case that the old leader becomes unavailable?
 The answer is yes, and this is exactly what consensus algorithms do.
+
+% There are also leaderless consensus algorithms, see e.g. section 3 of https://vasigavr1.github.io/files/Odyssey_Eurosys_2021.pdf
 
 \begin{frame}
     \label{s:failover}
