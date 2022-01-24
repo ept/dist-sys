@@ -4736,7 +4736,7 @@ If $\mathit{acks}$ is less than a majority, we break from the loop and wait for 
             $C$ sends to $B$: $(\mathsf{LogResponse}, A, 4, 0, \mathsf{false})$ \\
             $B$ sends to $C$: $(\mathsf{LogRequest}, B, 4, 2, 2, 1, \langle(m_5, 2), (m_6, 2)\rangle)$ \\
             $C$ sends to $B$: $(\mathsf{LogResponse}, A, 4, 4, \mathsf{true})$ \\
-            (The $\mathit{commitLength}$ field could be 0, 1, or 2, as per part c.)
+            (The $\mathit{commitLength}$ field could be 0, 1, or 2, as per part c. Node $C$ will discard $m_7$ when it receives $m_5$ and $m_6$ from $B$. This is okay because $m_7$ was not written to a quorum of nodes, and hence it was not acknowledged as committed.)
     \end{enumerate}
 }
 
