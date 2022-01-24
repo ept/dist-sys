@@ -54,7 +54,7 @@ Lecture videos: \url{https://www.youtube.com/playlist?list=PLeKd45zvjcDFUEv_ohr_
 \maketitle
 \tableofcontents
 
-\vspace{10pt}\noindent Thank you to Jean-Pascal Billaud, Alexandre Fruchaud, and Rishabh Jain for reporting mistakes in an earlier version of these notes.
+\vspace{10pt}\noindent Thank you to Jean-Pascal Billaud, Alexandre Fruchaud, Joshua George, and Rishabh Jain for reporting mistakes in an earlier version of these notes.
 
 \def\sectionautorefname{Lecture}%
 \def\subsectionautorefname{Section}%
@@ -4594,7 +4594,7 @@ This operation is idempotent in case the $\mathsf{LogRequest}$ message is duplic
 
 Finally, the follower checks whether the integer $\mathit{leaderCommit}$ in the $\mathsf{LogRequest}$ message is greater than its local variable $\mathit{commitLength}$.
 If so, this means that new records are ready to be committed and delivered to the application.
-The leader moves its $\mathit{commitLength}$ forward and performs the total order broadcast delivery of the messages in the appropriate log entries.
+The follower moves its $\mathit{commitLength}$ forward and performs the total order broadcast delivery of the messages in the appropriate log entries.
 
 This completes the algorithm from the followers' point of view.
 What remains is to switch back to the leader, and to show how it processes the $\mathsf{LogResponse}$ messages from followers (see \autoref{l:raft8}).
