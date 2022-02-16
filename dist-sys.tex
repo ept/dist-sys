@@ -54,7 +54,7 @@ Lecture videos: \url{https://www.youtube.com/playlist?list=PLeKd45zvjcDFUEv_ohr_
 \maketitle
 \tableofcontents
 
-\vspace{10pt}\noindent Thank you to Jean-Pascal Billaud, Alexandre Fruchaud, Joshua George, and Rishabh Jain for reporting mistakes in an earlier version of these notes.
+\vspace{10pt}\noindent Thank you to Jean-Pascal Billaud, Alexandre Fruchaud, Joshua George, Rishabh Jain, and Jorn Janneck for reporting mistakes in an earlier version of these notes.
 
 \def\sectionautorefname{Lecture}%
 \def\subsectionautorefname{Section}%
@@ -4651,23 +4651,19 @@ This may happen multiple times, but eventually the leader will send the follower
     \frametitle{Raft (9/9): leader committing log entries}
     \footnotesize
     Any log entries that have been acknowledged by a quorum of nodes are ready to be committed by the leader.
-    When a log entry is committed, its message is delivered to the application.
+    When a log entry is committed, its message is delivered to the application.\\[1em]
     \begin{algorithmic}
+        \State \textbf{define} $\mathrm{acks}(\mathit{length}) = |\{n \in \mathit{nodes} \mid \mathit{ackedLength}[n] \ge \mathit{length}\}|$
+        \State
         \Function{CommitLogEntries}{}
-            \While{$\mathit{commitLength} < \mathit{log}.\mathsf{length}$}
-                \State $\mathit{acks} := 0$
-                \For{each $\mathit{node} \in \mathit{nodes}$}
-                    \If{$\mathit{ackedLength}[\mathit{node}] > \mathit{commitLength}$}
-                        \State $\mathit{acks} := \mathit{acks} + 1$
-                    \EndIf
+            \State $\mathit{minAcks} := \left\lceil (|\mathit{nodes}| + 1)/2 \right\rceil$
+            \State $\mathit{ready} := \{\mathit{len} \in \{1,\dots,\mathit{log}.\mathsf{length}\} \mid \mathrm{acks}(\mathit{len}) \ge \mathit{minAcks}\}$
+            \If{$\mathit{ready} \ne \{\} \;\wedge\; \max(\mathit{ready}) > \mathit{commitLength} \;\;\wedge$\\\hspace{45pt}$\mathit{log}[\max(\mathit{ready}) - 1].\mathsf{term} = \mathit{currentTerm}$}
+                \For{$i := commitLength$ \textbf{to} $\max(\mathit{ready}) - 1$}
+                    \State deliver $\mathit{log}[i].\mathsf{msg}$ to the application
                 \EndFor
-                \If{$\mathit{acks} \ge \left\lceil (|\mathit{nodes}| + 1)/2 \right\rceil$}
-                    \State deliver $\mathit{log}[\mathit{commitLength}].\mathsf{msg}$ to the application
-                    \State $\mathit{commitLength} := \mathit{commitLength} + 1$
-                \Else
-                    \State \textbf{break}
-                \EndIf
-            \EndWhile
+                \State $\mathit{commitLength} := \max(\mathit{ready})$
+            \EndIf
         \EndFunction
         \State
     \end{algorithmic}
@@ -4675,12 +4671,14 @@ This may happen multiple times, but eventually the leader will send the follower
 \inlineslide{s:raft9}{}\label{l:raft9}
 
 Finally, \autoref{l:raft9} shows how the leader determines which log entries to commit.
-Since $\mathit{commitLength}$ contains the number of log entries that have already been committed and delivered to the application, $\mathit{log}[\mathit{commitLength}]$ is the first log entry that has not yet been committed.
-That log entry is ready to commit if it has been acknowledged by a majority quorum of nodes.
-Since $\mathit{ackedLength}[\mathit{node}]$ stores the number of log entries acknowledged by $\mathit{node}$, we can simply count the number of nodes for which that number exceeds $\mathit{commitLength}$.
-If that number $\mathit{acks}$ constitutes a majority, we deliver $\mathit{log}[\mathit{commitLength}]$ to the application and increment $\mathit{commitLength}$.
+We define the function $\mathrm{acks}(\mathit{length})$ to take an integer, a number of log entries counted from the start of the log.
+This function returns the number of nodes that have acknowledged the receipt of $\mathit{length}$ log entries or more.
+
+\textsc{CommitLogEntries} uses this function to determine how many log entries have been acknowledged by a majority quorum of nodes or more.
+The variable $\mathit{ready}$ contains the set of log prefix lengths that are ready to commit, and if $\mathit{ready}$ is nonempty, $\max(\mathit{ready})$ is the maximum log prefix length that we can commit.
+If this exceeds the current value of $\mathit{commitLength}$, this means there are new log entries that are now ready to commit because they have been acknowledged by sufficiently many nodes.
+The message in each of these log entries is now delivered to the application on the leader, and the $\mathit{commitLength}$ variable is updated.
 On the next $\mathsf{LogRequest}$ message that the leader sends to followers, the new value of $\mathit{commitLength}$ will be included, causing the followers to commit and deliver the same log entries.
-If $\mathit{acks}$ is less than a majority, we break from the loop and wait for further $\mathsf{LogResponse}$ messages.
 
 \supervision{
     Three nodes are executing the Raft algorithm.
