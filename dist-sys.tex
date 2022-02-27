@@ -5888,7 +5888,7 @@ Moreover, even though messages may be delivered in different orders on different
 \supervision{
     Give pseudocode for a variant of the operation-based map CRDT algorithm that has multi-value register semantics instead of last-writer-wins semantics; that is, when there are several concurrent updates for the same key, the algorithm should preserve all of those updates rather than preserving only the one with the greatest timestamp.
 }{
-    Note that this algorithm uses causal broadcast to ensure that when one updates overwrites another, the causally later (overwriting) update is delivered after the update that it overwrites.
+    Note that this algorithm uses causal broadcast to ensure that when one updates overwrites another, the causally later (overwriting) update is delivered after the update that it overwrites. We extend the broadcast message to include a set $T$, which is the set of timestamps of causally prior operations that are overwritten by a particular $\mathsf{set}$ operation. This way, when a broadcast message is delivered, we know which values were written by operations that happened before this $\mathsf{set}$ operation, and which operations were concurrent.
 
     \begin{algorithmic}
         \On{initialisation}
