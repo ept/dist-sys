@@ -1,7 +1,7 @@
 % Stuff that may change from year to year; also check slide s:other-courses
 \newcommand{\coursepath}{/teaching/2122/ConcDisSys}
 \newcommand{\courseurl}{\url{https://www.cst.cam.ac.uk\coursepath}}
-\newcommand{\thisyear}{2021/22}
+\newcommand{\thisyear}{WS 2022/23}
 \newcommand{\timestampexample}{2021-11-09T09:50:17+00:00}
 \newcommand{\whenissecurity}{Part IB Easter term}
 \newcommand{\whenisnetworking}{Part IB Lent term}
@@ -43,13 +43,8 @@
 
 \begin{document}
 \title{Distributed Systems}
-\subtitle{University of Cambridge\\%
-Computer Science Tripos, Part IB\\%
-Michaelmas term \thisyear\\[1em]%
-Course web page: \courseurl\\%
-Lecture videos: \url{https://www.youtube.com/playlist?list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB}}
-
-\author{Dr.\ Martin Kleppmann\\mk428@cst.cam.ac.uk}
+\subtitle{TU Munich\\Chair of Decentralized Systems Engineering (DSE)\\\thisyear}
+\author{Dr.\ Martin Kleppmann\\martin.kleppmann@in.tum.de}
 \date{}
 \maketitle
 \tableofcontents
@@ -64,15 +59,17 @@ Lecture videos: \url{https://www.youtube.com/playlist?list=PLeKd45zvjcDFUEv_ohr_
 
 \section{Introduction}\label{sec:introduction}
 
-\begin{frame}
+\begin{frame}[plain]
     \label{s:title}
     \begin{center}
-        \textbf{\huge{\color{darkblue}{Distributed Systems}}} \\[2em]
-        The second half of \emph{Concurrent and Distributed Systems}\\[0.5em]
-        \url{https://www.cl.cam.ac.uk/teaching/current/ConcDisSys}\\[2em]
-        Dr.\ Martin Kleppmann (mk428@cam) \\[0.5em]
-        University of Cambridge \\[0.5em]
-        Computer Science Tripos, Part IB \\[2em]
+        \textbf{\huge{\color{tumblue}{Distributed Systems}}} \\[0.5em]
+        (The foundations/theory part of the course)\\[1em]
+        Dr.\ Martin Kleppmann\\
+        martin.kleppmann@in.tum.de\\[1em]
+        TU Munich\\
+        Chair of Decentralized Systems Engineering\\
+        \url{https://dse.in.tum.de/}\\[1em]
+        \includegraphics[width=1.5cm]{images/tum-logo.png}\\[2em]
     \end{center}
     \begin{columns}[totalwidth=9cm]
         \begin{column}{4cm}
@@ -223,7 +220,7 @@ For example, the Large Hadron Collider at CERN is supported by a worldwide compu
 However, there are also downsides to distributed systems, because things can go wrong, and the system needs to deal with such faults.
 The network may fail, leaving the nodes unable to communicate.
 
-\begin{frame}
+\begin{frame}[plain]
     \label{s:no-internet}
     \includegraphics[height=\paperheight]{images/no-internet.png}
 \end{frame}
@@ -265,7 +262,7 @@ When studying distributed systems, we usually work with a high-level abstraction
 
 \begin{frame}
     \label{s:networking}
-    \frametitle{Distributed Systems and Computer Networking}
+    \frametitle{Distributed Systems and Networking}
     We use a simple abstraction of communication:
     \begin{center}
         \begin{tikzpicture}
@@ -623,7 +620,7 @@ The details of the language are not important for this course.
 \begin{frame}
     \begin{center}
         Lecture 2\\[2em]
-        \Large{\color{darkblue}{Models of distributed systems}}
+        \Large{\color{tumblue}{Models of distributed systems}}
     \end{center}
 \end{frame}
 
@@ -1346,7 +1343,7 @@ Most Internet services do not even reach four nines because of diminishing retur
 \begin{frame}
     \begin{center}
         Lecture 3\\[2em]
-        \Large{\color{darkblue}{Time, clocks, and ordering of events}}
+        \Large{\color{tumblue}{Time, clocks, and ordering of events}}
     \end{center}
 \end{frame}
 
@@ -1669,7 +1666,7 @@ Atomic clocks are too expensive and bulky to build into every computer and phone
 Since these clocks drift, they need adjustment from time to time, which is most commonly done using the \emph{Network Time Protocol} (NTP).
 All mainstream operating systems have NTP clients built in.
 
-\begin{frame}
+\begin{frame}[plain]
     \label{s:ntp-config}
     \includegraphics[height=\paperheight]{images/ntp-config.png}
 \end{frame}
@@ -1776,7 +1773,7 @@ For this reason, any system that depends on clock synchronisation needs to be ca
 \end{frame}
 \inlineslide{s:ntp-slew}{}\label{l:ntp-slew}
 
-\begin{frame}
+\begin{frame}[plain]
     \label{s:ntp-graph}
     \begin{center}
         \includegraphics[height=8cm]{images/ntp-graph.png}
@@ -1895,7 +1892,7 @@ Thus, if we order messages based on their timestamps from time-of-day clocks, we
 \begin{frame}<1-2>[label=physical-order]
     \label{s:physical-order}
     \frametitle<1-2>{Ordering of messages using timestamps?}
-    \frametitle<3>{Physical timestamps inconsistent with causality}
+    \frametitle<3>{Timestamps inconsistent with causality}
     \begin{center}
         \begin{tikzpicture}
             \node [rectangle,fill=red!10,draw] (user1) at (0,3.7) {user A};
@@ -2084,7 +2081,7 @@ In distributed systems, we usually work with messages on a network rather than b
 \begin{frame}
     \begin{center}
         Lecture 4\\[2em]
-        \Large{\color{darkblue}{Broadcast protocols and logical time}}
+        \Large{\color{tumblue}{Broadcast protocols and logical time}}
     \end{center}
 \end{frame}
 
@@ -3269,7 +3266,7 @@ We will return to the problem of fault-tolerant total order broadcast in \autore
 \begin{frame}
     \begin{center}
         Lecture 5\\[2em]
-        \Large{\color{darkblue}{Replication}}
+        \Large{\color{tumblue}{Replication}}
     \end{center}
 \end{frame}
 
@@ -3338,7 +3335,7 @@ A request to update the database may be lost in the network, or an acknowledgeme
 As usual, we can improve reliability by retrying the request.
 However, if we are not careful, the retry could lead to the request being processed multiple times, leading to an incorrect state in the database.
 
-\begin{frame}
+\begin{frame}[plain]
     \label{s:negative-followers}
     \includegraphics[width=12cm]{images/negative-followers.png}
 \end{frame}
@@ -3977,7 +3974,7 @@ This can be done, and we will see some techniques for commutativity in \autoref{
 
 \begin{frame}
     \label{s:causal-replication}
-    \frametitle{Replication using causal (and weaker) broadcast}
+    \frametitle{Replication using weaker broadcast}
     State machine replication uses (FIFO-)total order broadcast.\\
     Can we use weaker forms of broadcast too?\\[1em]\pause
     If replica state updates are \textbf{commutative}, replicas can process updates in different orders and still end up in the same state.\\[1em]
@@ -4000,7 +3997,7 @@ This can be done, and we will see some techniques for commutativity in \autoref{
 \begin{frame}
     \begin{center}
         Lecture 6\\[2em]
-        \Large{\color{darkblue}{Consensus}}
+        \Large{\color{tumblue}{Consensus}}
     \end{center}
 \end{frame}
 
@@ -4304,7 +4301,7 @@ When a node suspects a leader failure, it starts a leader election as follows: i
 It then sends a $\mathsf{VoteRequest}$ message to each other node, asking it to vote on whether this candidate should be the new leader.
 The message contains the $\mathit{nodeId}$ of the candidate, its $\mathit{currentTerm}$ (after incrementing), the number of entries in its log, and the $\mathsf{term}$ property of its last log entry.
 
-\begin{frame}
+\begin{frame}[plain]
     \label{s:raft1}
     \frametitle{Raft (1/9): initialisation}
     \footnotesize
@@ -4476,7 +4473,7 @@ This serves multiple purposes: it lets the followers know that the leader is sti
 
 \begin{frame}
     \label{s:raft5}
-    \frametitle{Raft (5/9): replicating from leader to followers}
+    \frametitle{Raft (5/9): replicating to followers}
     \footnotesize
     Called on the leader whenever there is a new message in the log, and also periodically.
     If there are no new messages, $\mathit{suffix}$ is the empty list.
@@ -4606,7 +4603,7 @@ What remains is to switch back to the leader, and to show how it processes the $
 
 \begin{frame}
     \label{s:raft8}
-    \frametitle{Raft (8/9): leader receiving log acknowledgements}
+    \frametitle{Raft (8/9): leader receiving acks}
     \footnotesize
     \makebox[\linewidth][c]{%
         \begin{minipage}{12cm}
@@ -4752,7 +4749,7 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
 \begin{frame}
     \begin{center}
         Lecture 7\\[2em]
-        \Large{\color{darkblue}{Replica consistency}}
+        \Large{\color{tumblue}{Replica consistency}}
     \end{center}
 \end{frame}
 
@@ -5158,7 +5155,7 @@ This behaviour is not allowed in a linearizable system.
 
 \begin{frame}
     \label{s:non-linearizable}
-    \frametitle{Not linearizable, despite quorum reads/writes}
+    \frametitle{Not linearizable, despite quorums}
     \begin{tikzpicture}
         \node [rectangle,fill=red!10,draw] (node1) at (0,5.9) {client 1};
         \node [rectangle,fill=red!10,draw] (node2) at (2,5.9) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
@@ -5195,7 +5192,7 @@ This behaviour is not allowed in a linearizable system.
 
 \begin{frame}
     \label{s:non-linearizable-2}
-    \frametitle{Not linearizable, despite quorum reads/writes}
+    \frametitle{Not linearizable, despite quorums}
     \begin{tikzpicture}
         \node [rectangle,fill=red!10,draw] (node1) at (0,5.7) {client 1};
         \node [rectangle,fill=red!10,draw] (node5) at (8,5.7) {client 2};
@@ -5290,7 +5287,7 @@ It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and 
 
 \begin{frame}
     \label{s:non-linearizable-3}
-    \frametitle{ABD: Making quorum reads/writes linearizable}
+    \frametitle{ABD: Linearizable quorum reads/writes}
     \begin{tikzpicture}
         \node [rectangle,fill=red!10,draw] (node1) at (0,5.9) {client 1};
         \node [rectangle,fill=red!10,draw] (node2) at (2,5.9) {\storageSymbol}; \node [yshift=-0.2cm] at (node2) {$A$};
@@ -5531,7 +5528,7 @@ If the calendar app's replication protocol was linearizable, this would not be p
 % window showing a live video feed from the iOS device. Next, place that QuickTime video side-by-side
 % with the other app, and back in QuickTime do File -> New Screen Recording.
 
-\begin{frame}
+\begin{frame}[plain]
     \label{s:calendar}
     \begin{tikzpicture}[remember picture,overlay]
         \node at (current page.center) {\includegraphics[width=\paperwidth]{images/calendar.png}};
@@ -5633,7 +5630,7 @@ This brings us to the end of our discussion of consistency models.
 
 \begin{frame}
     \label{s:model-requirements}
-    \frametitle{Summary of minimum system model requirements}
+    \frametitle{Summary of system model requirements}
     \begin{tikzpicture}[remember picture,overlay]
         \node (highest) [xshift=5.3cm,yshift=1.5cm] at (current page.center) {};
         \node (lowest)  [xshift=5.3cm,yshift=-3cm] at (current page.center) {};
@@ -5668,7 +5665,7 @@ This hierarchy has some similarities to the concept of complexity classes of alg
 \begin{frame}
     \begin{center}
         Lecture 8\\[2em]
-        \Large{\color{darkblue}{Case studies}}
+        \Large{\color{tumblue}{Case studies}}
     \end{center}
 \end{frame}
 
@@ -5980,7 +5977,7 @@ When you type in a Google Doc, the keystrokes are immediately applied to the loc
 This means that when two users are typing concurrently, their documents can temporarily diverge; as network communication takes place, the system needs to ensure that all users converge to the same view of the document.
 The video of this lecture includes a demo of Google Docs showing this conflict resolution process in action.
 
-\begin{frame}
+\begin{frame}[plain]
     \label{s:google-docs}
     \begin{tikzpicture}[remember picture,overlay]
         \node at (current page.center) {\includegraphics[height=\paperheight]{images/google-docs.png}};
