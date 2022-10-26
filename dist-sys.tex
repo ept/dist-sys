@@ -1,36 +1,6 @@
 % Stuff that may change from year to year; also check slide s:other-courses
-\newcommand{\coursepath}{/teaching/2122/ConcDisSys}
-\newcommand{\courseurl}{\url{https://www.cst.cam.ac.uk\coursepath}}
 \newcommand{\thisyear}{WS 2022/23}
 \newcommand{\timestampexample}{2021-11-09T09:50:17+00:00}
-\newcommand{\whenissecurity}{Part IB Easter term}
-\newcommand{\whenisnetworking}{Part IB Lent term}
-\newcommand{\networking}{https://www.cl.cam.ac.uk/teaching/2122/CompNet/}
-\newcommand{\security}{https://www.cl.cam.ac.uk/teaching/2122/Security/}
-\newcommand{\ledgersystems}{https://www.cl.cam.ac.uk/teaching/2122/R47/}
-\newcommand{\multicore}{https://www.cl.cam.ac.uk/teaching/2122/L304/}
-
-% Lecture dates for 2020:
-% 2020-11-05
-% 2020-11-10
-% 2020-11-12
-% 2020-11-17
-% 2020-11-19
-% 2020-11-24
-% 2020-11-26
-% 2020-12-01
-% Instructions for editing course web page: https://www.cl.cam.ac.uk/teaching/2021/instructions.html
-
-% Video durations:
-% Lecture 1: 47.5 min
-% Lecture 2: 51.4 min
-% Lecture 3: 53.2 min
-% Lecture 4: 54.1 min
-% Lecture 5: 45.2 min
-% Lecture 6: 55.7 min
-% Lecture 7: 52.5 min
-% Lecture 8: 55.1 min
-% Total: 6.9 hours
 
 \fancypagestyle{plain}{%
   \renewcommand{\headrulewidth}{0pt}%
@@ -100,104 +70,12 @@ Each of the computers in a distributed system is called a \emph{node}.
 Here, ``computer'' is interpreted quite broadly: nodes might be desktop computers, servers in datacenters, mobile devices, internet-connected cars, industrial control systems, sensors, or many other types of device.
 In this course we don't distinguish them: a node can be any type of communicating computing device.
 
-\begin{frame}
-    \label{s:dist-sys-definition}
-    \frametitle{A distributed system is\dots}
-    \begin{itemize}
-        \item<1-> \emph{``{\dots}a system in which the failure of a computer you didn't even know existed can render your own computer unusable.''} --- Leslie Lamport\\[1em]
-        \item<2> {\dots}multiple computers communicating via a network\dots
-        \item<2> {\dots}trying to achieve some task together
-        \item<2> Consists of ``nodes'' (computer, phone, car, robot, \dots)
-    \end{itemize}
-    \hfill\includegraphics<1>[height=4cm]{images/lamport.jpg}
-\end{frame}
-\inlineslide{s:dist-sys-definition}{\href{https://www.youtube.com/watch?v=UEAMfLPZZhE&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=1}{Start of video section 1.1}\\(\href{https://www.cl.cam.ac.uk/teaching/2122/ConcDisSys/video/09.1_Distributed_systems_introduction.mp4}{mp4 download})}\label{l:dist-sys-definition}
-% reference for Lamport quote: https://www.microsoft.com/en-us/research/publication/distribution/
-% License for photo: https://commons.wikimedia.org/wiki/File:Leslie_Lamport.jpg
-
-\subsection{About distributed systems}\label{sec:about}
-
-These notes and the lecture recordings should be self-contained, but if you would like to read up on further detail, there are several suggested textbooks:
-\begin{itemize}
-    \item Maarten van Steen and Andrew S.\ Tanenbaum. \emph{Distributed Systems}. ISBN 978-1543057386.
-        Free download from \url{https://www.distributed-systems.net/index.php/books/ds3/} (third edition, 2017).
-
-        This book gives a broad overview over a large range of distributed systems topics, with lots of examples from practical systems.
-
-    \item Christian Cachin, Rachid Guerraoui, and Luís Rodrigues.
-        \emph{Introduction to Reliable and Secure Distributed Programming}.
-        Second edition, Springer, 2011. ISBN 978-3-642-15259-7.
-
-        Ebook download for Cambridge users: \url{https://link.springer.com/book/10.1007/978-3-642-15260-3} then click Log in $\rightarrow$ via your Institution $\rightarrow$ type \emph{University of Cambridge} $\rightarrow$ log in with Raven.
-
-        This book is more advanced, going into depth on several important distributed algorithms, and proving their correctness.
-        Recommended if you want to explore the theory in greater depth than this course covers.
-
-    \item Martin Kleppmann. \emph{Designing Data-Intensive Applications}, O'Reilly, 2017. ISBN 978-1449373320.
-
-        This book goes more in the direction of databases, but also covers a number of distributed systems topics.
-        It is designed for software engineers in industry working with distributed databases.
-
-    \item Jean Bacon and Tim Harris. \emph{Operating Systems: Concurrent and Distributed Software Design}.
-        Addison-Wesley, 2003. ISBN 978-0321117892.
-
-        This book provides a link to the \emph{concurrent systems} half of the course, and to operating systems topics.
-        It is now sadly out of print, but you can find copies in many college libraries.
-\end{itemize}
-
-Where appropriate, these lecture notes also contain references to research papers and other useful background reading (these are given in square brackets, and the details appear at the end of this document).
-However, only material covered in the lecture notes and videos is examinable.
-
-\begin{frame}
-    \label{s:reading}
-    \frametitle{Recommended reading}
-    \begin{itemize}
-        \item van Steen \& Tanenbaum.\\ ``\textbf{Distributed Systems}''\\(any ed), free ebook available
-        \item Cachin, Guerraoui \& Rodrigues. \\ ``\textbf{Introduction to Reliable and Secure Distributed Programming}'' (2nd ed), Springer 2011
-        \item Kleppmann.\\ ``\textbf{Designing Data-Intensive Applications}'',\\O’Reilly 2017
-        \item Bacon \& Harris.\\ ``\textbf{Operating Systems: Concurrent and Distributed Software Design}'', Addison-Wesley 2003
-    \end{itemize}
-\end{frame}
-\inlineslide{s:reading}{}
-
-As for other courses, past exam questions are available at \url{https://www.cl.cam.ac.uk/teaching/exams/pastpapers/t-ConcurrentandDistributedSystems.html}.
-The syllabus, slides, and lecture notes for this course were substantially updated and revised in 2020/21.
-Because of syllabus changes, the following past exam questions are no longer applicable: 2018~P5~Q8; 2015~P5~Q8; 2014~P5~Q9~(a); 2013~P5~Q9; 2011~P5~Q8~(b).
-
-These notes also contain exercises, which are suggested material for discussion in supervisions.
-Solution notes for supervisors are available from the course web page.
-
-This course is related to several other courses in the tripos, as shown on \autoref{l:other-courses}.
-
-\begin{frame}
-    \label{s:other-courses}
-    \frametitle{Relationships with other courses}
-    \begin{itemize}
-        \item \textbf{Concurrent Systems} -- Part IB\\
-            (every distributed system is also concurrent)
-        \item \textbf{Operating Systems} -- Part IA\\
-            (inter-process communication, scheduling)
-        \item \textbf{Databases} -- Part IA\\
-            (many modern databases are distributed)
-        \item \textbf{Computer Networking} -- \whenisnetworking\\
-            (distributed systems involve network communication)
-        \item \textbf{Further Java} -- Part IB Michaelmas\\
-            (distributed programming practical exercises)
-        \item \textbf{Security} -- \whenissecurity\\
-            (network protocols with encryption \& authentication)
-        \item \textbf{Cloud Computing} -- Part II\\
-            (distributed systems for processing large amounts of data)
-    \end{itemize}
-\end{frame}
-\inlineslide{s:other-courses}{}\label{l:other-courses}
-
-
 There are a number of reasons for creating distributed systems.
 Some applications are \emph{intrinsically distributed}: if you want to send a message from your phone to your friend's phone, that operation inevitably requires those phones to communicate via some kind of network.
 
 Some distributed systems do things that in principle a single computer could do, but they do it \emph{more reliably}.
 A single computer can fail and might need to be rebooted from time to time, but if you are using multiple nodes, then one node can continue serving users while another node is rebooting.
-Thus, a distributed system has the potential to be more reliable than a single computer, at least if it is well-designed (somewhat contradicting Lamport's quote on \autoref{l:dist-sys-definition})!
+Thus, a distributed system has the potential to be more reliable than a single computer, at least if it is well-designed!
 
 Another reason for distribution is for better \emph{performance}: if a service has users all over the world, and they all have to access a single node, then either the users in the UK or the users in New Zealand are going to find it slow (or both).
 By placing nodes in multiple locations around the world, we can get around the slowness of the speed of light by routing each user to a nearby node.
@@ -298,7 +176,7 @@ The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's
 Indeed, if you want to send a very large message (think tens of terabytes), it would be slow to send that data over the Internet, and it is in fact faster to write that data to a bunch of hard drives, load them into a van, and to drive them to their destination.
 But from a distributed systems point of view, the method of delivering the message is not important: we only see an abstract communication channel with a certain \emph{latency} (delay from the time a message is sent until it is received) and \emph{bandwidth} (the volume of data that can be transferred per unit time).
 
-The \href{\networking}{Computer Networking} course (\whenisnetworking) focusses on the network protocols that enable messages to get to their destination.
+Computer networking focusses on the network protocols that enable messages to get to their destination.
 Distributed systems build upon that facility, and instead focus on how several nodes should coordinate in order to achieve some shared task.
 The design of distributed algorithms is about deciding what messages to send, and how to process the messages when they are received.
 
@@ -338,10 +216,10 @@ The web is an example of a distributed system that you use every day.
     \begin{center}
         \begin{tikzpicture}
             \node [rectangle,fill=red!10,draw] (client) at (0,4) {client};
-            \node [rectangle,fill=red!10,draw] (server) at (8,4) {server www.cst.cam.ac.uk};
+            \node [rectangle,fill=red!10,draw] (server) at (8,4) {server www.cit.tum.de};
             \draw (client) -- (0,0);
             \draw (server) -- (8,0);
-            \draw<2-> [bigarrow] (0,3) -- node [above,sloped] {GET \coursepath} (8,2);
+            \draw<2-> [bigarrow] (0,3) -- node [above,sloped] {GET /en/cit/home/} (8,2);
             \draw<3> [bigarrow] (8,1.5) -- node [above,sloped] {\texttt{<!DOCTYPE html><html>...}} (0,0.5);
         \end{tikzpicture}
     \end{center}
@@ -360,18 +238,17 @@ The lecture video includes a demo of this software in action.
         \node at (0,0) {\includegraphics[height=8cm]{images/http-capture.png}};
         \node<2> (request) at (-4,-4.5) [red] {request message};
         \node<2> (response) at (2,-4.5) [red] {response message};
-        \draw<2> [-Stealth,red,line width=4pt] (request) -- (-4,0.5);
+        \draw<2> [-Stealth,red,line width=4pt] (request) -- (-4,1.0);
         \draw<2> [-Stealth,red,line width=4pt] (response) -- (0,-1.2);
     \end{tikzpicture}
 \end{frame}
 \inlineslide{s:http-capture}{}\label{l:http-capture}
 
-In a URL, the part between the \verb|//| and the following \verb|/| is the hostname of the server to which the client is going to send the request (e.g.\ \texttt{www.cst.cam.ac.uk}), and the rest (e.g.\ \texttt{\coursepath}) is the path that the client asks for in its request message.
+In a URL, the part between the \verb|//| and the following \verb|/| is the hostname of the server to which the client is going to send the request (e.g.\ \texttt{www.cit.tum.de}), and the rest (e.g.\ \texttt{/en/cit/home/}) is the path that the client asks for in its request message.
 Besides the path, the request also contains some extra information, such as the HTTP method (e.g.\ \texttt{GET} to load a page, or \texttt{POST} to submit a form), the version of the client software (the \emph{user-agent}), and a list of file formats that the client understands (the \emph{accept header}).
 The response message contains the file that was requested, and an indicator of its file format (the \emph{content-type}); in the case of a web page, this might be a HTML document, an image, a video, a PDF document, or any other type of file.
 
 Since the requests and responses can be larger than we can fit in a single network packet, the HTTP protocol runs on top of TCP, which breaks down a large chunk of data into a stream of small network packets (see \autoref{l:wireshark}), and puts them back together again at the recipient.
-(TCP will be discussed in detail in the \href{\networking}{Computer Networking} course.)
 HTTP also allows multiple requests and multiple responses to be sent over a single TCP connection.
 However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
 This keeps things independent of the underlying networking technology.
@@ -856,7 +733,7 @@ For example, a system with 4 generals can tolerate $f=1$ malicious general, and 
 \inlineslide{s:byzantine-discussion}{}
 
 The problem is made somewhat easier if generals use cryptography (\emph{digital signatures}) to prove who said what: for example, this would allow general 2 to prove to general 3 what general 1's order was.
-We will not go into details of digital signatures in this course, as they are covered in the \href{\security}{Security} course (\whenissecurity).
+We will not go into details of digital signatures in this course.
 However, even with signatures, the Byzantine generals problem remains challenging.
 
 Is the Byzantine generals problem of practical relevance?
@@ -1014,7 +891,7 @@ To overcome network partitions that last for longer than this duration, a separa
 An arbitrary link is an accurate model for communication over the Internet: whenever your communication is routed through a network (be it a coffee shop wifi or an Internet backbone network), the operator of that network can potentially interfere with and manipulate your network packets in arbitrary ways.
 Someone who manipulates network traffic is also known as an \emph{active adversary}.
 Fortunately, it is \emph{almost} possible to turn an arbitrary link into a fair-loss link using cryptographic techniques.
-The \emph{Transport Layer Security} (TLS) protocol, which provides the ``s'' for ``secure'' in \verb|https://|, prevents an active adversary from eavesdropping, modifying, spoofing, or replaying traffic (more on this in the \href{\security}{Security} course, \whenissecurity).
+The \emph{Transport Layer Security} (TLS) protocol, which provides the ``s'' for ``secure'' in \verb|https://|, prevents an active adversary from eavesdropping, modifying, spoofing, or replaying traffic.
 
 The only thing that TLS cannot prevent is the adversary dropping (blocking) communication.
 Thus, an arbitrary link can be converted into a fair-loss link only if we assume that the adversary does not block communication forever.
@@ -4092,7 +3969,6 @@ Paxos and Raft assume a system model with fair-loss links (\autoref{l:model-netw
 The assumptions on network and node behaviour can be weakened to Byzantine, and such algorithms are used in blockchains.
 However, Byzantine fault-tolerant consensus algorithms are significantly more complicated and less efficient than non-Byzantine ones.
 We will focus on fair-loss, crash-recovery algorithms for now, which are useful in many practical settings (such as datacenters with trusted private networks).
-The \href{\ledgersystems}{R47 unit in Part~III} goes into detail of Byzantine consensus.
 
 On the other hand, the assumption of partial synchrony cannot be weakened to asynchrony.
 The reason is that consensus requires a failure detector (\autoref{l:failure-detector}), which in turn requires a local clock to trigger timeouts \citep{Chandra:1996}.
@@ -4983,7 +4859,7 @@ Linearizability is a useful concept not only in distributed systems, but also in
 Interestingly, on a computer with multiple CPU cores (pretty much all servers, laptops and smartphones nowadays), memory access is not linearizable by default!
 This is because each CPU core has its own caches, and an update made by one core is not immediately reflected in another core's cache.
 Thus, even a single computer starts behaving a bit like a replicated system.
-The \href{\multicore}{L304 unit in Part~III} goes into detail of multicore memory behaviour.
+% The \href{\multicore}{L304 unit in Part~III} goes into detail of multicore memory behaviour.
 % TODO: Introduction to Computer Architecture discusses multicore cache coherence and barriers https://www.cl.cam.ac.uk/teaching/2122/IntComArch/
 % This course runs in part IB in the first 5 weeks of Michaelmas term, just before this lecture
 
