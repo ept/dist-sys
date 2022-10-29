@@ -27,6 +27,7 @@
 
 % TODO: have title slide with my name, course title, university crest for each video?
 
+\newpage
 \section{Introduction}\label{sec:introduction}
 
 \begin{frame}[plain]
@@ -51,96 +52,72 @@
     \end{columns}
 \end{frame}
 
-This 8-lecture course on distributed systems forms the second half of \emph{Concurrent and Distributed Systems}.
-While the first half focussed on concurrency among multiple processes or threads running on the same computer, this second half takes things further by examining systems consisting of multiple communicating computers.
-
-Concurrency on a single computer is also known as \emph{shared-memory concurrency}, since multiple threads running in the same process have access to the same address space.
-Thus, data can easily be passed from one thread to another: a variable or pointer that is valid for one thread is also valid for another.
-
-This situation changes when we move to distributed systems.
-We still have concurrency in a distributed system, since different computers can execute programs in parallel.
-However, we don't typically have shared memory, since each computer in a distributed system runs its own operating system with its own address space, using the memory built into that computer.
-Different computers can only communicate by sending each other messages over a network.
-
-(Limited forms of distributed shared memory exist in some supercomputers and research systems, and there are technologies like \emph{remote direct memory access} (RDMA) that allow computers to access each others' memory over a network.
-Also, databases can in some sense be regarded as shared memory, but with a different data model compared to byte-addressable memory.
-However, broadly speaking, most practical distributed systems are based on message-passing.)
-
-Each of the computers in a distributed system is called a \emph{node}.
-Here, ``computer'' is interpreted quite broadly: nodes might be desktop computers, servers in datacenters, mobile devices, internet-connected cars, industrial control systems, sensors, or many other types of device.
-In this course we don't distinguish them: a node can be any type of communicating computing device.
-
-There are a number of reasons for creating distributed systems.
-Some applications are \emph{intrinsically distributed}: if you want to send a message from your phone to your friend's phone, that operation inevitably requires those phones to communicate via some kind of network.
-
-Some distributed systems do things that in principle a single computer could do, but they do it \emph{more reliably}.
-A single computer can fail and might need to be rebooted from time to time, but if you are using multiple nodes, then one node can continue serving users while another node is rebooting.
-Thus, a distributed system has the potential to be more reliable than a single computer, at least if it is well-designed!
-
-Another reason for distribution is for better \emph{performance}: if a service has users all over the world, and they all have to access a single node, then either the users in the UK or the users in New Zealand are going to find it slow (or both).
-By placing nodes in multiple locations around the world, we can get around the slowness of the speed of light by routing each user to a nearby node.
-
-Finally, some large-scale data processing or computing tasks are simply \emph{too big} to perform on a single computer, or would be intolerably slow.
-For example, the Large Hadron Collider at CERN is supported by a worldwide computing infrastructure with 1 million CPU cores for data analysis, and 1 exabyte ($10^{18}$ bytes) of storage! See \url{https://wlcg-public.web.cern.ch/}.
-
-\begin{frame}
-    \label{s:why-distribute}
-    \frametitle{Why make a system distributed?}
-    \begin{itemize}\pause
-        \item \textbf{It's inherently distributed:}\\e.g. sending a message from your mobile phone to your friend's phone\pause
-        \item \textbf{For better reliability:}\\even if one node fails, the system as a whole keeps functioning\pause
-        \item \textbf{For better performance:}\\get data from a nearby node rather than one halfway round the world\pause
-        \item \textbf{To solve bigger problems:}\\e.g. huge amounts of data, can't fit on one machine
-    \end{itemize}
-\end{frame}
-\inlineslide{s:why-distribute}{}\label{l:why-distribute}
-
-However, there are also downsides to distributed systems, because things can go wrong, and the system needs to deal with such faults.
-The network may fail, leaving the nodes unable to communicate.
-
-\begin{frame}[plain]
-    \label{s:no-internet}
-    \includegraphics[height=\paperheight]{images/no-internet.png}
-\end{frame}
-\inlineslide{s:no-internet}{}
-
-Another thing that can go wrong is that a node may crash, or run much slower than usual, or misbehave in some other way (perhaps due to a software bug or a hardware failure).
-If we want one node to take over when another node crashes, we need to detect that a crash has happened; as we shall see, even that is not straightforward.
-Network failures and node failures can happen at any moment, without warning.
-
-In a single computer, if one component fails (e.g.\ one of the RAM modules develops a fault), we normally don't expect the computer to continue working nevertheless: it will probably just crash.
-Software does not need to be written in a way that explicitly deals with faulty RAM.
-However, in a distributed system we often \emph{do} want to tolerate some parts of the system being broken, and for the rest to continue working.
-For example, if one node has crashed (a \emph{partial failure}), the remaining nodes may still be able to continue providing the service.
-
-If one component of a system stops working, we call that a \emph{fault}, and many distributed systems strive to provide \emph{fault tolerance}: that is, the system as a whole continues functioning despite the fault.
-Dealing with faults is what makes distributed computing fundamentally different, and often harder, compared to programming a single computer.
-Some distributed system engineers believe that if you can solve a problem on a single computer, it is basically easy!
-Though, in fairness to our colleagues in other areas of computer science, this is probably not true.
-
-\begin{frame}
-    \label{s:why-not}
-    \frametitle{Why NOT make a system distributed?}
-    The trouble with distributed systems:
-    \begin{itemize}
-        \item Communication may fail (and we might not even know it has failed).
-        \item Processes may crash (and we might not know).
-        \item All of this may happen nondeterministically.
-    \end{itemize}\vspace{1em}\pause
-    \textbf{Fault tolerance}: we want the system as a whole to continue working, even when some parts are faulty.\\[1em]
-    This is hard.\\[1em]
-    Writing a program to run on a single computer is comparatively easy?!
-\end{frame}
-\inlineslide{s:why-not}{}
-
-
 \subsection{Distributed systems and computer networking}\label{sec:networking}
 
-When studying distributed systems, we usually work with a high-level abstraction of the hardware.
+The web is an example of a distributed system that you use every day.
+
+\begin{frame}[plain]
+    \label{s:website}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node at (current page.center) {\includegraphics[height=\paperheight]{images/website.png}};
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:website}{}
+
+The computers that make up the web play two main roles: \emph{servers} host websites, and \emph{clients} (web browsers) display them.
+When you load a web page, your web browser sends a \emph{HTTP request} message to the appropriate server.
+On receiving that request, the web server sends a \emph{response} message containing the page contents to the client that requested it.
+These messages are normally invisible, but we can capture and visualise the network traffic with a tool such as Charles (\url{https://www.charlesproxy.com/}), shown on \autoref{l:http-capture}.
+
+\begin{frame}
+    \label{s:client-server}
+    \frametitle{Client-server example: the web}
+    Time flows from top to bottom.
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (client) at (0,4) {client};
+            \node [rectangle,fill=red!10,draw] (server) at (8,4) {server www.cit.tum.de};
+            \draw (client) -- (0,0);
+            \draw (server) -- (8,0);
+            \draw<2-> [bigarrow] (0,3) -- node [above,sloped] {GET /en/cit/home/} (8,2);
+            \draw<3> [bigarrow] (8,1.5) -- node [above,sloped] {\texttt{<!DOCTYPE html><html>...}} (0,0.5);
+        \end{tikzpicture}
+    \end{center}
+\end{frame}
+\inlineslide{s:client-server}{}
+
+In a URL such as \url{https://www.cit.tum.de/en/cit/home/}, the part between the \verb|//| and the following \verb|/| is the hostname of the server to which the client is going to send the request (\texttt{www.cit.tum.de}), and the rest (\texttt{/en/cit/home/}) is the path that the client asks for in its request message.
+Besides the path, the request also contains some extra information, such as the HTTP method (e.g.\ \texttt{GET} to load a page, or \texttt{POST} to submit a form), the version of the client software (the \emph{user-agent}), and a list of file formats that the client understands (the \emph{accept header}).
+The response message contains the file that was requested, and an indicator of its file format (the \emph{content-type}); in the case of a web page, this might be a HTML document, an image, a video, a PDF document, or any other type of file.
+
+\begin{frame}[plain]
+    \label{s:http-capture}
+    \begin{tikzpicture}
+        \node at (0,0) {\includegraphics[height=8cm]{images/http-capture.png}};
+        \node<2> (request) at (-4,-4.5) [red] {request message};
+        \node<2> (response) at (2,-4.5) [red] {response message};
+        \draw<2> [-Stealth,red,line width=4pt] (request) -- (-4,1.0);
+        \draw<2> [-Stealth,red,line width=4pt] (response) -- (0,-1.2);
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:http-capture}{}\label{l:http-capture}
+
+Since the requests and responses can be larger than we can fit in a single network packet, the HTTP protocol runs on top of TCP, which breaks down a large chunk of data into a stream of small network packets (see \autoref{l:wireshark}), and puts them back together again at the recipient.
+HTTP also allows multiple requests and multiple responses to be sent over a single TCP connection.
+
+\begin{frame}[plain]
+    \label{s:wireshark}
+    \begin{tikzpicture}[remember picture,overlay]
+        \node at (current page.center) {\includegraphics[height=\paperheight]{images/wireshark.png}};
+    \end{tikzpicture}
+\end{frame}
+\inlineslide{s:wireshark}{}\label{l:wireshark}
 
 \begin{frame}
     \label{s:networking}
-    \frametitle{Distributed Systems and Networking}
+    \frametitle{Abstracting over networking details}
+    Network packets are too much low-level detail.
+
     We use a simple abstraction of communication:
     \begin{center}
         \begin{tikzpicture}
@@ -157,6 +134,9 @@ When studying distributed systems, we usually work with a high-level abstraction
     \end{itemize}
 \end{frame}
 \inlineslide{s:networking}{}
+
+However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
+This keeps things independent of the underlying networking technology.
 
 In this course, we just assume that there is some way for one node to send a message to another node.
 We don't particularly care how that message is physically represented or encoded~-- the network protocols, informally known as the \emph{bytes on the wire}~-- because the basic principle of sending and receiving messages remains the same, even as particular networking technologies come and go.
@@ -175,10 +155,6 @@ The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's
 
 Indeed, if you want to send a very large message (think tens of terabytes), it would be slow to send that data over the Internet, and it is in fact faster to write that data to a bunch of hard drives, load them into a van, and to drive them to their destination.
 But from a distributed systems point of view, the method of delivering the message is not important: we only see an abstract communication channel with a certain \emph{latency} (delay from the time a message is sent until it is received) and \emph{bandwidth} (the volume of data that can be transferred per unit time).
-
-Computer networking focusses on the network protocols that enable messages to get to their destination.
-Distributed systems build upon that facility, and instead focus on how several nodes should coordinate in order to achieve some shared task.
-The design of distributed algorithms is about deciding what messages to send, and how to process the messages when they are received.
 
 \begin{frame}
     \label{s:latency-bandwidth}
@@ -199,59 +175,28 @@ The design of distributed algorithms is about deciding what messages to send, an
 \end{frame}
 \inlineslide{s:latency-bandwidth}{}
 
-The web is an example of a distributed system that you use every day.
-
-\begin{frame}[plain]
-    \label{s:website}
-    \begin{tikzpicture}[remember picture,overlay]
-        \node at (current page.center) {\includegraphics[height=\paperheight]{images/website.png}};
-    \end{tikzpicture}
-\end{frame}
-\inlineslide{s:website}{}
+Computer networking focusses on the network protocols that enable messages to get to their destination.
+Distributed systems build upon that facility, and instead focus on how several nodes should coordinate in order to achieve some shared task.
+The design of distributed algorithms is about deciding what messages to send, and how to process the messages when they are received.
 
 \begin{frame}
-    \label{s:client-server}
-    \frametitle{Client-server example: the web}
-    Time flows from top to bottom.
+    \label{s:networking2}
+    \frametitle{Distributed Systems and Networking}
+    \rowcolors[]{2}{}{blue!10}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{p{5cm}|p{5cm}}
+        \hline
+        \textbf{networking} & \textbf{distributed systems} \\\hline
+        how to get data from A to B \newline (packets, routing, \dots) & how to achieve some goal by sending/receiving messages \pause\\
+        ``TCP is reliable'' \newline (dropped packets are automatically retransmitted) & any message can be lost \newline (unplug the network cable \newline$\Rightarrow$ TCP timeout) \\\hline
+    \end{tabular}
     \begin{center}
-        \begin{tikzpicture}
-            \node [rectangle,fill=red!10,draw] (client) at (0,4) {client};
-            \node [rectangle,fill=red!10,draw] (server) at (8,4) {server www.cit.tum.de};
-            \draw (client) -- (0,0);
-            \draw (server) -- (8,0);
-            \draw<2-> [bigarrow] (0,3) -- node [above,sloped] {GET /en/cit/home/} (8,2);
-            \draw<3> [bigarrow] (8,1.5) -- node [above,sloped] {\texttt{<!DOCTYPE html><html>...}} (0,0.5);
-        \end{tikzpicture}
+        % Source for network-cable.jpg: https://pixabay.com/photos/modem-antenna-wire-cable-router-5436144/
+        % (Royalty-free, no attribution required)
+        \includegraphics[width=4cm]{images/network-cable.jpg}
     \end{center}
 \end{frame}
-\inlineslide{s:client-server}{}
-
-In the web there are two main types of nodes: \emph{servers} host websites, and \emph{clients} (web browsers) display them.
-When you load a web page, your web browser sends a \emph{HTTP request} message to the appropriate server.
-On receiving that request, the web server sends a \emph{response} message containing the page contents to the client that requested it.
-These messages are normally invisible, but we can capture and visualise the network traffic with a tool such as Charles (\url{https://www.charlesproxy.com/}), shown on \autoref{l:http-capture}.
-The lecture video includes a demo of this software in action.
-
-\begin{frame}[plain]
-    \label{s:http-capture}
-    \begin{tikzpicture}
-        \node at (0,0) {\includegraphics[height=8cm]{images/http-capture.png}};
-        \node<2> (request) at (-4,-4.5) [red] {request message};
-        \node<2> (response) at (2,-4.5) [red] {response message};
-        \draw<2> [-Stealth,red,line width=4pt] (request) -- (-4,1.0);
-        \draw<2> [-Stealth,red,line width=4pt] (response) -- (0,-1.2);
-    \end{tikzpicture}
-\end{frame}
-\inlineslide{s:http-capture}{}\label{l:http-capture}
-
-In a URL, the part between the \verb|//| and the following \verb|/| is the hostname of the server to which the client is going to send the request (e.g.\ \texttt{www.cit.tum.de}), and the rest (e.g.\ \texttt{/en/cit/home/}) is the path that the client asks for in its request message.
-Besides the path, the request also contains some extra information, such as the HTTP method (e.g.\ \texttt{GET} to load a page, or \texttt{POST} to submit a form), the version of the client software (the \emph{user-agent}), and a list of file formats that the client understands (the \emph{accept header}).
-The response message contains the file that was requested, and an indicator of its file format (the \emph{content-type}); in the case of a web page, this might be a HTML document, an image, a video, a PDF document, or any other type of file.
-
-Since the requests and responses can be larger than we can fit in a single network packet, the HTTP protocol runs on top of TCP, which breaks down a large chunk of data into a stream of small network packets (see \autoref{l:wireshark}), and puts them back together again at the recipient.
-HTTP also allows multiple requests and multiple responses to be sent over a single TCP connection.
-However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
-This keeps things independent of the underlying networking technology.
+\inlineslide{s:networking2}{}\label{l:networking2}
 
 \supervision{
     A TCP connection allows two nodes to send each other arbitrarily long sequences of bytes.
@@ -269,13 +214,98 @@ This keeps things independent of the underlying networking technology.
     That allows the responses to be sent in a different order from the requests, which means a response can be sent as soon as it is ready, without waiting for other requests (HTTP/2 works like this).
 }
 
-\begin{frame}[plain]
-    \label{s:wireshark}
-    \begin{tikzpicture}[remember picture,overlay]
-        \node at (current page.center) {\includegraphics[height=\paperheight]{images/wireshark.png}};
-    \end{tikzpicture}
+\subsection{Motivation}
+
+Another philosophical difference is between the theory and practice of distributed systems.
+The primary goal of most practical work is to ensure the system provides consistently good performance, especially as the system grows to handle larger volumes of requests and data (\emph{scalability}).
+On the other hand, the theory of distributed systems focuses primarily on ensuring that certain correctness guarantees are always met.
+This difference in emphasis leads us to pay attention to different things: to achieve good performance, what matters is to optimise the operations that happen frequently; to achieve correctness, we have to also examine the obscure edge cases that occur infrequently (but which cannot be ruled out entirely).
+
+\begin{frame}
+    \label{s:theory-practice}
+    \frametitle{Theory and practice}
+    \textbf{Practice:}\\ How can we achieve good performance in the common case? \\[1em]
+    \textbf{Theory:}\\ How can we guarantee correctness in all possible scenarios? \pause\\[1em]
+    Build a system without understanding the theory \\
+    $\Rightarrow$ works fine\dots\\
+    $\Rightarrow$ but one day it fails catastrophically due to some weird edge case, and corrupts all your data \pause\\[1em]
+    Distributed systems are notoriously hard to get right.\\
+    The theory helps us build robust systems.
 \end{frame}
-\inlineslide{s:wireshark}{}\label{l:wireshark}
+\inlineslide{s:theory-practice}{}\label{l:theory-practice}
+
+% TODO: add crying emoji to "corrups all your data", exclamation mark to "hard to get right"
+
+For example, TCP is often described as providing a ``reliable'' way of transferring data over a network, in the sense that if packets are lost in transit, the TCP implementation will automatically retransmit the lost packets and put them back in the correct order at the recipient.
+However, if too many packets are lost, TCP gives up and returns a timeout error.
+Depending on the network, such extended packet loss might be a rare occurrence, but it can certainly happen~-- for example, if someone unplugs the network cable.
+From a theoretical point of view, it is therefore not correct to call TCP ``reliable'', since there is a nonzero risk that it fails to correctly deliver a message.
+
+You might be tempted to think that the theory has no practical relevance, and can therefore be ignored.
+Nothing would be further from the truth!
+Many practical systems have suffered severe bugs, often causing data loss, because their designers did not understand the theoretical foundations.
+Distributed systems are notoriously subtle and difficult to get right, and theory is the best tool we have for making sense of this complexity.
+Having a good grasp of distributed systems theory is very valuable for making practical systems reliable and preventing catastrophic bugs.
+
+The next few lectures by Dr.\ Martin Kleppmann will introduce the theoretical perspective on distributed systems, after which Prof.\ Pramod Bhatotia will switch back to the practical perspective.
+
+\begin{frame}
+    \label{s:why-distribute}
+    \frametitle{Why make a system distributed?}
+    \begin{itemize}\pause
+        \item \textbf{It's inherently distributed:}\\e.g. sending a message from your mobile phone to your friend's phone\pause
+        \item \textbf{For better reliability:}\\even if one node fails, the system as a whole keeps functioning\pause
+        \item \textbf{For better performance:}\\get data from a nearby node rather than one halfway round the world\pause
+        \item \textbf{To solve bigger problems:}\\e.g. huge amounts of data, can't fit on one machine
+    \end{itemize}
+\end{frame}
+\inlineslide{s:why-distribute}{}\label{l:why-distribute}
+
+There are a number of reasons for creating distributed systems.
+Some applications are \emph{intrinsically distributed}: if you want to send a message from your phone to your friend's phone, that operation inevitably requires those phones to communicate via some kind of network.
+
+Some distributed systems do things that in principle a single computer could do, but they do it \emph{more reliably}.
+A single computer can fail and might need to be rebooted from time to time, but if you are using multiple nodes, then one node can continue serving users while another node is rebooting.
+Thus, a distributed system has the potential to be more reliable than a single computer, at least if it is well-designed!
+
+Another reason for distribution is for better \emph{performance}: if a service has users all over the world, and they all have to access a single node, then either the users in Germany or the users in New Zealand are going to find it slow (or both).
+By placing nodes in multiple locations around the world, we can get around the slowness of the speed of light by routing each user to a nearby node.
+
+Finally, some large-scale data processing or computing tasks are simply \emph{too big} to perform on a single computer, or would be intolerably slow.
+For example, the Large Hadron Collider at CERN is supported by a worldwide computing infrastructure with 1 million CPU cores for data analysis, and 1 exabyte ($10^{18}$ bytes) of storage! See \url{https://wlcg-public.web.cern.ch/}.
+
+However, there are also downsides to distributed systems, because things can go wrong, and the system needs to deal with such faults.
+The network may fail, leaving the nodes unable to communicate.
+
+Another thing that can go wrong is that a node may crash, or run much slower than usual, or misbehave in some other way (perhaps due to a software bug or a hardware failure).
+If we want one node to take over when another node crashes, we need to detect that a crash has happened; as we shall see, even that is not straightforward.
+Network failures and node failures can happen at any moment, without warning.
+
+\begin{frame}[plain]
+    \label{s:no-internet}
+    \includegraphics[height=\paperheight]{images/no-internet.png}
+\end{frame}
+\inlineslide{s:no-internet}{}
+
+Many distributed systems strive to provide \emph{fault tolerance}: that is, even when some parts of the system fail, the system as a whole continues working.
+Dealing with faults is what makes distributed computing fundamentally different, and often harder, compared to programming a single computer.
+Some distributed system engineers believe that if you can solve a problem on a single computer, it is basically easy!
+
+\begin{frame}
+    \label{s:why-not}
+    \frametitle{Why NOT make a system distributed?}
+    The trouble with distributed systems:
+    \begin{itemize}
+        \item Communication may fail (and we might not even know it has failed).
+        \item Processes may crash (and we might not know).
+        \item All of this may happen nondeterministically.
+    \end{itemize}\vspace{1em}\pause
+    \textbf{Fault tolerance}: we want the system as a whole to continue working, even when some parts are faulty.\\[1em]
+    This is hard.\\[1em]
+    Writing a program to run on a single computer is comparatively easy?!
+\end{frame}
+\inlineslide{s:why-not}{}
+
 
 \subsection{Example: Remote Procedure Calls (RPC)}\label{sec:rpc}
 
