@@ -1083,7 +1083,7 @@ For instance, an algorithm designed for a crash-recovery system model may look v
 
 \begin{frame}
     \label{s:model-synchrony}
-    \frametitle{System model: synchrony (timing) assumptions}
+    \frametitle{System model: timing assumptions}
     Assume one of the following for network and nodes:
     \begin{itemize}
         \item \textbf{Synchronous}:\\
@@ -1273,7 +1273,7 @@ However, there is a useful failure detector that exists in partially synchronous
 
 \begin{frame}
     \label{s:eventual-detector}
-    \frametitle{Failure detection in partially synchronous systems}
+    \frametitle{Failure detection and partial synchrony}
     Perfect timeout-based failure detector exists only in a synchronous crash-stop system with reliable links.\\[1em]
     \textbf{Eventually perfect failure detector}:
     \begin{itemize}
@@ -5345,7 +5345,7 @@ This algorithm ensures linearizable $\mathsf{get}$ and $\mathsf{set}$ operations
 
 \begin{frame}
     \label{s:cas-1}
-    \frametitle{Linearizability for different types of operation}
+    \frametitle{Linearizability for different operations}
     This ensures linearizability of $\mathsf{get}$ (quorum read) and\\$\mathsf{set}$ (\textbf{blind write} to quorum)\pause
     \begin{itemize}
         \item When an operation finishes, the value read/written is stored on a quorum of replicas
