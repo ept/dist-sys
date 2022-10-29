@@ -309,6 +309,11 @@ Some distributed system engineers believe that if you can solve a problem on a s
 
 \subsection{Example: Remote Procedure Calls (RPC)}\label{sec:rpc}
 
+Besides the web, another example of an everyday distributed system is when you buy something online using a credit/debit card.
+When you enter your card number in some online shop, that shop will send a payment request over the Internet to a service that specialises in processing card payments.
+The payments service in turn communicates with a card network such as Visa or MasterCard, which communicates with the bank that issued your card in order to take the payment.
+For the programmers who are implementing the online shop, the code for processing the payment may look something like the code on \autoref{l:payment-rpc}.
+
 \begin{frame}
     \label{s:payment-example}
     \frametitle{Client-server example: online payments}
@@ -324,13 +329,6 @@ Some distributed system engineers believe that if you can solve a problem on a s
     \end{center}
 \end{frame}
 \inlineslide{s:payment-example}{}
-
-Another example of an everyday distributed system is when you buy something online using a credit/debit card.
-When you enter your card number in some online shop, that shop will send a payment request over the Internet to a service that specialises in processing card payments.
-
-The payments service in turn communicates with a card network such as Visa or MasterCard, which communicates with the bank that issued your card in order to take the payment.
-
-For the programmers who are implementing the online shop, the code for processing the payment may look something like the code on \autoref{l:payment-rpc}.
 
 \begin{frame}
     \label{s:payment-rpc}
@@ -459,7 +457,8 @@ However, the underlying distributed systems challenges have remained the same \c
         \item Thrift (Facebook, 2007)
         \item gRPC (Google, 2015)
         \item REST (often with JSON)
-        \item Ajax in web browsers
+        \item JavaScript in web browsers making server requests \\
+            (XMLHttpRequest, AJAX, fetch API, \dots)
     \end{itemize}
 \end{frame}
 \inlineslide{s:rpc-history}{}
@@ -474,7 +473,6 @@ These principles include:
 \end{itemize}
 The popularity of REST is due to the fact that JavaScript code running in a web browser can easily make this type of HTTP request, as shown on \autoref{l:javascript-rpc}.
 In modern websites it is very common to use JavaScript to make HTTP requests to a server without reloading the whole page.
-This technique is sometimes known as \emph{Ajax}.
 
 % TODO: give a live demo of RESTful API with Dropwizard, curl, and JavaScript client?
 
@@ -495,7 +493,8 @@ Even though RESTful APIs and HTTP-based RPC originated on the web (where the cli
     \label{s:rpc-discussion}
     \frametitle{RPC in enterprise systems}
     \textbf{``Service-oriented architecture''} (SOA) / ``microservices'':\\[1em]
-    splitting a large software application into multiple services\\ (on multiple nodes) that communicate via RPC.\\[1.5em]\pause
+    splitting a large software application into multiple services\\ (on multiple nodes) that communicate via RPC.\\[1em]
+    (Server-to-server RPC within the same company)\\[1.5em]\pause
 
     Different services implemented in different languages:
     \begin{itemize}
