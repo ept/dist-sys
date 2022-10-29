@@ -533,7 +533,105 @@ The details of the language are not important for this course.
 
 A \emph{system model} captures our assumptions about how nodes and the network behave.
 It is an abstract description of their properties, which can be implemented by various technologies in practice.
-To illustrate common system models, we will start this section by looking at two classic thought experiments in distributed systems: the \emph{two generals problem} and the \emph{Byzantine generals problem}.
+In this section we will first compare distributed systems to shared-memory concurrency.
+We will then look at two classic thought experiments in distributed systems: the \emph{two generals problem} and the \emph{Byzantine generals problem}.
+
+Distributed systems are a kind of \emph{concurrent} system~-- that is, a computer system in which several things may happen at the same time.
+Broadly speaking, there are two types of concurrent systems: those that use \emph{shared memory}, and those that use \emph{message-passing}.
+
+\begin{frame}
+    \label{s:shared-memory}
+    \frametitle{Two models of concurrency}
+    Shared-memory concurrency:
+    \begin{center}
+        \begin{tikzpicture}
+            \tikzstyle{cpu}=[draw=red, fill=red!10, thick, minimum width=2.5cm, font=\footnotesize]
+            \tikzstyle{memory}=[blue, draw=blue, fill=blue!10, thick, minimum width=8.5cm, font=\footnotesize]
+            \draw [black!50, fill=black!5] (0, 0) rectangle (9, 2.5);
+            \node [black!50, anchor=north west, font=\scriptsize] at (0, 2.5) {One big computer};
+            \node [memory] at (4.5, 1.5) {Shared memory (single address space)};
+            \draw [thick, red, ->] (1.5, 0.5) node [cpu] {CPU core 1} -- (1.5, 1.2);
+            \draw [thick, red, ->] (4.5, 0.5) node [cpu] {CPU core 2} -- (4.5, 1.2);
+            \draw [thick, red, ->] (7.5, 0.5) node [cpu] {CPU core 3} -- (7.5, 1.2);
+        \end{tikzpicture}
+    \end{center}
+
+    Message-passing distributed systems: \uncover<2->{$\longleftarrow$ \textbf{this course}}
+    \begin{center}
+        \begin{tikzpicture}
+            \tikzstyle{machine}=[black!50, anchor=north west, font=\scriptsize]
+            \tikzstyle{cpu}=[draw=red, fill=red!10, font=\footnotesize, thick, minimum width=2cm]
+            \tikzstyle{memory}=[blue, draw=blue, fill=blue!10, font=\footnotesize, thick, minimum width=2cm]
+            \draw [machine, fill=black!5] (0.3, 0) rectangle (2.7, 2.5);
+            \draw [machine, fill=black!5] (3.3, 0) rectangle (5.7, 2.5);
+            \draw [machine, fill=black!5] (6.3, 0) rectangle (8.7, 2.5);
+            \node [machine] at (0.3, 2.5) {Node 1};
+            \node [machine] at (3.3, 2.5) {Node 2};
+            \node [machine] at (6.3, 2.5) {Node 3};
+            \node [memory] at (1.5, 1.5) {Memory};
+            \node [memory] at (4.5, 1.5) {Memory};
+            \node [memory] at (7.5, 1.5) {Memory};
+            \draw [thick, red, ->] (1.5, 0.5) node [cpu] (t1) {CPU} -- (1.5, 1.2);
+            \draw [thick, red, ->] (4.5, 0.5) node [cpu] (t2) {CPU} -- (4.5, 1.2);
+            \draw [thick, red, ->] (7.5, 0.5) node [cpu] (t3) {CPU} -- (7.5, 1.2);
+            \draw [thick] (t1.south) -- (1.5, -0.3) -- (7.5, -0.3) -- (t3.south);
+            \draw [thick] (t2.south) -- (4.5, -0.3);
+            \node [anchor=north, font=\scriptsize] at (4.5, -0.3) {Network};
+        \end{tikzpicture}
+    \end{center}\pause
+\end{frame}
+\inlineslide{s:shared-memory}{}
+
+Shared-memory concurrency is a common model when you have several threads of execution running on the same computer.
+Multiple threads can be scheduled across multiple CPU cores, allowing them to run in parallel.
+In this model, the threads run in the same address space and can access the same memory.
+Thus, data can easily be passed from one thread to another: a variable or pointer that is valid for one thread is also valid for another.
+To coordinate, threads often use primitives such as locks, semaphores, or atomic instructions such as compare-and-set.
+
+This situation changes when we move to distributed systems.
+We still have concurrency in a distributed system, since different computers can execute programs in parallel.
+However, we don't typically have shared memory, since each computer in a distributed system runs its own operating system with its own address space, using the memory built into that computer.
+Different computers can only communicate by sending each other messages over a network.
+
+(Message-passing is sometimes also used among threads on the same machine.
+Conversely, limited forms of distributed shared memory exist in some supercomputers and research systems, and there are technologies like \emph{remote direct memory access} (RDMA) that allow computers to access each others' memory over a network.
+However, most practical distributed systems are based on message-passing.)
+
+\begin{frame}
+    \label{s:dist-sys-definition}
+    \frametitle{A distributed system is\dots}
+    \begin{itemize}
+        \item Multiple ``nodes'' (computers)
+            \begin{itemize}
+                \item node = server, desktop computer, phone, car, robot, \dots
+            \end{itemize}
+        \item communicating via a network
+            \begin{itemize}
+                \item by sending each other messages
+                \item trying to achieve some task together
+            \end{itemize}
+    \end{itemize}\vspace{1em}\pause
+    \rowcolors[]{2}{}{blue!10}
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{p{5cm}|p{5cm}}
+        \hline
+        \textbf{shared memory} & \textbf{distributed system} \\\hline
+        hardware fails \newline$\Rightarrow$ all threads stop & one machine fails \newline$\Rightarrow$ others continue running \pause\\
+        reliable communication\newline between CPU cores & unreliable network \pause\\
+        locks, semaphores, atomic\newline instructions (e.g.\ CAS) & only message-passing \\\hline
+    \end{tabular}
+\end{frame}
+\inlineslide{s:dist-sys-definition}{}
+
+This course focuses on the message-passing model, which is the basis of most practical distributed systems.
+Each of the computers in a distributed system is called a \emph{node}.
+Here, ``computer'' is interpreted quite broadly: nodes might be desktop computers, servers in datacenters, mobile devices, internet-connected cars, industrial control systems, sensors, or many other types of device.
+In this course we don't distinguish them: a node can be any type of communicating computing device.
+
+In a single computer, if one component fails (e.g.\ one of the RAM modules develops a fault), we normally don't expect the computer to continue working nevertheless: it will probably just crash.
+Software does not need to be written in a way that explicitly deals with faulty RAM.
+However, in a distributed system we often \emph{do} want to tolerate some parts of the system being broken, and for the rest to continue working.
+For example, if one node has crashed (a \emph{partial failure}), the remaining nodes may still be able to continue providing the service.
 
 \subsection{The two generals problem}\label{sec:two-generals}
 
