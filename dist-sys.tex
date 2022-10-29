@@ -2,6 +2,14 @@
 \newcommand{\thisyear}{WS 2022/23}
 \newcommand{\timestampexample}{2021-11-09T09:50:17+00:00}
 
+\newcommand{\mydetails}{%
+    Dr.\ Martin Kleppmann\\
+    martin.kleppmann@in.tum.de\\[1em]
+    TU Munich\\
+    Chair of Decentralized Systems Engineering\\
+    \url{https://dse.in.tum.de/}%
+}
+
 \fancypagestyle{plain}{%
   \renewcommand{\headrulewidth}{0pt}%
   \fancyhf{}%
@@ -21,11 +29,9 @@
 
 \vspace{10pt}\noindent Thank you to Jean-Pascal Billaud, Alexandre Fruchaud, Joshua George, David Greaves, Rishabh Jain, and Jorn Janneck for reporting mistakes in an earlier version of these notes.
 
-\def\sectionautorefname{Lecture}%
+\def\sectionautorefname{Section}%
 \def\subsectionautorefname{Section}%
 \def\subsubsectionautorefname{Section}%
-
-% TODO: have title slide with my name, course title, university crest for each video?
 
 \newpage
 \section{Introduction}\label{sec:introduction}
@@ -35,11 +41,7 @@
     \begin{center}
         \textbf{\huge{\color{tumblue}{Distributed Systems}}} \\[0.5em]
         (The foundations/theory part of the course)\\[1em]
-        Dr.\ Martin Kleppmann\\
-        martin.kleppmann@in.tum.de\\[1em]
-        TU Munich\\
-        Chair of Decentralized Systems Engineering\\
-        \url{https://dse.in.tum.de/}\\[1em]
+        \mydetails\\[1em]
         \includegraphics[width=1.5cm]{images/tum-logo.png}\\[2em]
     \end{center}
     \begin{columns}[totalwidth=9cm]
@@ -525,8 +527,8 @@ The details of the language are not important for this course.
 
 \begin{frame}
     \begin{center}
-        Lecture 2\\[2em]
-        \Large{\color{tumblue}{Models of distributed systems}}
+        {\Large{\color{tumblue}{Models of distributed systems}}} \\[2em]
+        \mydetails
     \end{center}
 \end{frame}
 
@@ -1346,8 +1348,8 @@ Most Internet services do not even reach four nines because of diminishing retur
 
 \begin{frame}
     \begin{center}
-        Lecture 3\\[2em]
-        \Large{\color{tumblue}{Time, clocks, and ordering of events}}
+        {\Large{\color{tumblue}{Time, clocks, and ordering of events}}} \\[2em]
+        \mydetails
     \end{center}
 \end{frame}
 
@@ -2084,8 +2086,8 @@ In distributed systems, we usually work with messages on a network rather than b
 
 \begin{frame}
     \begin{center}
-        Lecture 4\\[2em]
-        \Large{\color{tumblue}{Broadcast protocols and logical time}}
+        {\Large{\color{tumblue}{Broadcast protocols and logical time}}} \\[2em]
+        \mydetails
     \end{center}
 \end{frame}
 
@@ -3269,8 +3271,8 @@ We will return to the problem of fault-tolerant total order broadcast in \autore
 
 \begin{frame}
     \begin{center}
-        Lecture 5\\[2em]
-        \Large{\color{tumblue}{Replication}}
+        {\Large{\color{tumblue}{Replication}}} \\[2em]
+        \mydetails
     \end{center}
 \end{frame}
 
@@ -4000,8 +4002,8 @@ This can be done, and we will see some techniques for commutativity in \autoref{
 
 \begin{frame}
     \begin{center}
-        Lecture 6\\[2em]
-        \Large{\color{tumblue}{Consensus}}
+        {\Large{\color{tumblue}{Consensus}}} \\[2em]
+        \mydetails
     \end{center}
 \end{frame}
 
@@ -4751,8 +4753,8 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
 
 \begin{frame}
     \begin{center}
-        Lecture 7\\[2em]
-        \Large{\color{tumblue}{Replica consistency}}
+        {\Large{\color{tumblue}{Replica consistency}}} \\[2em]
+        \mydetails
     \end{center}
 \end{frame}
 
@@ -5667,8 +5669,8 @@ This hierarchy has some similarities to the concept of complexity classes of alg
 
 \begin{frame}
     \begin{center}
-        Lecture 8\\[2em]
-        \Large{\color{tumblue}{Case studies}}
+        {\Large{\color{tumblue}{Case studies}}} \\[2em]
+        \mydetails
     \end{center}
 \end{frame}
 
