@@ -762,10 +762,10 @@ If a general does not receive any messages, it is impossible to tell whether thi
         \begin{tabular}{c|c|c}
             \hline
             Romeo & Juliet & outcome \\\hline
-            does not attend & does not attend & nothing happens \\
-            attends & does not attend & Romeo gets desperate \\
-            does not attend & attends & Juliet gets desperate \\
-            attends & attends & happy ever after \\\hline
+            does not go & does not go & nothing happens \\
+            goes & does not go & Romeo gets desperate \\
+            does not go & goes & Juliet gets desperate \\
+            goes & goes & happy ever after \\\hline
         \end{tabular}\\[1em]
         \textbf{Desired:} Romeo goes to the forest \emph{if and only if} Juliet goes
     \end{center}
@@ -782,55 +782,55 @@ The doves often get distracted or lost or shot\dots
 
 \begin{frame}
     \label{s:two-generals-comms}
-    \frametitle{The two generals problem}
+    \frametitle{Reaching agreement with message loss}
     \begin{center}
         \begin{tikzpicture}
-            \node [rectangle,fill=red!10,draw] (gen1) at (0,3) {general 1};
-            \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {general 2};
+            \node [rectangle,fill=red!10,draw] (gen1) at (0,3) {Romeo};
+            \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {Juliet};
             \draw (gen1) -- (0,0);
             \draw (gen2) -- (8,0);
-            \draw [bigarrow] (0,2.2) -- node [above,sloped] {attack 10 Nov, okay?} (8,1.2);
+            \draw [bigarrow] (0,2.2) -- node [above,sloped] {meet 10 Nov, okay?} (8,1.2);
             \draw [messageloss] (8,0.7) -- node [above,sloped] {10 Nov agreed!} (2,0);
         \end{tikzpicture}\pause\\[1em]
-        From general 1's point of view, this is indistinguishable from:\\[1em]
+        From Romeo's point of view, this is indistinguishable from:\\[1em]
         \begin{tikzpicture}
-            \node [rectangle,fill=red!10,draw] (gen1) at (0,3) {general 1};
-            \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {general 2};
+            \node [rectangle,fill=red!10,draw] (gen1) at (0,3) {Romeo};
+            \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {Juliet};
             \draw (gen1) -- (0,1);
             \draw (gen2) -- (8,1);
-            \draw [messageloss] (0,2.2) -- node [above,sloped] {attack 10 Nov, okay?} (6,1.4);
+            \draw [messageloss] (0,2.2) -- node [above,sloped] {meet 10 Nov, okay?} (6,1.4);
         \end{tikzpicture}
     \end{center}
 \end{frame}
 \inlineslide{s:two-generals-comms}{}
 
-What protocol should the two generals (or Romeo and Juliet) use to agree on a plan?
-For each general there are two options: either the general promises to go ahead with the attack in any case (even if no response is received), or the general waits for an acknowledgement before committing to attack.
-In the first case, the general who promises to go ahead risks being alone in the attack.
-In the second case, the general who awaits acknowledgement shifts the problem to the other general, who must now decide whether to commit to attack (and risk being alone) or wait for an acknowledgement of the acknowledgement.
+What protocol should Romeo and Juliet (or the two generals) use to agree on a plan?
+For each participant there are two options: either they promise to go ahead with the meeting in any case (even if no response is received), or they wait for an acknowledgement before committing to meet.
+In the first case, the person who promises to go ahead risks being alone at the meeting.
+In the second case, the person who awaits acknowledgement shifts the problem to the other person, who must now decide whether to commit to meeting (and risk being alone) or wait for an acknowledgement of the acknowledgement.
 
 \begin{frame}
     \label{s:two-generals-proto}
-    \frametitle{How should the generals decide?}
+    \frametitle{How should Romeo and Juliet decide?}
     \begin{enumerate}
-        \item General 1 always attacks, even if no response is received?
+        \item Romeo always goes into the forest, even if no response is received?
             \begin{itemize}
-                \item Send lots of messengers to increase probability that one will get through
-                \item If all are captured, general 2 does not know about the attack, so general 1 loses\\[1em]\pause
+                \item Send lots of messages to increase probability that one will get through
+                \item If all are lost, Juliet does not know about the meeting, so Romeo is alone\\[1em]\pause
             \end{itemize}
-        \item General 1 only attacks if positive response from general 2 is received?
+        \item Romeo only goes into the forest if positive response from Juliet is received?
             \begin{itemize}
-                \item Now general 1 is safe
-                \item But general 2 knows that general 1 will only attack if general 2's response gets through
-                \item Now general 2 is in the same situation as general 1 in option 1\\[0.5em]\pause
+                \item Now Romeo is safe
+                \item But Juliet knows that Romeo will only go if Juliet's response gets through
+                \item Now Juliet is in the same situation as Romeo in option 1\\[0.5em]\pause
             \end{itemize}
     \end{enumerate}
     \textbf{No common knowledge}: the only way of knowing something is to communicate it
 \end{frame}
 \inlineslide{s:two-generals-proto}{}
 
-The problem is that no matter how many messages are exchanged, neither general can ever be certain that the other army will also turn up at the same time.
-A repeated sequence of back-and-forth acknowledgements can build up gradually increasing confidence that the generals are in agreement, but it can be proved that they cannot reach certainty by exchanging any finite number of messages.
+The problem is that no matter how many messages are exchanged, neither Romeo nor Juliet can ever be certain that the other one will also turn up at the same time.
+A repeated sequence of back-and-forth acknowledgements can build up gradually increasing confidence that they are in agreement, but it can be proved that they cannot reach certainty by exchanging any finite number of messages.
 
 This thought experiment demonstrates that in a distributed system, there is no way for one node to have certainty about the state of another node.
 The only way how a node can know something is by having that knowledge communicated in a message.
