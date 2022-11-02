@@ -988,6 +988,13 @@ When designing a distributed algorithm, a \emph{system model} is how we specify 
 \end{frame}
 \inlineslide{s:system-model}{}\label{l:system-model}
 
+Let's start with the network.
+No network is perfectly reliable: even in carefully engineered systems with redundant network links, things can go wrong \citep{Bailis:2014jx}.
+Someone might accidentally unplug the wrong network cable.
+Sharks and cows have both been shown to cause damage and interruption to long-distance networks (see links on \autoref{l:shark-bite}).
+Or a network may be temporarily overloaded, perhaps by accident or perhaps due to a denial-of-service attack.
+Any of these can cause messages to be lost.
+
 \begin{frame}
     \label{s:shark-bite}
     \frametitle{Networks are unreliable}
@@ -1002,17 +1009,10 @@ When designing a distributed algorithm, a \emph{system model} is how we specify 
 \end{frame}
 \inlineslide{s:shark-bite}{}\label{l:shark-bite}
 
-Let's start with the network.
-No network is perfectly reliable: even in carefully engineered systems with redundant network links, things can go wrong \citep{Bailis:2014jx}.
-Someone might accidentally unplug the wrong network cable.
-Sharks and cows have both been shown to cause damage and interruption to long-distance networks (see links on \autoref{l:shark-bite}).
-Or a network may be temporarily overloaded, perhaps by accident or perhaps due to a denial-of-service attack.
-Any of these can cause messages to be lost.
-
 In a system model, we take a more abstract view, which saves us from the details of worrying about sharks and cows.
 Most distributed algorithms assume that the network provides bidirectional message-passing between a pair of nodes, also known as \emph{point-to-point} or \emph{unicast} communication.
 Real networks do sometimes allow \emph{broadcast} or \emph{multicast} communication (sending a packet to many recipients at the same time, which is used e.g.\ for discovering a printer on a local network), but broadly speaking, assuming unicast-only is a good model of the Internet today.
-Later, in \autoref{sec:broadcast}, we will show how to implement broadcast on top of unicast communication.
+Later, in \autoref{sec:broadcast}, we will explore how to implement broadcast on top of unicast communication.
 
 We can then choose how reliable we want to assume these links to be.
 Most algorithms assume one of the three choices listed on \autoref{l:model-network}.
@@ -1044,7 +1044,9 @@ Most algorithms assume one of the three choices listed on \autoref{l:model-netwo
 
 Interestingly, it is possible to convert some types of link into others.
 For example, if we have a fair-loss link, we can turn it into a reliable link by continually retransmitting lost messages until they are finally received, and by filtering out duplicated messages on the recipient side.
-The fair-loss assumption means that any \emph{network partition} (network interruption) will last only for a finite period of time, but not forever, so we can guarantee that every message will eventually be received.
+The fair-loss assumption means that any \emph{network partition} (network interruption) will last only for a finite period of time, but not forever.
+Provided that the sender does not crash, we can guarantee that every message will eventually be received by retrying indefinitely.
+However, if the sender crashes before the message gets through, it can no longer retry, and so the message will be lost.
 
 Of course, any messages sent during a network partition will only be received after the interruption is repaired, which may take a long time, but the definitions on \autoref{l:model-network} do not say anything about network delay or latency.
 We will get to that topic on \autoref{l:model-synchrony}.
@@ -1072,9 +1074,7 @@ The only thing that TLS cannot prevent is the adversary dropping (blocking) comm
 Thus, an arbitrary link can be converted into a fair-loss link only if we assume that the adversary does not block communication forever.
 In some networks, it might be possible to route around the interrupted network link, but this is not always the case.
 
-Thus, the assumption of a reliable network link is perhaps not as unrealistic as it may seem at first glance: generally it is possible for all sent messages to be received, as long as we are willing to wait for a potentially arbitrary period of time for retries during a network partition.
-However, we also have to consider the possibility that the sender of a message may crash while attempting to retransmit a message, which may cause that message to be permanently lost.
-This brings us to the topic of node crashes.
+Next, we consider different options for how nodes might behave.
 
 \begin{frame}
     \label{s:model-nodes}
@@ -1162,13 +1162,6 @@ And it is tempting to assume synchrony, because networks and nodes are well-beha
 Unfortunately, \emph{most of the time} is not the same as \emph{always}, and algorithms designed for a synchronous model often fail catastrophically if the assumptions of bounded latency and bounded execution speed are violated, even just for a short while, and even if this happens rarely.
 And in practical systems, there are many reasons why network latency or execution speed may sometimes vary wildly, see \autoref{l:timing-violations}.
 
-The other extreme is an asynchronous model, in which we make no timing assumptions at all: we allow messages to be delayed arbitrarily in the network, and we allow arbitrary differences in nodes' processing speeds (for example, we allow one node to pause execution while other nodes continue running normally).
-Algorithms that are designed for an asynchronous model are typically very robust, because they are unaffected by any temporary network interruptions or spikes in latency.
-
-Unfortunately, some problems in distributed computing are impossible to solve in an asynchronous model, and therefore we have the \emph{partially synchronous} model as a compromise.
-In this model, we assume that our system is synchronous and well-behaved most of the time, but occasionally it may flip into asynchronous mode in which all timing guarantees are off, and this can happen unpredictably.
-The partially synchronous model is good for many practical systems, but using it correctly requires care.
-
 \begin{frame}
     \label{s:timing-violations}
     \frametitle{Violations of synchrony in practice}
@@ -1188,6 +1181,13 @@ The partially synchronous model is good for many practical systems, but using it
 \end{frame}
 \inlineslide{s:timing-violations}{}\label{l:timing-violations}
 
+The other extreme is an asynchronous model, in which we make no timing assumptions at all: we allow messages to be delayed arbitrarily in the network, and we allow arbitrary differences in nodes' processing speeds (for example, we allow one node to pause execution while other nodes continue running normally).
+Algorithms that are designed for an asynchronous model are typically very robust, because they are unaffected by any temporary network interruptions or spikes in latency.
+
+Unfortunately, some problems in distributed computing are impossible to solve in an asynchronous model, and therefore we have the \emph{partially synchronous} model as a compromise.
+In this model, we assume that our system is synchronous and well-behaved most of the time, but occasionally it may flip into asynchronous mode in which all timing guarantees are off, and this can happen unpredictably.
+The partially synchronous model is good for many practical systems, but using it correctly requires care.
+
 There are many reasons why a system may violate synchrony assumptions.
 We have already talked about latency increasing without bound if messages are lost and retransmitted, especially if we have to wait for a network partition to be repaired before the messages can get through.
 Another reason for latency increases in a network is congestion resulting in queueing of packets in switch buffers.
@@ -1200,7 +1200,7 @@ A real problem in memory-managed languages such as Java is that when the garbage
 On large heaps, such pauses can be as long as several minutes \citep{Thompson:2013}!
 Page faults are another reason why a thread may get suspended, especially when there is not much free memory left.
 
-As you know from the concurrent systems half of this course, threads can and will get preempted even at the most inconvenient moments, anywhere in a program.
+Threads can and will get preempted even at the most inconvenient moments, anywhere in a program.
 In a distributed system, this is particularly problematic, because for one node, time appears to ``stand still'' while it is paused, and during this time all other nodes continue executing their algorithms normally.
 Other nodes may even notice that the paused node is not responding, and assume that it has crashed.
 After a while, the paused node resumes processing, without even realising that it was paused for a significant period of time.
@@ -1276,10 +1276,11 @@ Instead, fault tolerance is the approach taken by many distributed systems.
     \textbf{Fault}: some part of the system isn't working
     \begin{itemize}
         \item Node fault: crash (crash-stop/crash-recovery),\\deviating from algorithm (Byzantine)
-        \item Network fault: dropping or significantly delaying messages\\[1em]
+        \item Network fault: dropping or significantly delaying messages\pause\\[1em]
     \end{itemize}
+    To increase availability: have fewer faults, or \textbf{tolerate} faults\\[1em]
     \textbf{Fault tolerance}:\\system as a whole continues working, despite faults\\
-    (up to some maximum number of faults)\\[1em]
+    (up to some maximum number of faults)\pause\\[1em]
     \textbf{Single point of failure} (SPOF):\\ node/network link whose fault leads to failure
 \end{frame}
 \inlineslide{s:fault-tolerance}{}\label{l:fault-tolerance}
