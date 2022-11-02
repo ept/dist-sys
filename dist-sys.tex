@@ -296,14 +296,14 @@ On the other hand, the theory of distributed systems focuses primarily on ensuri
     Build a system without understanding the theory?
     \begin{itemize}
         \item works fine for a while\dots\\
-        \item but one day it fails catastrophically due to some weird edge case, and corrupts all your data \pause\\[1em]
+        \item but one day it fails catastrophically due to some weird edge case, and corrupts all your data
+            \raisebox{-2pt}{\includegraphics[height=12pt]{images/1f62d.pdf}} \pause\\[1em]
     \end{itemize}
+    \raisebox{-2pt}{\includegraphics[height=12pt]{images/26a0.pdf}} 
     Distributed systems are notoriously hard to get right.\\
     The theory helps us build robust systems.
 \end{frame}
 \inlineslide{s:theory-practice}{}\label{l:theory-practice}
-
-% TODO: add crying emoji to "corrups all your data", exclamation mark to "hard to get right"
 
 This difference in emphasis leads us to pay attention to different things: to achieve good performance, what matters is to optimise the operations that happen frequently; to achieve correctness, we have to also examine the obscure edge cases that occur infrequently (but which cannot be ruled out entirely).
 
