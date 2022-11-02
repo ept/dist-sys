@@ -5,7 +5,7 @@ card.setExpiryDate("10/2024");
 card.setCVC("123");
 
 Result result = paymentsService.processPayment(card,
-    3.99, Currency.GBP);
+    3.99, Currency.EUR);
 
 if (result.isSuccess()) {
     fulfilOrder();

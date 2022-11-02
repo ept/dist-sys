@@ -1,0 +1,14 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{// Online shop handling customer\PYGZsq{}s card details}
+\PYG{n}{Card}\PYG{+w}{ }\PYG{n}{card}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{k}{new}\PYG{+w}{ }\PYG{n}{Card}\PYG{p}{();}
+\PYG{n}{card}\PYG{p}{.}\PYG{n+na}{setCardNumber}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}1234 5678 8765 4321\PYGZdq{}}\PYG{p}{);}
+\PYG{n}{card}\PYG{p}{.}\PYG{n+na}{setExpiryDate}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}10/2024\PYGZdq{}}\PYG{p}{);}
+\PYG{n}{card}\PYG{p}{.}\PYG{n+na}{setCVC}\PYG{p}{(}\PYG{l+s}{\PYGZdq{}123\PYGZdq{}}\PYG{p}{);}
+
+\PYG{n}{Result}\PYG{+w}{ }\PYG{n}{result}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{n}{paymentsService}\PYG{p}{.}\PYG{n+na}{processPayment}\PYG{p}{(}\PYG{n}{card}\PYG{p}{,}
+\PYG{+w}{    }\PYG{l+m+mf}{3.99}\PYG{p}{,}\PYG{+w}{ }\PYG{n}{Currency}\PYG{p}{.}\PYG{n+na}{EUR}\PYG{p}{);}
+
+\PYG{k}{if}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{result}\PYG{p}{.}\PYG{n+na}{isSuccess}\PYG{p}{())}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{n}{fulfilOrder}\PYG{p}{();}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}

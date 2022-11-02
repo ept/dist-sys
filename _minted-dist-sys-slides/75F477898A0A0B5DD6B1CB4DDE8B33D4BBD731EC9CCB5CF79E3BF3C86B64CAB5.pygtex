@@ -1,0 +1,24 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kd}{message}\PYG{+w}{ }\PYG{n+nc}{PaymentRequest}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k+kd}{message}\PYG{+w}{ }\PYG{n+nc}{Card}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{    }\PYG{k}{required}\PYG{+w}{ }\PYG{k+kt}{string}\PYG{+w}{ }\PYG{n+na}{cardNumber}\PYG{+w}{  }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{;}
+\PYG{+w}{    }\PYG{k}{optional}\PYG{+w}{ }\PYG{k+kt}{int32}\PYG{+w}{  }\PYG{n+na}{expiryMonth}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{p}{;}
+\PYG{+w}{    }\PYG{k}{optional}\PYG{+w}{ }\PYG{k+kt}{int32}\PYG{+w}{  }\PYG{n+na}{expiryYear}\PYG{+w}{  }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{3}\PYG{p}{;}
+\PYG{+w}{    }\PYG{k}{optional}\PYG{+w}{ }\PYG{k+kt}{int32}\PYG{+w}{  }\PYG{n+na}{CVC}\PYG{+w}{         }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{4}\PYG{p}{;}
+\PYG{+w}{  }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{k+kd}{enum}\PYG{+w}{ }\PYG{n}{Currency}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{EUR}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{;}\PYG{+w}{ }\PYG{n+na}{USD}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{p}{;}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+
+\PYG{+w}{  }\PYG{k}{required}\PYG{+w}{ }\PYG{n}{Card}\PYG{+w}{     }\PYG{n+na}{card}\PYG{+w}{     }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{required}\PYG{+w}{ }\PYG{k+kt}{int64}\PYG{+w}{    }\PYG{n+na}{amount}\PYG{+w}{   }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{required}\PYG{+w}{ }\PYG{n}{Currency}\PYG{+w}{ }\PYG{n+na}{currency}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{3}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kd}{message}\PYG{+w}{ }\PYG{n+nc}{PaymentStatus}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k}{required}\PYG{+w}{ }\PYG{k+kt}{bool}\PYG{+w}{   }\PYG{n+na}{success}\PYG{+w}{      }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{;}
+\PYG{+w}{  }\PYG{k}{optional}\PYG{+w}{ }\PYG{k+kt}{string}\PYG{+w}{ }\PYG{n+na}{errorMessage}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{p}{;}
+\PYG{p}{\PYGZcb{}}
+
+\PYG{k+kd}{service}\PYG{+w}{ }\PYG{n}{PaymentService}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
+\PYG{+w}{  }\PYG{k}{rpc}\PYG{+w}{ }\PYG{n}{ProcessPayment}\PYG{p}{(}\PYG{n}{PaymentRequest}\PYG{p}{)}\PYG{+w}{ }\PYG{k}{returns}\PYG{+w}{ }\PYG{p}{(}\PYG{n}{PaymentStatus}\PYG{p}{)}\PYG{+w}{ }\PYG{p}{\PYGZob{}\PYGZcb{}}
+\PYG{p}{\PYGZcb{}}
+\end{Verbatim}
