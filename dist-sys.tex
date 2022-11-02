@@ -274,7 +274,7 @@ Another reason for distribution is for better \emph{performance}: if a service h
 By placing nodes in multiple locations around the world, we can get around the slowness of the speed of light by routing each user to a nearby node.
 
 Finally, some large-scale data processing or computing tasks are simply \emph{too big} to perform on a single computer, or would be intolerably slow.
-For example, the Large Hadron Collider at CERN is supported by a worldwide computing infrastructure with 1 million CPU cores for data analysis, and 1 exabyte ($10^{18}$ bytes) of storage! See \url{https://wlcg-public.web.cern.ch/}.
+For example, the Large Hadron Collider at CERN is supported by a worldwide computing infrastructure with 1 million CPU cores for data analysis, and 2 exabytes ($2 \cdot 10^{18}$ bytes) of storage! See \url{https://wlcg-public.web.cern.ch/}.
 
 However, there are also downsides to distributed systems, because things can go wrong, and the system needs to deal with such faults.
 The network may fail, leaving the nodes unable to communicate.
@@ -300,7 +300,7 @@ Some distributed system engineers believe that if you can solve a problem on a s
     \begin{itemize}
         \item Communication may fail (and we might not even know it has failed).
         \item Processes may crash (and we might not know).
-        \item All of this may happen nondeterministically.
+        \item All of this may happen nondeterministically and without warning.
     \end{itemize}\vspace{1em}\pause
     \textbf{Fault tolerance}: we want the system as a whole to continue working, even when some parts are faulty.\\[1em]
     This is hard.\\[1em]
@@ -588,6 +588,7 @@ Multiple threads can be scheduled across multiple CPU cores, allowing them to ru
 In this model, the threads run in the same address space and can access the same memory.
 Thus, data can easily be passed from one thread to another: a variable or pointer that is valid for one thread is also valid for another.
 To coordinate, threads often use primitives such as locks, semaphores, or atomic instructions such as compare-and-set.
+Threads communicate by reading and writing to the shared memory.
 
 This situation changes when we move to distributed systems.
 We still have concurrency in a distributed system, since different computers can execute programs in parallel.
@@ -627,7 +628,7 @@ However, most practical distributed systems are based on message-passing.)
 This course focuses on the message-passing model, which is the basis of most practical distributed systems.
 Each of the computers in a distributed system is called a \emph{node}.
 Here, ``computer'' is interpreted quite broadly: nodes might be desktop computers, servers in datacenters, mobile devices, internet-connected cars, industrial control systems, sensors, or many other types of device.
-In this course we don't distinguish them: a node can be any type of communicating computing device.
+In the theory part of this course we don't distinguish them: a node can be any type of communicating computing device.
 
 In a single computer, if one component fails (e.g.\ one of the RAM modules develops a fault), we normally don't expect the computer to continue working nevertheless: it will probably just crash.
 Software does not need to be written in a way that explicitly deals with faulty RAM.
@@ -6361,8 +6362,7 @@ However, insertions and deletions of different characters commute, allowing this
 
 \begin{frame}
     \label{s:conclusions}
-    \frametitle{That's all, folks!}
-    \textbf{Any questions?} ~ Email mk428@cst.cam.ac.uk!\\[1em]
+    \frametitle{End of the theory lectures}
     Summary:
     \begin{itemize}
         \item Distributed systems are everywhere
@@ -6370,12 +6370,13 @@ However, insertions and deletions of different characters commute, allowing this
         \item Key goals: availability, scalability, performance
         \item Key problems: concurrency, faults, unbounded latency
         \item Key abstractions: replication, broadcast, consensus
-        \item No one right way, just trade-offs
+        \item No one right way, just trade-offs\\[1em]
     \end{itemize}
+    Next week: Prof.\ Pramod Bhatotia is back!
 \end{frame}
 \inlineslide{s:conclusions}{}\label{l:conclusions}
 
-This brings us to the end of the course on Concurrent and Distributed Systems.
+This brings us to the end of the theory part of the course on distributed systems.
 We started from a simple premise: when you send a message over the network and you don't get a response, you don't know what happened.
 Maybe the message got lost, or the response got lost, or either message got delayed, or the remote node crashed, and we cannot distinguish between these types of fault.
 
