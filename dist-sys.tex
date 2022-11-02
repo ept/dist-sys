@@ -137,11 +137,28 @@ HTTP also allows multiple requests and multiple responses to be sent over a sing
 \end{frame}
 \inlineslide{s:networking}{}
 
+\supervision{
+    A TCP connection allows two nodes to send each other arbitrarily long sequences of bytes.
+    You decide that you want to send multiple requests and responses over the same TCP connection.
+    What do you need to do in order to implement such a request-response protocol using TCP?
+}{
+    Once you have encoded a request or response message as a sequence of bytes, you need some way for the sender of a message to tell the recipient where one request/response ends and the next one begins.
+    This is known as \emph{message framing}.
+    One way is for each message to contain a header indicating the size of the following message in bytes.
+    Another approach is to reserve a certain sequence of bytes as message separator, and ensure that this sequence cannot occur in the middle of a message (for example, HTTP/1.1 uses \texttt{{\char`\\}r{\char`\\}n{\char`\\}r{\char`\\}n} as message separator for requests).
+
+    Next, to associate requests and responses, one option is to rely on ordering: the first response sent by one node corresponds to the first request sent by the other node, and so on for the second, third, etc.\ request/response (HTTP/1.1 uses this approach).
+    A downside of this approach is that if one request is slow to process, all of the following requests must wait until the slow one is complete before their responses can be sent (this is known as \emph{head-of-line blocking}).
+    An alternative is to give each request a unique ID of some sort, and for each response to quote the ID of the request it is responding to.
+    That allows the responses to be sent in a different order from the requests, which means a response can be sent as soon as it is ready, without waiting for other requests (HTTP/2 works like this).
+}
+
 However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
 This keeps things independent of the underlying networking technology.
 
-In this course, we just assume that there is some way for one node to send a message to another node.
-We don't particularly care how that message is physically represented or encoded~-- the network protocols, informally known as the \emph{bytes on the wire}~-- because the basic principle of sending and receiving messages remains the same, even as particular networking technologies come and go.
+In the following lectures, we just assume that there is some way for one node to send a message to another node.
+We don't particularly care whether those nodes are servers, desktop computers, phones, sensors, or any other kind of computing device.
+Moreover, we don't care how messages are physically represented or encoded~-- the network protocols, informally known as the \emph{bytes on the wire}~-- because the basic principle of sending and receiving messages remains the same, even as particular networking technologies come and go.
 The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's pocket, or even hard drives in a van.
 
 \begin{frame}[plain]
@@ -200,25 +217,70 @@ The design of distributed algorithms is about deciding what messages to send, an
 \end{frame}
 \inlineslide{s:networking2}{}\label{l:networking2}
 
-\supervision{
-    A TCP connection allows two nodes to send each other arbitrarily long sequences of bytes.
-    You decide that you want to send multiple requests and responses over the same TCP connection.
-    What do you need to do in order to implement such a request-response protocol using TCP?
-}{
-    Once you have encoded a request or response message as a sequence of bytes, you need some way for the sender of a message to tell the recipient where one request/response ends and the next one begins.
-    This is known as \emph{message framing}.
-    One way is for each message to contain a header indicating the size of the following message in bytes.
-    Another approach is to reserve a certain sequence of bytes as message separator, and ensure that this sequence cannot occur in the middle of a message (for example, HTTP/1.1 uses \texttt{{\char`\\}r{\char`\\}n{\char`\\}r{\char`\\}n} as message separator for requests).
+\begin{frame}
+    \label{s:availability}
+    \frametitle{Availability}
+    Online shop wants to sell stuff 24/7! \\
+    Service unavailability = downtime = losing money \\[1em]
+    Availability = uptime = fraction of time that a service is functioning correctly
+    \begin{itemize}
+        \item ``Two nines'' = 99\% up = down 3.7 days/year
+        \item ``Three nines'' = 99.9\% up = down 8.8 hours/year
+        \item ``Four nines'' = 99.99\% up = down 53 minutes/year
+        \item ``Five nines'' = 99.999\% up = down 5.3 minutes/year\\[1.5em]
+    \end{itemize}\pause
+    \textbf{Service-Level Objective} (SLO):\\ e.g. ``99.9\% of requests in a day get a response in 200~ms''\\[1em]
+    \textbf{Service-Level Agreement} (SLA):\\ contract specifying some SLO, penalties for violation
+\end{frame}
+\inlineslide{s:availability}{}\label{l:availability}
 
-    Next, to associate requests and responses, one option is to rely on ordering: the first response sent by one node corresponds to the first request sent by the other node, and so on for the second, third, etc.\ request/response (HTTP/1.1 uses this approach).
-    A downside of this approach is that if one request is slow to process, all of the following requests must wait until the slow one is complete before their responses can be sent (this is known as \emph{head-of-line blocking}).
-    An alternative is to give each request a unique ID of some sort, and for each response to quote the ID of the request it is responding to.
-    That allows the responses to be sent in a different order from the requests, which means a response can be sent as soon as it is ready, without waiting for other requests (HTTP/2 works like this).
-}
+From a business point of view, what usually matters most is the \emph{availability} of a service, such as a website.
+For example, an online shop wants to be able to sell products at any time of day or night: any outage of the website means a lost opportunity to make money.
+For other services, there may even be contractual agreements with customers requiring the service to be available.
+If a service is unavailable, this can also damage the reputation of the service provider.
+
+The availability of a service is typically measured in terms of its ability to respond correctly to requests within a certain time.
+The definition of whether a service is ``available'' or ``unavailable'' can be somewhat arbitrary: for example, if it takes 5 seconds to load a page, do we still consider that website to be available?
+What if it takes 30 seconds?
+An hour?
+
+Typically, the availability expectations of a service are formalised as a \emph{service-level objective} (SLO), which typically specifies the percentage of requests that need to return a correct response within a specified timeout, as measured by a certain client over a certain period of time.
+A \emph{service-level agreement} (SLA) is a contract that specifies some SLO, as well as the consequences if the SLO is not met (for example, the service provider may need to offer a refund to its customers).
+
+Faults (such as node crashes or network interruptions) are a common cause of unavailability.
+In order to increase availability, we can reduce the frequency of faults, or we can design systems to continue working despite some of its components being faulty; the latter approach is called \emph{fault tolerance}.
+Reducing the frequency of faults is possible through buying higher-quality hardware and introducing redundancy, but this approach can never reduce the probability of faults to zero.
+Instead, fault tolerance is the approach taken by many distributed systems.
+Moreover, fault tolerance has operational benefits: a single computer might need to be rebooted from time to time (e.g.\ to install software updates), but if you are using multiple nodes, then one node can continue serving users while another node is rebooting.
+
+\begin{frame}
+    \label{s:fault-tolerance}
+    \frametitle{Achieving high availability: fault tolerance}
+    \textbf{Failure}: system as a whole isn't working\\
+    \textbf{Fault}: some part of the system isn't working
+    \begin{itemize}
+        \item Node fault: crash, deadlock, \dots
+        \item Network fault: dropping or significantly delaying messages\pause\\[1em]
+    \end{itemize}
+    To increase availability: have fewer faults, or \textbf{tolerate} faults\\[1em]
+    \textbf{Fault tolerance}:\\system as a whole continues working, despite faults\\
+    (up to some maximum number of faults)\pause\\[1em]
+    \textbf{Single point of failure} (SPOF):\\ node/network link whose fault leads to failure\\[1em]
+    Fault tolerance is also useful for \textbf{software updates}:\\ reboot one node at a time while continuing to serve users
+\end{frame}
+\inlineslide{s:fault-tolerance}{}\label{l:fault-tolerance}
+
+Fault tolerance is always relative to the maximum number of faults that can be tolerated: for example, some distributed algorithms are able to make progress provided that fewer than half of the nodes have crashed, but they stop working if more than half the nodes crash.
+It does not make sense to want to tolerate an unlimited number of faults: if all nodes crash and don't recover, then no algorithm will be able to get any work done, no matter how clever it might be.
+
+In some systems, a single component becoming faulty would cause an outage of the entire system.
+Such a component is called a \emph{single point of failure} (SPOF), and fault-tolerant generally systems try to avoid having any SPOF.
+For example, the Internet is designed to have no SPOF: there is no one server or router whose destruction would bring down the entire Internet (although the loss of some components, such as key intercontinental fibre links, does cause noticeable disruption).
+% Also BGP hijacking...
 
 \subsection{Motivation}
 
-Another philosophical difference is between the theory and practice of distributed systems.
+There is a philosophical difference is between the theory and practice of distributed systems.
 The primary goal of most practical work is to ensure the system provides consistently good performance, especially as the system grows to handle larger volumes of requests and data (\emph{scalability}).
 On the other hand, the theory of distributed systems focuses primarily on ensuring that certain correctness guarantees are always met.
 This difference in emphasis leads us to pay attention to different things: to achieve good performance, what matters is to optimise the operations that happen frequently; to achieve correctness, we have to also examine the obscure edge cases that occur infrequently (but which cannot be ruled out entirely).
@@ -256,19 +318,16 @@ The next few lectures by Dr.\ Martin Kleppmann will introduce the theoretical pe
     \frametitle{Why make a system distributed?}
     \begin{itemize}\pause
         \item \textbf{It's inherently distributed:}\\e.g. sending a message from your mobile phone to your friend's phone\pause
-        \item \textbf{For better reliability:}\\even if one node fails, the system as a whole keeps functioning\pause
+        \item \textbf{For better reliability:}\\even if one node fails, the system as a whole keeps functioning (fault tolerance)\pause
         \item \textbf{For better performance:}\\get data from a nearby node rather than one halfway round the world\pause
-        \item \textbf{To solve bigger problems:}\\e.g. huge amounts of data, can't fit on one machine
+        \item \textbf{To solve bigger problems:}\\e.g. huge amounts of data, can't fit on one machine (scalability)
     \end{itemize}
 \end{frame}
 \inlineslide{s:why-distribute}{}\label{l:why-distribute}
 
 There are a number of reasons for creating distributed systems.
 Some applications are \emph{intrinsically distributed}: if you want to send a message from your phone to your friend's phone, that operation inevitably requires those phones to communicate via some kind of network.
-
-Some distributed systems do things that in principle a single computer could do, but they do it \emph{more reliably}.
-A single computer can fail and might need to be rebooted from time to time, but if you are using multiple nodes, then one node can continue serving users while another node is rebooting.
-Thus, a distributed system has the potential to be more reliable than a single computer, at least if it is well-designed!
+Some distributed systems do things that in principle a single computer could do, but they do it \emph{more reliably} by providing fault tolerance.
 
 Another reason for distribution is for better \emph{performance}: if a service has users all over the world, and they all have to access a single node, then either the users in Germany or the users in New Zealand are going to find it slow (or both).
 By placing nodes in multiple locations around the world, we can get around the slowness of the speed of light by routing each user to a nearby node.
@@ -1229,69 +1288,10 @@ Most distributed algorithms need to be designed for the asynchronous or partiall
 \end{frame}
 \inlineslide{s:model-summary}{}\label{l:model-summary}
 
-\subsection{Fault tolerance and high availability}\label{sec:fault-tolerance}
+\subsection{Failure detectors}\label{sec:failure-detectors}
 
 As highlighted on \autoref{l:why-distribute}, one reason for building distributed systems is to achieve higher reliability than is possible with a single computer.
 We will now explore this idea further in the light of the system models we have discussed.
-
-\begin{frame}
-    \label{s:availability}
-    \frametitle{Availability}
-    Online shop wants to sell stuff 24/7! \\
-    Service unavailability = downtime = losing money \\[1em]
-    Availability = uptime = fraction of time that a service is functioning correctly
-    \begin{itemize}
-        \item ``Two nines'' = 99\% up = down 3.7 days/year
-        \item ``Three nines'' = 99.9\% up = down 8.8 hours/year
-        \item ``Four nines'' = 99.99\% up = down 53 minutes/year
-        \item ``Five nines'' = 99.999\% up = down 5.3 minutes/year\\[1.5em]
-    \end{itemize}\pause
-    \textbf{Service-Level Objective} (SLO):\\ e.g. ``99.9\% of requests in a day get a response in 200~ms''\\[1em]
-    \textbf{Service-Level Agreement} (SLA):\\ contract specifying some SLO, penalties for violation
-\end{frame}
-\inlineslide{s:availability}{}\label{l:availability}
-
-From a business point of view, what usually matters most is the \emph{availability} of a service, such as a website.
-For example, an online shop wants to be able to sell products at any time of day or night: any outage of the website means a lost opportunity to make money.
-For other services, there may even be contractual agreements with customers requiring the service to be available.
-If a service is unavailable, this can also damage the reputation of the service provider.
-
-The availability of a service is typically measured in terms of its ability to respond correctly to requests within a certain time.
-The definition of whether a service is ``available'' or ``unavailable'' can be somewhat arbitrary: for example, if it takes 5 seconds to load a page, do we still consider that website to be available?
-What if it takes 30 seconds?
-An hour?
-
-Typically, the availability expectations of a service are formalised as a \emph{service-level objective} (SLO), which typically specifies the percentage of requests that need to return a correct response within a specified timeout, as measured by a certain client over a certain period of time.
-A \emph{service-level agreement} (SLA) is a contract that specifies some SLO, as well as the consequences if the SLO is not met (for example, the service provider may need to offer a refund to its customers).
-
-Faults (such as node crashes or network interruptions) are a common cause of unavailability.
-In order to increase availability, we can reduce the frequency of faults, or we can design systems to continue working despite some of its components being faulty; the latter approach is called \emph{fault tolerance}.
-Reducing the frequency of faults is possible through buying higher-quality hardware and introducing redundancy, but this approach can never reduce the probability of faults to zero.
-Instead, fault tolerance is the approach taken by many distributed systems.
-
-\begin{frame}
-    \label{s:fault-tolerance}
-    \frametitle{Achieving high availability: fault tolerance}
-    \textbf{Failure}: system as a whole isn't working\\[1em]
-    \textbf{Fault}: some part of the system isn't working
-    \begin{itemize}
-        \item Node fault: crash (crash-stop/crash-recovery),\\deviating from algorithm (Byzantine)
-        \item Network fault: dropping or significantly delaying messages\pause\\[1em]
-    \end{itemize}
-    To increase availability: have fewer faults, or \textbf{tolerate} faults\\[1em]
-    \textbf{Fault tolerance}:\\system as a whole continues working, despite faults\\
-    (up to some maximum number of faults)\pause\\[1em]
-    \textbf{Single point of failure} (SPOF):\\ node/network link whose fault leads to failure
-\end{frame}
-\inlineslide{s:fault-tolerance}{}\label{l:fault-tolerance}
-
-Fault tolerance is always relative to the maximum number of faults that can be tolerated: for example, some distributed algorithms are able to make progress provided that fewer than half of the nodes have crashed, but they stop working if more than half the nodes crash.
-It does not make sense to want to tolerate an unlimited number of faults: if all nodes crash and don't recover, then no algorithm will be able to get any work done, no matter how clever it might be.
-
-In some systems, a single component becoming faulty would cause an outage of the entire system.
-Such a component is called a \emph{single point of failure} (SPOF), and fault-tolerant generally systems try to avoid having any SPOF.
-For example, the Internet is designed to have no SPOF: there is no one server or router whose destruction would bring down the entire Internet (although the loss of some components, such as key intercontinental fibre links, does cause noticeable disruption).
-% Also BGP hijacking...
 
 The first step towards tolerating faults is to detect faults, which is often done with a \emph{failure detector}.
 (``Fault detector'' would be a more logical name, but ``failure detector'' is the conventional term.)
@@ -3688,7 +3688,7 @@ Further types of logical clocks, such as \emph{dotted version vectors} \citep{Pr
 \subsection{Quorums}\label{sec:quorums}
 
 As discussed at the start of this lecture, replication is useful since it allows us to improve the reliability of a system: when one replica is unavailable, the remaining replicas can continue processing requests.
-Unavailability could be due to a faulty node (e.g.\ a crash or a hardware failure), due to a network partition (inability to reach a node over the network), or planned maintenance (e.g.\ rebooting a node to install software updates, as discussed in \autoref{sec:fault-tolerance}).
+Unavailability could be due to a faulty node (e.g.\ a crash or a hardware failure), due to a network partition (inability to reach a node over the network), or planned maintenance (e.g.\ rebooting a node to install software updates).
 
 However, the details of how exactly the replication is performed have a big impact on the reliability of the system.
 Without fault tolerance, having multiple replicas would make reliability \emph{worse}: the more replicas you have, the greater the probability that \emph{any one} of the replicas is faulty at any one time (assuming faults are not perfectly correlated).
