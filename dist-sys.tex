@@ -672,13 +672,42 @@ Thus, the two generals need to coordinate their attack plan.
 This is made difficult by the fact that the two armies are camped some distance apart, and they can only communicate by messenger.
 The messengers must pass through territory controlled by the city, and so they are sometimes captured.
 Thus, a message sent by one general may or may not be received by the other general, and the sender does not know whether their message got through, except by receiving an explicit reply from the other party.
-If a general does not receive any messages, it is impossible to tell whether this is because the other general didn't send any messages, or because all messengers were captured.\footnote{I am not a fan of this militaristic analogy, but we will stick with ``two generals'' since the problem is well-known under that name.
+If a general does not receive any messages, it is impossible to tell whether this is because the other general didn't send any messages, or because all messengers were captured.
+
+\begin{frame}
+    \label{s:romeo-juliet}
+    \frametitle{The Romeo and Juliet problem}
+    \begin{center}
+        \begin{tikzpicture}
+            \node [rectangle,fill=red!10,draw] (army1) at (0,0) {Romeo};
+            \node [rectangle,fill=red!10,draw] (army2) at (8,0) {Juliet};
+            \node [circle,fill=blue!10,draw] (city) at (4,2) {forest};
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army1) -- node [left,yshift=0.2cm] {meet at?} (city);
+            \draw [thick,dashed,-{Stealth[length=3mm]}] (army2) -- node [right,yshift=0.2cm] {meet at?} (city);
+            \draw [doublebigarrow] (army1) -- node [below] {messenger doves} (army2);
+        \end{tikzpicture}\\[1em]\pause
+        \rowcolors[]{2}{}{blue!10}
+        \renewcommand{\arraystretch}{1.3}
+        \begin{tabular}{c|c|c}
+            \hline
+            Romeo & Juliet & outcome \\\hline
+            does not attend & does not attend & nothing happens \\
+            attends & does not attend & Romeo gets desperate \\
+            does not attend & attends & Juliet gets desperate \\
+            attends & attends & happy ever after \\\hline
+        \end{tabular}\\[1em]
+        \textbf{Desired:} Romeo goes to the forest \emph{if and only if} Juliet goes
+    \end{center}
+\end{frame}
+\inlineslide{s:romeo-juliet}{}\label{l:romeo-juliet}
+
+I am not a fan of this militaristic analogy, but unfortunately the problem is well known under the name ``two generals problem''.
 Here is an alternative formulation, thanks to \href{https://twitter.com/anne_biene/status/1386975750671187970}{Annette Bieniusa}:
 Romeo and Juliet want to secretly meet in the forest and need to agree on a date.
 But if only one of them arrives at the meeting place, he or she becomes desperate and a tragedy occurs.
 It is therefore essential that they both go to the forest on the same date.
 Unfortunately, their way of communication via doves is not very reliable.
-The doves often get distracted or lost or shot\dots}
+The doves often get distracted or lost or shot\dots
 
 \begin{frame}
     \label{s:two-generals-comms}
@@ -704,7 +733,7 @@ The doves often get distracted or lost or shot\dots}
 \end{frame}
 \inlineslide{s:two-generals-comms}{}
 
-What protocol should the two generals use to agree on a plan?
+What protocol should the two generals (or Romeo and Juliet) use to agree on a plan?
 For each general there are two options: either the general promises to go ahead with the attack in any case (even if no response is received), or the general waits for an acknowledgement before committing to attack.
 In the first case, the general who promises to go ahead risks being alone in the attack.
 In the second case, the general who awaits acknowledgement shifts the problem to the other general, who must now decide whether to commit to attack (and risk being alone) or wait for an acknowledgement of the acknowledgement.
@@ -770,6 +799,22 @@ Nevertheless, the shop wants to ensure that it dispatches the goods only if they
 In practice, the online shopping example does not exactly match the two generals problem: in this scenario, it is safe for the payments service to always go ahead with a payment, because if the shop ends up not being able to dispatch the goods, it can refund the payment.
 The fact that a payment is something that can be undone (unlike an army being defeated) makes the problem solvable.
 If the communication between shop and payment service is interrupted, the shop can wait until the connection is restored, and then query the payments service to find out the status of any transactions whose outcome was unknown.
+
+\begin{frame}
+    \label{s:two-generals-shopping}
+    \frametitle{Two generals $\neq$ online shopping}
+    Analysing more carefully, we find that online shopping is not like the two generals after all.\\[1em]
+    Online shopping can use the following protocol:\pause
+    \begin{enumerate}
+        \item Try to charge customer's credit card\pause
+        \item If charge was successful, try dispatching goods\pause
+        \item If dispatch was unsuccessful (e.g. out of stock):\\\textbf{refund the credit card payment}\pause\\[1em]
+    \end{enumerate}
+    The fact that one of the actions can be undone makes the problem solveable.\\[1em]
+    Defeat of an army cannot be undone.\\
+    Dispatching goods cannot be undone.
+\end{frame}
+\inlineslide{s:two-generals-shopping}{}\label{l:two-generals-shopping}
 
 \subsection{The Byzantine generals problem}\label{sec:byzantine}
 
