@@ -131,7 +131,8 @@ HTTP also allows multiple requests and multiple responses to be sent over a sing
 
     Reality is much more complex:
     \begin{itemize}
-        \item \textbf{Various network operators:}\\ eduroam, home DSL, cellular data, coffee shop wifi, submarine cable, satellite\dots\\[1em]
+        \item \textbf{Node:}\\ server, desktop computer, phone, car, robot, sensor, \dots\pause
+        \item \textbf{Various network operators:}\\ eduroam, home DSL, cellular data, coffee shop wifi, submarine cable, satellite\dots\pause
         \item \textbf{Physical communication:}\\ electric current, radio waves, laser, hard drives in a van\dots
     \end{itemize}
 \end{frame}
@@ -156,9 +157,12 @@ HTTP also allows multiple requests and multiple responses to be sent over a sing
 However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them.
 This keeps things independent of the underlying networking technology.
 
+Each of the computers in a distributed system is called a \emph{node}.
+Here, ``computer'' is interpreted quite broadly: nodes might be desktop computers, servers in datacenters, mobile devices, internet-connected cars, industrial control systems, sensors, or many other types of device.
+In the theory part of this course we don't distinguish them: a node can be any type of communicating computing device.
+
 In the following lectures, we just assume that there is some way for one node to send a message to another node.
-We don't particularly care whether those nodes are servers, desktop computers, phones, sensors, or any other kind of computing device.
-Moreover, we don't care how messages are physically represented or encoded~-- the network protocols, informally known as the \emph{bytes on the wire}~-- because the basic principle of sending and receiving messages remains the same, even as particular networking technologies come and go.
+We don't particularly care how messages are physically represented or encoded~-- the network protocols, informally known as the \emph{bytes on the wire}~-- because the basic principle of sending and receiving messages remains the same, even as particular networking technologies come and go.
 The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's pocket, or even hard drives in a van.
 
 \begin{frame}[plain]
@@ -166,7 +170,7 @@ The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's
     \frametitle{Hard drives in a van?!}
     \begin{center}
         \includegraphics[height=5cm]{images/aws-snowball.png}\\[0.5em]
-        \scriptsize{\url{https://docs.aws.amazon.com/snowball/latest/ug/using-device.html}}\\[2em]
+        {\scriptsize\url{https://docs.aws.amazon.com/snowball/latest/ug/using-device.html}}\\[1em]
         High latency, high bandwidth!
     \end{center}
 \end{frame}
@@ -281,24 +285,27 @@ For example, the Internet is designed to have no SPOF: there is no one server or
 \subsection{Motivation}
 
 There is a philosophical difference is between the theory and practice of distributed systems.
-The primary goal of most practical work is to ensure the system provides consistently good performance, especially as the system grows to handle larger volumes of requests and data (\emph{scalability}).
+The primary goal of most practical work is to ensure the system provides consistently good performance and availability, especially as the system grows to handle larger volumes of requests and data (\emph{scalability}).
 On the other hand, the theory of distributed systems focuses primarily on ensuring that certain correctness guarantees are always met.
-This difference in emphasis leads us to pay attention to different things: to achieve good performance, what matters is to optimise the operations that happen frequently; to achieve correctness, we have to also examine the obscure edge cases that occur infrequently (but which cannot be ruled out entirely).
 
 \begin{frame}
     \label{s:theory-practice}
     \frametitle{Theory and practice}
     \textbf{Practice:}\\ How can we achieve good performance in the common case? \\[1em]
     \textbf{Theory:}\\ How can we guarantee correctness in all possible scenarios? \pause\\[1em]
-    Build a system without understanding the theory \\
-    $\Rightarrow$ works fine\dots\\
-    $\Rightarrow$ but one day it fails catastrophically due to some weird edge case, and corrupts all your data \pause\\[1em]
+    Build a system without understanding the theory?
+    \begin{itemize}
+        \item works fine for a while\dots\\
+        \item but one day it fails catastrophically due to some weird edge case, and corrupts all your data \pause\\[1em]
+    \end{itemize}
     Distributed systems are notoriously hard to get right.\\
     The theory helps us build robust systems.
 \end{frame}
 \inlineslide{s:theory-practice}{}\label{l:theory-practice}
 
 % TODO: add crying emoji to "corrups all your data", exclamation mark to "hard to get right"
+
+This difference in emphasis leads us to pay attention to different things: to achieve good performance, what matters is to optimise the operations that happen frequently; to achieve correctness, we have to also examine the obscure edge cases that occur infrequently (but which cannot be ruled out entirely).
 
 For example, TCP is often described as providing a ``reliable'' way of transferring data over a network, in the sense that if packets are lost in transit, the TCP implementation will automatically retransmit the lost packets and put them back in the correct order at the recipient.
 However, if too many packets are lost, TCP gives up and returns a timeout error.
@@ -663,14 +670,8 @@ However, most practical distributed systems are based on message-passing.)
     \frametitle{A distributed system is\dots}
     \begin{itemize}
         \item Multiple ``nodes'' (computers)
-            \begin{itemize}
-                \item node = server, desktop computer, phone, car, robot, \dots
-            \end{itemize}
-        \item communicating via a network
-            \begin{itemize}
-                \item by sending each other messages
-                \item trying to achieve some task together
-            \end{itemize}
+        \item communicating via an unreliable network
+        \item trying to achieve some task together
     \end{itemize}\vspace{1em}\pause
     \rowcolors[]{2}{}{blue!10}
     \renewcommand{\arraystretch}{1.3}
@@ -685,10 +686,6 @@ However, most practical distributed systems are based on message-passing.)
 \inlineslide{s:dist-sys-definition}{}
 
 This course focuses on the message-passing model, which is the basis of most practical distributed systems.
-Each of the computers in a distributed system is called a \emph{node}.
-Here, ``computer'' is interpreted quite broadly: nodes might be desktop computers, servers in datacenters, mobile devices, internet-connected cars, industrial control systems, sensors, or many other types of device.
-In the theory part of this course we don't distinguish them: a node can be any type of communicating computing device.
-
 In a single computer, if one component fails (e.g.\ one of the RAM modules develops a fault), we normally don't expect the computer to continue working nevertheless: it will probably just crash.
 Software does not need to be written in a way that explicitly deals with faulty RAM.
 However, in a distributed system we often \emph{do} want to tolerate some parts of the system being broken, and for the rest to continue working.
