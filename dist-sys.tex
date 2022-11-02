@@ -2403,10 +2403,9 @@ Given the Lamport timestamps of two events, it is in general not possible to tel
 If we do want to detect when events are concurrent, we need a different type of logical time: a \emph{vector clock}.
 
 While Lamport timestamps are just a single integer (possibly with a node name attached), vector timestamps are a list of integers, one for each node in the system.
-By convention, if we put the $n$ nodes into a vector $\langle N_1, N_2, \dots, N_n \rangle$, then a vector timestamp is a similar vector $\langle t_1, t_2, \dots, t_n \rangle$ where $t_i$ is the entry corresponding to node $N_i$.
+By convention, if we put the $n$ nodes into a vector $\langle N_0, N_1, \dots, N_{n-1} \rangle$, then a vector timestamp is a similar vector $\langle t_0, t_1, \dots, t_{n-1} \rangle$ where $t_i$ is the entry corresponding to node $N_i$.
 Concretely, $t_i$ is the number of events known to have occurred at node $N_i$.
-In a vector $T = \langle t_1, t_2, \dots, t_n \rangle$ we refer to element $t_i$ as $T[i]$, like an index into an array.
-% TODO: change this to be zero-indexed, to match with the notation used for Raft in lecture 6
+In a vector $T = \langle t_0, t_1, \dots, t_{n-1} \rangle$ we refer to element $t_i$ as $T[i]$, like an index into an array.
 
 \begin{frame}
     \label{s:vector-clocks}
@@ -2414,8 +2413,8 @@ In a vector $T = \langle t_1, t_2, \dots, t_n \rangle$ we refer to element $t_i$
     Given Lamport timestamps $L(a)$ and $L(b)$ with $L(a) < L(b)$\\we can't tell whether $a \rightarrow b$ or $a \parallel b$.\\[1em]
     If we want to detect which events are concurrent, we need \textbf{vector clocks}:\pause
     \begin{itemize}
-        \item Assume $n$ nodes in the system, $N = \langle N_1, N_2, \dots, N_n \rangle$\pause
-        \item Vector timestamp of event $a$ is $V(a) = \langle t_1, t_2, \dots, t_n\rangle$
+        \item Assume $n$ nodes in the system, $N = \langle N_0, N_1, \dots, N_{n-1} \rangle$\pause
+        \item Vector timestamp of event $a$ is $V(a) = \langle t_0, t_1, \dots, t_{n-1}\rangle$
         \item $t_i$ is number of events observed by node $N_i$\pause
         \item Each node has a current vector timestamp $T$
         \item On event at node $N_i$, increment vector element $T[i]$\pause
