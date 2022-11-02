@@ -2612,7 +2612,7 @@ Various other constructions have been proposed: for example, there are hybrid cl
 \section{Broadcast}\label{sec:broadcast}
 
 In this section we will examine \emph{broadcast protocols} (also known as \emph{multicast protocols}), that is, algorithms for delivering one message to multiple recipients.
-These are a useful building blocks for higher-level distributed algorithms, as we will see in \autoref{sec:replication}.
+These are a useful building block for higher-level distributed algorithms, as we will see in \autoref{sec:replication}.
 Several different broadcast protocols are used in practice, and their main difference is the \emph{order} in which they deliver messages.
 As we saw in the last section, the concept of ordering is closely related to clocks and time.
 
@@ -2620,10 +2620,10 @@ As we saw in the last section, the concept of ordering is closely related to clo
 
 Many networks provide point-to-point (unicast) messaging, in which a message has one specified recipient.
 Broadcast protocols generalise networking such that a message is sent to all nodes in some group.
-The group membership may be fixed, or the system may provide mechanisms for nodes to join and leave the group.
+The group membership may be fixed, or the system may provide a way for nodes to join and leave the group.
 
 Some local-area networks provide multicast or broadcast at the hardware level (for example, \emph{IP multicast}), but communication over the Internet typically only allows unicast.
-Moreover, hardware-level multicast is typically provided on a \emph{best-effort} basis, which allows messages to be dropped; making it reliable requires retransmission protocols similar to those discussed here.
+Moreover, hardware-level multicast is typically provided on a \emph{best-effort} basis, which allows messages to be dropped; making it reliable requires retransmission protocols similar to those we will discuss.
 
 The system model assumptions about node behaviour (\autoref{l:model-nodes}) and synchrony (\autoref{l:model-synchrony}) carry over directly to broadcast groups.
 
@@ -2638,7 +2638,7 @@ The system model assumptions about node behaviour (\autoref{l:model-nodes}) and 
         \item Note: concept is more general than IP multicast\\
             (we build upon point-to-point messaging)\\[1em]\pause
     \end{itemize}
-    Build upon system models from lecture 2:
+    Build upon system models from earlier lecture:
     \begin{itemize}
         \item Can be \textbf{best-effort} (may drop messages) or \\
             \textbf{reliable} (non-faulty nodes deliver every message,\\
