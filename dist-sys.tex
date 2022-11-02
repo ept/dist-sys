@@ -2649,6 +2649,12 @@ The system model assumptions about node behaviour (\autoref{l:model-nodes}) and 
 \end{frame}
 \inlineslide{s:broadcast-intro}{}\label{l:broadcast-intro}
 
+Before we go into the details, we should clarify some terminology.
+When an application wants to send a message to all nodes in the group, it uses an algorithm to \emph{broadcast} it.
+To make this happen, the broadcast algorithm then \emph{sends} some messages to other nodes over point-to-point links, and another node \emph{receives} such a message when it arrives over the point-to-point link.
+Finally, the broadcast algorithm may \emph{deliver} the message to the application.
+As we shall see shortly, there is sometimes a delay between the time when a message is received and when it is delivered.
+
 \begin{frame}
     \label{s:receive-deliver}
     \frametitle{Receiving versus delivering}
@@ -2673,12 +2679,6 @@ The system model assumptions about node behaviour (\autoref{l:model-nodes}) and 
 \end{frame}
 \inlineslide{s:receive-deliver}{}\label{l:receive-deliver}
 
-Before we go into the details, we should clarify some terminology.
-When an application wants to send a message to all nodes in the group, it uses an algorithm to \emph{broadcast} it.
-To make this happen, the broadcast algorithm then \emph{sends} some messages to other nodes over point-to-point links, and another node \emph{receives} such a message when it arrives over the point-to-point link.
-Finally, the broadcast algorithm may \emph{deliver} the message to the application.
-As we shall see shortly, there is sometimes a delay between the time when a message is received and when it is delivered.
-
 We will examine three different forms of broadcast.
 All of these are \emph{reliable}: every message is eventually delivered to every non-faulty node, with no timing guarantees.
 However, they differ in terms of the order in which messages may be delivered at each node.
@@ -2700,14 +2700,6 @@ It turns out that this difference in ordering has very fundamental consequences 
 
 % TODO: the use of \rightarrow in the definitions above is problematic, because broadcast protocols make a distinction between "receiving" and "delivering" a message; when m1 is received but not delivered before m2 is broadcast, it's unclear whether broadcast(m1) -> broadcast(m2) or not.
 % A better definition of causal broadcast might be: if m2 is broadcast by node i, and m1 is broadcast by i or delivered by i before m2 is broadcast, then m1 must be delivered before m2 on all nodes.
-
-The weakest type of broadcast is called \emph{FIFO broadcast}, which is closely related to FIFO links (see \autoref{q:fifo-links}).
-In this model, messages sent by the same node are delivered in the order they were sent.
-For example, on \autoref{l:fifo-broadcast}, $m_1$ must be delivered before $m_3$, since they were both sent by $A$.
-However, $m_2$ can be delivered at any time before, between, or after $m_1$ and $m_3$.
-
-Another detail about these broadcast protocols: we assume that whenever a node broadcasts a message, it also delivers that message to itself (represented as a loopback arrow on \autoref{l:fifo-broadcast}).
-This may seem unnecessary at first~-- after all, a node knows what messages it has itself broadcast!~-- but we will need this for total order broadcast.
 
 \begin{frame}
     \label{s:fifo-broadcast}
@@ -2749,6 +2741,14 @@ This may seem unnecessary at first~-- after all, a node knows what messages it h
     \uncover<5->{Valid orders: $(m_2, m_1, m_3)$ or $(m_1, m_2, m_3)$ or $(m_1, m_3, m_2)$}
 \end{frame}
 \inlineslide{s:fifo-broadcast}{}\label{l:fifo-broadcast}
+
+The weakest type of broadcast is called \emph{FIFO broadcast}, which is closely related to FIFO links (see \autoref{q:fifo-links}).
+In this model, messages sent by the same node are delivered in the order they were sent.
+For example, on \autoref{l:fifo-broadcast}, $m_1$ must be delivered before $m_3$, since they were both sent by $A$.
+However, $m_2$ can be delivered at any time before, between, or after $m_1$ and $m_3$.
+
+Another detail about these broadcast protocols: we assume that whenever a node broadcasts a message, it also delivers that message to itself (represented as a loopback arrow on \autoref{l:fifo-broadcast}).
+This may seem unnecessary at first~-- after all, a node knows what messages it has itself broadcast!~-- but we will need this for total order broadcast.
 
 The example execution on \autoref{l:fifo-broadcast} is valid FIFO broadcast, but it violates causality: node $C$ delivers $m_2$ before $m_1$, even though $B$ broadcast $m_2$ after delivering $m_1$.
 \emph{Causal broadcast} provides a stricter ordering property than FIFO broadcast.
