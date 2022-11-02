@@ -255,7 +255,9 @@ Faults (such as node crashes or network interruptions) are a common cause of una
 In order to increase availability, we can reduce the frequency of faults, or we can design systems to continue working despite some of its components being faulty; the latter approach is called \emph{fault tolerance}.
 Reducing the frequency of faults is possible through buying higher-quality hardware and introducing redundancy, but this approach can never reduce the probability of faults to zero.
 Instead, fault tolerance is the approach taken by many distributed systems.
-Moreover, fault tolerance has operational benefits: a single computer might need to be rebooted from time to time (e.g.\ to install software updates), but if you are using multiple nodes, then one node can continue serving users while another node is rebooting.
+
+Tolerating faults also makes day-to-day operations easier: for example, if a service can tolerate one out of three nodes being unavailable, then a software upgrade can be rolled out by installing it and restarting one node at a time, while the remaining two nodes continue providing the service.
+Being able to roll out software upgrades in this way, without clients noticing any interruption, is important for many organisations that are continually working to improve their software, because it allows the software to be updated frequently.
 
 \begin{frame}
     \label{s:fault-tolerance}
@@ -282,11 +284,26 @@ Such a component is called a \emph{single point of failure} (SPOF), and fault-to
 For example, the Internet is designed to have no SPOF: there is no one server or router whose destruction would bring down the entire Internet (although the loss of some components, such as key intercontinental fibre links, does cause noticeable disruption).
 % Also BGP hijacking...
 
+%\begin{frame}
+    %\label{s:availability-discuss}
+    %\frametitle{High availability costs and benefits}
+    % TODO: visualise a rolling software upgrade?
+%\end{frame}
+%\inlineslide{s:availability-discuss}{}\label{l:availability-discuss}
+
+For safety-critical applications, such as air-traffic control systems, it is undoubtedly important to invest in good fault-tolerance mechanisms.
+However, it is not always the case that higher availability is better.
+Reaching extremely high availability requires a highly focussed engineering effort, and often conservative design choices.
+For example, the old-fashioned fixed-line telephone network is designed for ``five nines'' availability, but the downside of this focus on availability is that it has been very slow to evolve.
+Most Internet services do not even reach four nines because of diminishing returns: beyond some point, the additional cost of achieving higher availability exceeds the cost of occasional downtime, so it is economically rational to accept a certain amount of downtime.
+
 \subsection{Motivation}
 
 There is a philosophical difference is between the theory and practice of distributed systems.
 The primary goal of most practical work is to ensure the system provides consistently good performance and availability, especially as the system grows to handle larger volumes of requests and data (\emph{scalability}).
 On the other hand, the theory of distributed systems focuses primarily on ensuring that certain correctness guarantees are always met.
+
+This difference in emphasis leads us to pay attention to different things: to achieve good performance, what matters is to optimise the operations that happen frequently; to achieve correctness, we have to also examine the obscure edge cases that occur infrequently (but which cannot be ruled out entirely).
 
 \begin{frame}
     \label{s:theory-practice}
@@ -304,8 +321,6 @@ On the other hand, the theory of distributed systems focuses primarily on ensuri
     The theory helps us build robust systems.
 \end{frame}
 \inlineslide{s:theory-practice}{}\label{l:theory-practice}
-
-This difference in emphasis leads us to pay attention to different things: to achieve good performance, what matters is to optimise the operations that happen frequently; to achieve correctness, we have to also examine the obscure edge cases that occur infrequently (but which cannot be ruled out entirely).
 
 For example, TCP is often described as providing a ``reliable'' way of transferring data over a network, in the sense that if packets are lost in transit, the TCP implementation will automatically retransmit the lost packets and put them back in the correct order at the recipient.
 However, if too many packets are lost, TCP gives up and returns a timeout error.
@@ -1331,21 +1346,6 @@ However, there is a useful failure detector that exists in partially synchronous
 
 We will see later how to use such a failure detector to design fault-tolerance mechanisms and to automatically recover from node crashes.
 Using such algorithms it is possible to build systems that are highly available.
-Tolerating crashes also makes day-to-day operations easier: for example, if a service can tolerate one out of three nodes being unavailable, then a software upgrade can be rolled out by installing it and restarting one node at a time, while the remaining two nodes continue running the service.
-Being able to roll out software upgrades in this way, without clients noticing any interruption, is important for many organisations that are continually working to improve their software.
-
-%\begin{frame}
-    %\label{s:availability-discuss}
-    %\frametitle{High availability costs and benefits}
-    % TODO: visualise a rolling software upgrade?
-%\end{frame}
-%\inlineslide{s:availability-discuss}{}\label{l:availability-discuss}
-
-For safety-critical applications, such as air-traffic control systems, it is undoubtedly important to invest in good fault-tolerance mechanisms.
-However, it is not always the case that higher availability is better.
-Reaching extremely high availability requires a highly focussed engineering effort, and often conservative design choices.
-For example, the old-fashioned fixed-line telephone network is designed for ``five nines'' availability, but the downside of this focus on availability is that it has been very slow to evolve.
-Most Internet services do not even reach four nines because of diminishing returns: beyond some point, the additional cost of achieving higher availability exceeds the cost of occasional downtime, so it is economically rational to accept a certain amount of downtime.
 
 \supervision{\label{q:fifo-links}
     Reliable network links allow messages to be reordered.
