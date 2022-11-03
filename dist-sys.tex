@@ -4085,7 +4085,7 @@ We will see more models in this lecture.
 Let's start with a consistency problem that arises when executing a \emph{distributed transaction}, i.e.\ a transaction that reads or writes data on multiple nodes.
 The data on those nodes may be replicas of the same dataset, or different parts of a larger dataset; a distributed transaction applies in both cases.
 
-Recall from the concurrent systems half of this course that a key property of a transaction is \emph{atomicity}.
+If you have studied databases you will know that a key property of a transaction is \emph{atomicity}.
 When a transaction spans multiple nodes, we still want atomicity for the transaction as a whole: that is, either all nodes must commit the transaction and make its updates durable, or all nodes must abort the transaction and discard or roll back its updates.
 
 \begin{frame}
@@ -4096,15 +4096,14 @@ When a transaction spans multiple nodes, we still want atomicity for the transac
         \item A transaction either \textbf{commits} or \textbf{aborts}\pause
         \item If it commits, its updates are durable
         \item If it aborts, it has no visible side-effects\pause
-        \item ACID consistency (preserving invariants) relies on atomicity\\[1em]\pause
+        \item ACID consistency (preserving invariants) relies on atomicity\pause\\[1em]
     \end{itemize}
     If the transaction updates data on multiple nodes, this implies:
     \begin{itemize}
         \item Either all nodes must commit, or all must abort\pause
         \item If any node crashes, all must abort\\[1em]
     \end{itemize}
-    Ensuring this is the \textbf{atomic commitment} problem.\\
-    Looks a bit similar to consensus?
+    Ensuring this is the \textbf{atomic commitment} problem.
 \end{frame}
 \inlineslide{s:atomic-commit}{}\label{l:atomic-commit}
 
@@ -4179,7 +4178,7 @@ The problem with two-phase commit is that the coordinator is a single point of f
 Crashes of the coordinator can be tolerated by having the coordinator write its commit/abort decisions to stable storage, but even so, there may be transactions that have prepared but not yet committed/aborted at the time of the coordinator crash (called \emph{in-doubt transactions}).
 Any in-doubt transactions must wait until the coordinator recovers to learn their fate; they cannot unilaterally decide to commit or abort, because that decision could end up being inconsistent with the coordinator and other nodes, which might violate atomicity.
 
-Fortunately it is possible to avoid the single point of failure of the coordinator by using a consensus algorithm or total order broadcast protocol.
+Fortunately it is possible to avoid the single point of failure of the coordinator by using a total order broadcast protocol.
 \autoref{l:paxos-commit1} shows a fault-tolerant two-phase commit algorithm based on Paxos Commit \citep{Gray:2006}.
 The idea is that every node that is participating in the transaction uses total order broadcast to disseminate its vote on whether to commit or abort.
 Moreover, if node $A$ suspects that node $B$ has failed (because no vote from $B$ was received within some timeout), then $A$ may try to vote to abort on behalf of $B$.
@@ -4632,7 +4631,7 @@ This algorithm ensures linearizable $\mathsf{get}$ and $\mathsf{set}$ operations
     \begin{itemize}
         \item $\mathsf{CAS}(x, \mathit{oldValue}, \mathit{newValue})$ sets $x$ to $\mathit{newValue}$
             iff current value of $x$ is $\mathit{oldValue}$
-        \item Previously discussed in shared memory concurrency\pause
+        \item Previously discussed in shared-memory concurrency\pause
         \item Can we implement \textbf{linearizable} compare-and-swap in a distributed system?\pause
         \item \textbf{Yes:} total order broadcast to the rescue again!
     \end{itemize}
@@ -4644,16 +4643,11 @@ If multiple clients concurrently write to the same item, it uses a last-writer-w
 
 In some applications, we want to be more careful and overwrite a value only if it has not been concurrently modified by another node.
 This can be achieved with an \emph{atomic compare-and-swap} (CAS) operation.
-A CAS operation for concurrency between threads on a single node was discussed in the first half of this course.
+A CAS operation for concurrency between threads on a single node was discussed in \autoref{sec:system-models}.
 This raises the question: how can we implement a linearizable CAS operation in a distributed, replicated system?
 
 Recall that the purpose of linearizability is to make a system behave as if there was only a single copy of the data, and all operations on it happen atomically, even if the system is in fact replicated.
 This makes CAS a natural operation to want to support in a linearizable context.
-
-The ABD algorithm is not able to implement CAS, because different replicas may see the operations in a different order, and thus reach inconsistent conclusions about whether a particular CAS operation succeeded or not.
-However, it is possible to implement a linearizable, replicated CAS operation using total order broadcast, as shown on \autoref{l:cas-2}.
-We simply broadcast every operation we want to perform, and actually execute the operation when it is delivered.
-Like in state machine replication (\autoref{l:smr}), this algorithm ensures that an operation has the same effect and outcome on every replica.
 
 \begin{frame}
     \label{s:cas-2}
@@ -4682,6 +4676,11 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
     \end{algorithmic}
 \end{frame}
 \inlineslide{s:cas-2}{}\label{l:cas-2}
+
+The ABD algorithm is not able to implement CAS, because different replicas may see the operations in a different order, and thus reach inconsistent conclusions about whether a particular CAS operation succeeded or not.
+However, it is possible to implement a linearizable, replicated CAS operation using total order broadcast, as shown on \autoref{l:cas-2}.
+We simply broadcast every operation we want to perform, and actually execute the operation when it is delivered.
+Like in state machine replication (\autoref{l:smr}), this algorithm ensures that an operation has the same effect and outcome on every replica.
 
 \supervision{
     Is the following execution linearizable? If not, where does the violation occur?
@@ -4786,7 +4785,7 @@ However, for sudden and unexpected leader outages (e.g.\ a crash, hardware failu
 Even in the best case, it will take several minutes for an operator to respond, during which the system is not able to process any updates.
 
 This raises the question: can we automatically transfer the leadership from one node to another in the case that the old leader becomes unavailable?
-The answer is yes, and this is exactly what consensus algorithms do.
+The answer is yes, and this is exactly what some consensus algorithms do.
 
 % There are also leaderless consensus algorithms, see e.g. section 3 of https://vasigavr1.github.io/files/Odyssey_Eurosys_2021.pdf
 
