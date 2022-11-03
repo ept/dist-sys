@@ -668,7 +668,7 @@ Shared-memory concurrency is a common model when you have several threads of exe
 Multiple threads can be scheduled across multiple CPU cores, allowing them to run in parallel.
 In this model, the threads run in the same address space and can access the same memory.
 Thus, data can easily be passed from one thread to another: a variable or pointer that is valid for one thread is also valid for another.
-To coordinate, threads often use primitives such as locks, semaphores, or atomic instructions such as compare-and-set.
+To coordinate, threads often use primitives such as locks, semaphores, or atomic instructions such as compare-and-swap.
 Threads communicate by reading and writing to the shared memory.
 
 This situation changes when we move to distributed systems.
@@ -3642,7 +3642,8 @@ Further types of logical clocks, such as \emph{dotted version vectors} \citep{Pr
 
 \supervision{\label{q:cassandra}
     Apache Cassandra, a widely-used distributed database, uses a replication approach similar to the one described here.
-    However, it uses physical timestamps instead of logical timestamps, as discussed here: \url{https://www.datastax.com/blog/2013/09/why-cassandra-doesnt-need-vector-clocks}.
+    However, it uses physical timestamps instead of logical timestamps, as discussed here: \url{https://www.datastax.com/blog/why-cassandra-doesnt-need-vector-clocks}.
+    % Archived blog post: https://perma.cc/MMQ9-R6ZC
     Write a critique of this blog post.
     What do you think of its arguments and why?
     What facts are missing from it?
@@ -3967,7 +3968,7 @@ A ``smart contract'' is just a deterministic program that a replica executes whe
     Limitations:
     \begin{itemize}
         \item Cannot update state immediately, have to wait for delivery through broadcast\pause
-        \item Need fault-tolerant total order broadcast: see lecture 6
+        \item Need fault-tolerant total order broadcast: see next lecture
     \end{itemize}
 \end{frame}
 \inlineslide{s:smr2}{}\label{l:smr2}
@@ -4010,7 +4011,7 @@ Recall from \autoref{l:total-bcast-alg} that one way of implementing total order
 This principle is also widely used for database replication: many database systems designate one replica as \emph{leader}, \emph{primary}, or \emph{master}.
 Any transactions that wish to modify the database must be executed on the leader replica.
 As shown on \autoref{l:leader-database}, the leader may execute multiple transactions concurrently; however, it \emph{commits} those transactions in a total order.
-When a transaction commits, the leader replica broadcasts the data changes from that transaction to all the follower replicas, and the followers apply those changes in commit order.
+When a transaction commits, the leader replica broadcasts the writes from that transaction to all the follower replicas, and the followers apply those writes in commit order.
 This approach is known as \emph{passive replication} or \emph{primary-backup replication}, and we can see that it is equivalent to total order broadcast of transaction commit records.
 
 So much on using total order broadcast for replication.
@@ -4877,7 +4878,7 @@ The answer is no: although both are superficially about reaching agreement, the 
 \inlineslide{s:atomic-commit-consensus}{}\label{l:atomic-commit-consensus}
 
 The most common algorithm to ensure atomic commitment across multiple nodes is the \emph{two-phase commit} (2PC) protocol \citep{Gray:1978}.
-(Not to be confused with \emph{two-phase locking} (2PL), discussed in the first half of this course: 2PL ensures serializable isolation, while 2PC ensures atomic commitment.
+(Not to be confused with \emph{two-phase locking}: 2PL ensures serializable isolation for transactions, while 2PC ensures atomic commitment.
 There is also a \emph{three-phase commit} protocol, but it assumes the unrealistic synchronous system model, so we won't discuss it here.)
 The communication flow of 2PC is illustrated on \autoref{l:2pc}.
 
