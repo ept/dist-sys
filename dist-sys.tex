@@ -5483,6 +5483,16 @@ In this case, the leader decrements the $\mathit{sentLength}$ value for this fol
 This may happen multiple times, but eventually the leader will send the follower an array of entries that cleanly extends the follower's existing log, at which point the follower will accept the $\mathsf{LogRequest}$.
 (This algorithm could be optimised to require fewer retries, but in this course we will avoid making it more complex than needed.)
 
+Finally, \autoref{l:raft9} shows how the leader determines which log entries to commit.
+We define the function $\mathrm{acks}(\mathit{length})$ to take an integer, a number of log entries counted from the start of the log.
+This function returns the number of nodes that have acknowledged the receipt of $\mathit{length}$ log entries or more.
+
+\textsc{CommitLogEntries} uses this function to determine how many log entries have been acknowledged by a majority quorum of nodes or more.
+The variable $\mathit{ready}$ contains the set of log prefix lengths that are ready to commit, and if $\mathit{ready}$ is nonempty, $\max(\mathit{ready})$ is the maximum log prefix length that we can commit.
+If this exceeds the current value of $\mathit{commitLength}$, this means there are new log entries that are now ready to commit because they have been acknowledged by sufficiently many nodes.
+The message in each of these log entries is now delivered to the application on the leader, and the $\mathit{commitLength}$ variable is updated.
+On the next $\mathsf{LogRequest}$ message that the leader sends to followers, the new value of $\mathit{commitLength}$ will be included, causing the followers to commit and deliver the same log entries.
+
 \begin{frame}
     \label{s:raft9}
     \frametitle{Raft (9/9): leader committing log entries}
@@ -5506,16 +5516,6 @@ This may happen multiple times, but eventually the leader will send the follower
     \end{algorithmic}
 \end{frame}
 \inlineslide{s:raft9}{}\label{l:raft9}
-
-Finally, \autoref{l:raft9} shows how the leader determines which log entries to commit.
-We define the function $\mathrm{acks}(\mathit{length})$ to take an integer, a number of log entries counted from the start of the log.
-This function returns the number of nodes that have acknowledged the receipt of $\mathit{length}$ log entries or more.
-
-\textsc{CommitLogEntries} uses this function to determine how many log entries have been acknowledged by a majority quorum of nodes or more.
-The variable $\mathit{ready}$ contains the set of log prefix lengths that are ready to commit, and if $\mathit{ready}$ is nonempty, $\max(\mathit{ready})$ is the maximum log prefix length that we can commit.
-If this exceeds the current value of $\mathit{commitLength}$, this means there are new log entries that are now ready to commit because they have been acknowledged by sufficiently many nodes.
-The message in each of these log entries is now delivered to the application on the leader, and the $\mathit{commitLength}$ variable is updated.
-On the next $\mathsf{LogRequest}$ message that the leader sends to followers, the new value of $\mathit{commitLength}$ will be included, causing the followers to commit and deliver the same log entries.
 
 \supervision{
     Three nodes are executing the Raft algorithm.
