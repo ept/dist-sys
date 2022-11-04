@@ -4858,6 +4858,64 @@ The answer is no: although both are superficially about reaching agreement, the 
 \end{frame}
 \inlineslide{s:atomic-commit-consensus}{}\label{l:atomic-commit-consensus}
 
+In this lecture we will examine the Raft algorithm for total order broadcast, since total order broadcast is generally a more useful abstraction than single-value consensus.
+In \autoref{sec:delivery-order} we discussed informally what we want from a total order broadcast algorithm (it should deliver the same messages in the same order at each node), but now we need to be more precise.
+For example, we need to specify what happens when a node crashes: a crashed node that does not recover will not be able to do anything, and so it doesn't make sense to require it to continue delivering messages after it has crashed.
+
+Another property we would like is that a message is delivered if and only if it was broadcast.
+The algorithm would not be very useful if a broadcast message was never delivered, and it would be even worse if the algorithm delivered messages that were never broadcast.
+However, we have to allow the possibility that a node tries to broadcast a message and then immediately crashes before it is able to send the message to any other node; in this case the broadcast message will never be delivered.
+
+\autoref{l:safety-liveness} shows one way of formalising the properties of total order broadcast in a way that is precise and achievable.
+The five properties are broken down into two categories: \emph{safety} and \emph{liveness}.
+(The concept of safety and liveness applies to many types of algorithms, not only consensus/broadcast algorithms.)
+
+\begin{itemize}
+    \item A safety property is an invariant that must never be violated: that is, at any point in the execution we can check this property and it must always be true.
+    \item A liveness property is an expectation of a future state: initially it might not be satisfied (for example, a node may have broadcast a message, but it has not yet been delivered), but we can ensure that we wait long enough, it will eventually become true.
+        Liveness properties do not have a time bound on how long it might take until the property is satisfied: we only require them to hold \emph{eventually}, i.e.\ after some arbitrary but finite amount of time.
+\end{itemize}
+
+Liveness properties are intentionally vague with regard to timing.
+Ideally we would have some sort of SLA, such as ``99.9\% of broadcast messages are delivered within 200~ms'' (\autoref{l:availability}); however, if we wanted to prove that an algorithm meets some SLA, we would have to make a lot of assumptions about network latency, probability of message loss, and other factors that affect timing.
+That would get rather complicated, and therefore we use liveness properties as a simplification.
+
+On \autoref{l:safety-liveness}, property 1 captures the requirement that messages are delivered in the same order at every node.
+Properties 2, 4, and 5 ensure that non-crashed nodes deliver all the messages that were broadcast, and nothing else.
+Property 3 rules out duplicate deliveries of the same message (for simplicity, we assume that every broadcast message is unique, if necessary by adding a unique broadcast ID to every message).
+
+\supervision{
+    Would it be equivalent to combine properties 4 and 5 into a single liveness property, namely ``If a node broadcasts a message $m$ and does not crash, then every node that does not crash eventually delivers $m$''?
+}{
+    No, this is not equivalent.
+    Say message $m$ is broadcast by node $N_1$, then $m$ is delivered by node $N_2$, and then $N_1$ crashes.
+    In the original properties given on the slide, $m$ must now be delivered by all non-crashed nodes because it was delivered by one node.
+    In the revised property, other nodes would not necessarily need to deliver $m$, because it was sent by a crashed node.
+    The revised property therefore does not ensure that all non-crashed nodes deliver the same sequence of messages.
+}
+
+\begin{frame}
+    \label{s:safety-liveness}
+    \frametitle{How total order broadcast should behave}
+    Properties of total order broadcast fall into two categories:
+    \begin{itemize}
+        \item \textbf{Safety}: \emph{``nothing bad happens''}\\
+            \begin{enumerate}
+                \item<2-> Let $N_1$ and $N_2$ be two nodes that each deliver two messages $m_1$ and $m_2$, and assume that $N_1$ delivers $m_1$ before $m_2$.
+                    Then $N_2$ also delivers $m_1$ before $m_2$.
+                \item<3-> If some node delivers a message $m$, then $m$ was previously broadcast by some node.
+                \item<4-> A node does not deliver the same message more than once.
+            \end{enumerate}
+        \item \textbf{Liveness}: \emph{``something good eventually happens''}
+            \begin{enumerate}
+                \setcounter{enumi}{3}
+                \item<5-> If a node broadcasts a message $m$ and does not crash, then eventually that node delivers $m$.
+                \item<6-> If one node delivers a message $m$, then every other node that does not crash eventually delivers $m$.
+            \end{enumerate}
+    \end{itemize}
+\end{frame}
+\inlineslide{s:safety-liveness}{}\label{l:safety-liveness}
+
 \begin{frame}
     \label{s:consensus-model}
     \frametitle{Consensus system models}
@@ -4866,8 +4924,8 @@ The answer is no: although both are superficially about reaching agreement, the 
     \begin{itemize}
         \item \textbf{FLP result} (Fischer, Lynch, Paterson):\\
             There is no deterministic consensus algorithm that is guaranteed to terminate in an asynchronous crash-stop system model.\pause
-        \item Paxos, Raft, etc. use clocks only used for timeouts/failure detector to ensure progress.
-            Safety (correctness) does not depend on timing.\\[1em]\pause
+        \item Paxos, Raft, etc. use clocks only used for timeouts/failure detector to ensure liveness.
+            Safety does not depend on timing.\\[1em]\pause
     \end{itemize}
     There are also consensus algorithms for a partially synchronous \textbf{Byzantine} system model (used in blockchains)
 \end{frame}
@@ -4889,10 +4947,8 @@ This fact is known as the \emph{FLP result}, one of the most important theorems 
 It is possible to get around the FLP result by using a nondeterministic (randomised) algorithm.
 However, most practical systems instead avoid non-termination by using clocks for timeouts.
 Recall, however, that in a partially synchronous system, we cannot assume bounded network latency or bounded execution speed of nodes.
-For this reason, consensus algorithms need to guarantee their \emph{safety properties} (namely, that each node decides on the same messages in the same order) regardless of the timing in the system, even if messages are arbitrarily delayed.
-Only the \emph{liveness} (namely, that a message is eventually delivered) depends on clocks and timing.
-
-% TODO: introduce the concept of safety and liveness properties explicitly?
+For this reason, consensus algorithms need to guarantee their safety properties regardless of the timing in the system, even if messages are arbitrarily delayed.
+Only the liveness properties may depend on clocks and timing.
 
 \begin{frame}
     \label{s:leader-election}
@@ -5520,15 +5576,6 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
             (The $\mathit{commitLength}$ field could be 0, 1, or 2, as per part c. Node $C$ will discard $m_7$ when it receives $m_5$ and $m_6$ from $B$. This is okay because $m_7$ was not written to a quorum of nodes, and hence it was not acknowledged as committed.)
     \end{enumerate}
 }
-
-% Define total order broadcast as:
-% 1. If a correct process delivers message m, then m was broadcast by a process in the system.
-% 2. No message is delivered more than once.
-% 3. If a correct process p broadcasts a message m, then p eventually delivers m.
-% 4. If a correct process delivers a message m, then all correct processes eventually deliver m.
-% 5. If a correct process delivers m1 before delivering message m2, then all correct processes must deliver m1 before m2.
-% Exercise: can't we combine properties 3 and 4 into one property, namely: if a correct process broadcasts a message m, then all correct processes eventually deliver m.
-% Answer: no, this is not equivalent. Say message m is broadcast by faulty process p, and delivered by correct process q. In the original properties, m must now be delivered by all correct processes because it was delivered by one correct process. In the revised property, other processes would not necessarily need to deliver m, because it was sent by a faulty process.
 
 \section{Eventual consistency}\label{sec:eventual-consistency}
 
