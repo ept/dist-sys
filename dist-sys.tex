@@ -5517,6 +5517,24 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
 \end{frame}
 \inlineslide{s:raft9}{}\label{l:raft9}
 
+\begin{frame}
+    \label{s:raft-end}
+    \frametitle{{\dots}and that was just the basic form of Raft!}
+    A real implementation would need to do more:
+    \begin{itemize}
+        \item Efficient \textbf{log reconciliation} when $\neg\mathit{logOk}$
+        \item Allow \textbf{reconfiguration}:\\ allow administrators to add or remove nodes, adjusting quorums accordingly
+        \item Better \textbf{throughput}:\\ avoid having to do everything through the leader? \\
+            (some Paxos variants are less leader-centric) \pause\\[1em]
+    \end{itemize}
+    Going even further:
+    \begin{itemize}
+        \item Raft assumes all nodes are honest;\\
+            \textbf{Byzantine consensus} required for blockchains
+    \end{itemize}
+\end{frame}
+\inlineslide{s:raft-end}{}\label{l:raft-end}
+
 \supervision{
     Three nodes are executing the Raft algorithm.
     At one point in time, each node has the log shown below:
