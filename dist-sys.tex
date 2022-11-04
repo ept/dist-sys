@@ -1692,9 +1692,7 @@ However, it is a pragmatic alternative to making all software aware of and robus
     For example, some implementations of smearing spread the extra second over different periods of time.
     Also, different functions are used to interpolate across the leap second discontinuity: some systems use a linear functions, other use a cosine.
     There is no standardised approach to smearing.
-
     See \url{https://developers.google.com/time/smear} for some discussion.
-    Our department's Markus Kuhn tried to get this standardised in 2006: \url{https://www.cl.cam.ac.uk/~mgk25/time/utc-sls/}
 }
 
 \newpage
@@ -4762,11 +4760,11 @@ Like in state machine replication (\autoref{l:smr}), this algorithm ensures that
     \end{tikzpicture}
 }
 
-\section{Consensus}\label{sec:consensus}
+\section{Consensus and total order broadcast}\label{sec:consensus}
 
 \begin{frame}
     \begin{center}
-        {\Large{\color{tumblue}{Consensus}}} \\[2em]
+        {\Large{\color{tumblue}{Consensus and total order broadcast}}} \\[2em]
         \mydetails
     \end{center}
 \end{frame}
@@ -4984,7 +4982,7 @@ Only the liveness properties may depend on clocks and timing.
 
 At the core of most consensus algorithms is a process for electing a new leader when the existing leader becomes unavailable for whatever reason.
 The details differ between the algorithms; in this lecture we will concentrate on the approach taken by Raft, but many of the lessons from Raft are equally relevant to other consensus algorithms.
-\citet{Howard:2020} give a detailed comparison of Raft and Multi-Paxos (however, Paxos/Multi-Paxos are not examinable).
+\citet{Howard:2020} give a detailed comparison of Raft and Multi-Paxos.
 
 A leader election is initiated when the other nodes suspect the current leader to have failed, typically because they haven't received any message from the leader for some time.
 One of the other nodes becomes a \emph{candidate} and asks the other nodes to vote on whether they accept the candidate as their new leader.
@@ -5137,7 +5135,7 @@ The log grows by appending new entries to the end, and Raft replicates this log 
 When a log entry (and all of its predecessors) have been replicated to a quorum of nodes, it is \emph{committed}.
 At the moment when we commit a log entry, we also deliver its $\mathsf{msg}$ to the application.
 Before a log entry is committed, it may yet change, but Raft guarantees that once a log entry is committed, it is final, and all nodes will commit the same sequence of log entries.
-Therefore, delivering messages from committed log entries in their log order gives us FIFO-total order broadcast.
+Therefore, delivering messages from committed log entries in their log order gives us total order broadcast.
 
 When a node suspects a leader failure, it starts a leader election as follows: it increments $\mathit{currentTerm}$, it sets its own role to $\mathsf{candidate}$, and it votes for itself by setting $\mathit{votedFor}$ and $\mathit{votesReceived}$ to its own node ID.
 It then sends a $\mathsf{VoteRequest}$ message to each other node, asking it to vote on whether this candidate should be the new leader.
