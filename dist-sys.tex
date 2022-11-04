@@ -4810,24 +4810,7 @@ The consensus problem is traditionally formulated as follows: several nodes want
 One or more nodes may \emph{propose} a value, and then the consensus algorithm will \emph{decide} on one of those values.
 The algorithm guarantees that the decided value is one of the proposed values, that all nodes decide on the same value (with the exception of faulty nodes, which may not decide anything), and that the decision is final (a node will not change its mind once it has decided a value).
 
-You might be wondering: is this agreement the same as \emph{atomic commitment}, which we discussed in \autoref{sec:2pc}?
-The answer is no: although both are superficially about reaching agreement, the details differ significantly, as shown on \autoref{l:atomic-commit-consensus}.
-
-\begin{frame}
-    \label{s:atomic-commit-consensus}
-    \frametitle{Atomic commit versus consensus}
-    \rowcolors[]{2}{}{blue!10}
-    \renewcommand{\arraystretch}{1.5}
-    \begin{tabular}{>{\raggedright}p{5cm}|>{\raggedright\arraybackslash}p{5cm}} % https://tex.stackexchange.com/a/2892
-        \textbf{Atomic commit} & \textbf{Consensus} \\\hline
-        Every node votes whether to commit or abort & One or more nodes propose a value \pause\\
-        Must commit if all nodes vote to commit; must abort if $\ge 1$ nodes vote to abort & Any one of the proposed values is decided \pause\\
-        Must abort if a participating node crashes & Crashed nodes can be tolerated, as long as a quorum is working
-    \end{tabular}
-\end{frame}
-\inlineslide{s:atomic-commit-consensus}{}\label{l:atomic-commit-consensus}
-
-On the other hand, it has been formally shown that consensus and total order broadcast are equivalent to each other~-- that is, an algorithm for one can be turned into an algorithm for the other, and vice versa \citep{Chandra:1996}:
+It has been formally shown that consensus and total order broadcast are equivalent to each other~-- that is, an algorithm for one can be turned into an algorithm for the other, and vice versa \citep{Chandra:1996}:
 \begin{itemize}
     \item To turn total order broadcast into consensus, a node that wants to propose a value broadcasts it, and the first message delivered by total order broadcast is taken to be the decided value.
     \item To turn consensus into total order broadcast, we use a separate instance of the consensus protocol to decide on the first, second, third, {\dots} message to be delivered.
@@ -4857,6 +4840,23 @@ On the other hand, it has been formally shown that consensus and total order bro
 The two best-known consensus algorithms are \emph{Paxos} \citep{Lamport:1998} and \emph{Raft} \citep{Ongaro:2014}.
 In its original formulation, Paxos provides only consensus on a single value, and the \emph{Multi-Paxos} algorithm is a generalisation of Paxos that provides FIFO-total order broadcast.
 On the other hand, Raft is designed to provide FIFO-total order broadcast ``out of the box''.
+
+You might be wondering: is the agreement property of consensus the same as \emph{atomic commitment}, which we discussed in \autoref{sec:2pc}?
+The answer is no: although both are superficially about reaching agreement, the details differ significantly, as shown on \autoref{l:atomic-commit-consensus}.
+
+\begin{frame}
+    \label{s:atomic-commit-consensus}
+    \frametitle{Atomic commit versus consensus}
+    \rowcolors[]{2}{}{blue!10}
+    \renewcommand{\arraystretch}{1.5}
+    \begin{tabular}{>{\raggedright}p{5cm}|>{\raggedright\arraybackslash}p{5cm}} % https://tex.stackexchange.com/a/2892
+        \textbf{Atomic commit} & \textbf{Consensus} \\\hline
+        Every node votes whether to commit or abort & One or more nodes propose a value \pause\\
+        Must commit if all nodes vote to commit; must abort if $\ge 1$ nodes vote to abort & Any one of the proposed values is decided \pause\\
+        Must abort if a participating node crashes & Crashed nodes can be tolerated, as long as a quorum is working
+    \end{tabular}
+\end{frame}
+\inlineslide{s:atomic-commit-consensus}{}\label{l:atomic-commit-consensus}
 
 \begin{frame}
     \label{s:consensus-model}
