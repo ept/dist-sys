@@ -3342,7 +3342,7 @@ It is one of the main mechanisms we have for achieving \emph{fault tolerance}: i
 \end{frame}
 \inlineslide{s:replication-intro}{}\label{l:replication-intro}
 
-\subsection{Manipulating remote state}
+\subsection{Manipulating remote state}\label{sec:remote-state}
 
 If the data doesn't change, replication is easy, since it just requires making a one-time copy of the data.
 Therefore, the main problem in replication is managing changes to the data.
@@ -3580,8 +3580,9 @@ This approach also helps address the problem on \autoref{l:retry-union}: a retri
 \end{frame}
 \inlineslide{s:reconcile}{}\label{l:reconcile}
 
-The technique of attaching a timestamp to every update is also useful for handling concurrent updates.
-On \autoref{l:concurrent-writes}, client~1 wants to set key $x$ to the value $v_1$ (with timestamp $t_1$), while concurrently client~2 wants to set the same key $x$ to the value $v_2$ (with timestamp $t_2$).
+The technique of attaching a timestamp to every update is also useful for handling concurrent updates to a \emph{register} (a replicated variable whose value can be updated).
+For example, in a key-value store, each key has an associated register.
+On \autoref{l:concurrent-writes}, client~1 wants to set the register for key $x$ to the value $v_1$ (with timestamp $t_1$), while concurrently client~2 wants to set the register for the same key $x$ to the value $v_2$ (with timestamp $t_2$).
 Replica $A$ receives $v_2$ first and $v_1$ second, while replica $B$ receives the updates in the opposite order.
 To ensure that both replicas end up in the same state, we rely not on the order in which they receive requests, but the order of their timestamps.
 
@@ -3613,7 +3614,7 @@ To ensure that both replicas end up in the same state, we rely not on the order 
     \begin{uncoverenv}<4->
         Two common approaches:
         \begin{itemize}
-            \item \textbf{Last writer wins} (LWW):\\
+            \item \textbf{Last writer wins} (LWW) register:\\
                 Use timestamps with total order (e.g. Lamport clock)\\
                 Keep $v_2$ and discard $v_1$ if $t_2 > t_1$. Note: \textbf{data loss}!
             \item<5-> \textbf{Multi-value register}:\\
@@ -4256,6 +4257,8 @@ We will stick to the term \emph{linearizability}, which has a precisely defined 
 
 An informal definition of linearizability appears on \autoref{l:linearizability}.
 Over the following slides we will clarify what this means through examples.
+The concept of linearizability can be applied to any type of object, but it is most commonly used in the context of a register.
+A linearizable register is sometimes also known as an \emph{atomic register}.
 
 Linearizability is a useful concept not only in distributed systems, but also in the context of shared-memory concurrency on a single machine.
 Interestingly, on a computer with multiple CPU cores (pretty much all servers, laptops and smartphones nowadays), memory access is not linearizable by default!
@@ -4294,8 +4297,9 @@ From the point of view of a client, every operation takes some amount of time.
 We say that an operation \emph{starts} at the moment when it is requested by the application, and it \emph{finishes} when the operation result is returned to the application.
 Between the start and finish, various network communication steps may happen; for example, if quorums are used, an operation can finish when the client has received responses from a quorum of replicas.
 
-On \autoref{l:read-after-write-2} and the following slides we represent the client's view of a $\mathsf{get}$/$\mathsf{set}$ operation as a rectangle covering the period of time from the start to finish of an operation.
-Inside the rectangle we write the effect of the operation: $\mathsf{set}(x,v)$ means updating the data item $x$ to have the value $v$, and $\mathsf{get}(x) \rightarrow v$ means a read of $x$ that returns the value $v$.
+Let's consider a register supporting $\mathsf{get}$/$\mathsf{set}$ operations, and see what it means for it to be linearizable.
+On \autoref{l:read-after-write-2} and the following slides we represent the client's view of an operation as a rectangle covering the period of time from the start to finish of an operation.
+Inside the rectangle we write the effect of the operation: $\mathsf{set}(x,v)$ means updating the register $x$ to have the value $v$, and $\mathsf{get}(x) \rightarrow v$ means a read of $x$ that returns the value $v$.
 
 \begin{frame}
     \label{s:read-after-write-2}
@@ -4636,7 +4640,7 @@ This algorithm ensures linearizable $\mathsf{get}$ and $\mathsf{set}$ operations
 \end{frame}
 \inlineslide{s:cas-1}{}\label{l:cas-1}
 
-The $\mathsf{set}$ operation for which the ABD algorithm ensures linearizability is a so-called \emph{blind write} (unconditional write): it simply overwrites the value of a data item, regardless of its previous value.
+The $\mathsf{set}$ operation for which the ABD algorithm ensures linearizability is a so-called \emph{blind write} (unconditional write): it simply overwrites the value of the register, regardless of its previous value.
 If multiple clients concurrently write to the same item, it uses a last-writer-wins conflict resolution policy (\autoref{l:concurrent-writes}), i.e.\ one of those writes will end up as the ``winner'' and the other values will silently be discarded.
 
 In some applications, we want to be more careful and overwrite a value only if it has not been concurrently modified by another node.
@@ -5602,7 +5606,7 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
     \end{center}
 \end{frame}
 
-Linearizability is a very convenient consistency model for distributed systems, because it guarantees that a system behaves as if there was only one copy of the data, even if it is in fact replicated.
+Linearizability (\autoref{sec:linearizability}) is a very convenient consistency model for distributed systems, because it guarantees that a system behaves as if there was only one copy of the data, even if it is in fact replicated.
 This allows applications to ignore some of the complexities of working with distributed systems.
 However, this strong guarantee also comes at cost, and therefore linearizability is not suitable for all applications.
 
@@ -5771,7 +5775,7 @@ Atomic commit makes the strongest assumptions, since it must wait for communicat
 Consensus, total order broadcast, and linearizable algorithms make weaker assumptions since they only require waiting for communication with a quorum, so they can tolerate some unavailable nodes.
 The FLP result (\autoref{l:consensus-model}) showed us that consensus and total order broadcast require partial synchrony.
 It can be shown that a linearizable CAS operation is equivalent to consensus \citep{Herlihy:1991}, and thus also requires partial synchrony.
-On the other hand, the ABD algorithm for linearizable $\mathsf{get}$/$\mathsf{set}$ is asynchronous, since it does not require any clocks or timeouts.
+On the other hand, the ABD algorithm for a linearizable register (supporting $\mathsf{get}$/$\mathsf{set}$ operations) is asynchronous, since it does not require any clocks or timeouts.
 Finally, eventual consistency and strong eventual consistency make the weakest assumptions: operations can be processed without waiting for any communication with other nodes, and without any timing assumptions.
 Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, etc.), a node broadcasting a message can immediately deliver it to itself without waiting for communication with other nodes, as discussed in \autoref{sec:delivery-order}; this corresponds to a replica immediately processing its own operations without waiting for communication with other replicas.
 
@@ -5860,6 +5864,7 @@ A CRDT is a replicated object that an application accesses though the object-ori
 
 \autoref{l:op-crdt-map} shows an example of a CRDT that provides a map from keys to values.
 The application can invoke two types of operation: reading the value for a given key, and setting the value for a given key (which adds the key if it is not already present).
+In other words, each key has an associated register, as discussed in \autoref{sec:remote-state}.
 
 The local state at each node consists of the set $\mathit{values}$ containing $(\mathit{timestamp}, \mathit{key}, \mathit{value})$ triples.
 Reading the value for a given key is a purely local operation that only inspects $\mathit{values}$ on the current node, and performs no network communication.
