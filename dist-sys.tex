@@ -5659,7 +5659,6 @@ If the calendar app's replication protocol was linearizable, this would not be p
 \inlineslide{s:calendar}{}\label{l:calendar}
 
 Instead, calendar apps allow the user to read and write events in their calendar even while a device is offline, and they sync any updates between devices sometime later, in the background, when an internet connection is available.
-The video of this lecture includes a demonstration of offline updates to a calendar.
 
 This trade-off is known as the \emph{CAP theorem} (named after \emph{consistency}, \emph{availability}, and \emph{partition tolerance}), which states that if there is a network partition in a system, we must choose between one of the following options \citep{Gilbert:2002}:
 \begin{enumerate}
@@ -5741,14 +5740,13 @@ It is based on the idea that as two replicas communicate, they \emph{converge} t
 In both eventual consistency and strong eventual consistency, there is the possibility of different nodes concurrently updating the same object, leading to conflicts (as previously discussed on \autoref{l:concurrent-writes}).
 Various algorithms have been developed to resolve those conflicts automatically \citep{Shapiro:2011}.
 
-The lecture video shows an example of a conflict in the eventually consistent calendar app: on one device, I update the time of an event, while concurrently on another device, I update the title of the same event.
-After the two devices synchronise, the update of the time is applied to both devices, while the update of the title is discarded.
+In the lecture I show a demo of a conflict in the eventually consistent calendar app: on one device, I update the time of an event, while concurrently on another device, I update the title of the same event.
+After the two devices synchronise, the update of the time is applied to both devices, while the update of the title is discarded~-- or possibly the other way round.
 The state of the two devices therefore converges~-- at the cost of a small amount of data loss.
 This is the \emph{last writer wins} approach to conflict resolution that we have seen on \autoref{l:concurrent-writes} (assuming the update to the time is the ``last'' update in this example).
 A more refined approach might merge the updates to the time and the title, as shown on \autoref{l:lecture-conflicts}.
 
-This brings us to the end of our discussion of consistency models.
-\autoref{l:model-requirements} summarises some of the key properties of the models we have seen, in descending order of the minimum strength of assumptions that they must make about the system model.
+\autoref{l:model-requirements} summarises some of the key properties of the consistency models we have seen, in descending order of the minimum strength of assumptions that they must make about the system model.
 
 \begin{frame}
     \label{s:model-requirements}
@@ -5781,7 +5779,7 @@ Similarly, in causal broadcast and weaker forms of broadcast (FIFO, reliable, et
 
 This hierarchy has some similarities to the concept of complexity classes of algorithms~-- for example, sorting generally is $O(n \log n)$~-- in the sense that it captures the unavoidable minimum communication and synchrony requirements for a range of common problems in distributed systems.
 
-\subsection{Collaboration and conflict resolution}\label{sec:collaboration}
+\subsection{Conflict resolution and CRDTs}\label{sec:collaboration}
 
 Collaboration software is a broad category of software that facilitates several people working together on some task.
 This includes applications such as Google Docs/Office 365 (multi-user text documents, spreadsheets, presentations, etc.), Overleaf (collaborative {\LaTeX} documents), multi-user graphics software (e.g.\ Figma), project planning tools (e.g.\ Trello), note-taking apps (e.g.\ OneNote, Evernote, Notion), and shared calendars between colleagues or family members (like the calendar sync we saw on \autoref{l:calendar}).
@@ -5798,7 +5796,7 @@ Instead, for the sake of better performance and better robustness to network int
     \frametitle{Collaboration and conflict resolution}
     Nowadays we use a lot of \textbf{collaboration software}:
     \begin{itemize}
-        \item \textbf{Examples:} calendar sync (last lecture), Google Docs, \dots\pause
+        \item \textbf{Examples:} calendar sync, text editors (Google Docs), spreadsheets, presentations, graphics apps\dots\pause
         \item Several users/devices working on a shared file/document
         \item Each user device has local replica of the data\pause
         \item Update local replica anytime (even while offline),\\sync with others when network available\pause
@@ -5816,8 +5814,8 @@ Instead, for the sake of better performance and better robustness to network int
 \end{frame}
 \inlineslide{s:collaboration}{}\label{l:collaboration}
 
-In this section we will look at some algorithms that are used for this kind of collaboration.
-As example, consider the calendar sync demo in the lecture recording of \autoref{sec:eventual-consistency}.
+In this lecture we will look at some algorithms that are used for this kind of collaboration.
+As example, consider calendar sync again.
 Two nodes initially start with the same calendar entry.
 On node $A$, the title is changed from ``Lecture'' to ``Lecture 1'', and concurrently on node $B$ the time is changed from 12:00 to 10:00.
 These two updates happen while the two nodes are temporarily unable to communicate, but eventually connectivity is restored and the two nodes sync their changes.
@@ -6082,10 +6080,11 @@ This is why a state-based CRDT can use unreliable best-effort broadcast, while a
 Moreover, state-based CRDTs are not limited to replication systems that use broadcast.
 Other methods of replication, such as the quorum write algorithms and anti-entropy protocols we saw in \autoref{sec:replication}, can also use CRDTs for conflict resolution (see \autoref{l:reconcile}).
 
-As another example of concurrent updates and the need for conflict resolution, we will consider collaboration software such as Google Docs.
+\subsection{Collaborative text editing}
+
+As another example of concurrent updates and the need for conflict resolution, we will consider collaborative text editors such as Google Docs.
 When you type in a Google Doc, the keystrokes are immediately applied to the local copy of the document in your web browser, without waiting for them to sync to a server or any other users.
 This means that when two users are typing concurrently, their documents can temporarily diverge; as network communication takes place, the system needs to ensure that all users converge to the same view of the document.
-The video of this lecture includes a demo of Google Docs showing this conflict resolution process in action.
 
 \begin{frame}[plain]
     \label{s:google-docs}
