@@ -755,7 +755,9 @@ If a general does not receive any messages, it is impossible to tell whether thi
             \node [circle,fill=blue!10,draw] (city) at (4,2) {forest};
             \draw [thick,dashed,-{Stealth[length=3mm]}] (army1) -- node [left,yshift=0.2cm] {meet at?} (city);
             \draw [thick,dashed,-{Stealth[length=3mm]}] (army2) -- node [right,yshift=0.2cm] {meet at?} (city);
-            \draw [doublebigarrow] (army1) -- node [below] {messenger doves} (army2);
+            \draw [doublebigarrow] (army1) -- node [below] {messenger doves
+                \raisebox{-2pt}{\includegraphics[height=12pt]{images/1f54a.pdf}} 
+            } (army2);
         \end{tikzpicture}\\[1em]\pause
         \rowcolors[]{2}{}{blue!10}
         \renewcommand{\arraystretch}{1.3}
@@ -789,8 +791,12 @@ The doves often get distracted or lost or shot\dots
             \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {Juliet};
             \draw (gen1) -- (0,0);
             \draw (gen2) -- (8,0);
-            \draw [bigarrow] (0,2.2) -- node [above,sloped] {meet 10 Nov, okay?} (8,1.2);
-            \draw [messageloss] (8,0.7) -- node [above,sloped] {10 Nov agreed!} (2,0);
+            \draw [bigarrow] (0,2.2) -- node [above,sloped] {%
+                \raisebox{-2pt}{\includegraphics[height=12pt]{images/1f54a.pdf}}
+                meet 10 Nov, okay?} (8,1.2);
+            \draw [messageloss] (8,0.7) -- node [above,sloped] {%
+                \raisebox{-2pt}{\includegraphics[height=12pt]{images/1f54a.pdf}}
+                10 Nov agreed!} (2,0);
         \end{tikzpicture}\pause\\[1em]
         From Romeo's point of view, this is indistinguishable from:\\[1em]
         \begin{tikzpicture}
@@ -798,7 +804,9 @@ The doves often get distracted or lost or shot\dots
             \node [rectangle,fill=red!10,draw] (gen2) at (8,3) {Juliet};
             \draw (gen1) -- (0,1);
             \draw (gen2) -- (8,1);
-            \draw [messageloss] (0,2.2) -- node [above,sloped] {meet 10 Nov, okay?} (6,1.4);
+            \draw [messageloss] (0,2.2) -- node [above,sloped] {%
+                \raisebox{-2pt}{\includegraphics[height=12pt]{images/1f54a.pdf}}
+                meet 10 Nov, okay?} (6,1.4);
         \end{tikzpicture}
     \end{center}
 \end{frame}
