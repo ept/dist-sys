@@ -5781,8 +5781,40 @@ This hierarchy has some similarities to the concept of complexity classes of alg
 
 \subsection{Conflict resolution and CRDTs}\label{sec:collaboration}
 
+There is a particular type of software that makes good use of eventual consistency, which my collaborators and I decided to call \emph{local-first software}~\citep{Kleppmann:2019}.
+This is software running on end-user devices (laptop, smartphone, etc.) that first stores its data locally on the user's device, but also replicates that data to other devices when a network connection is available (perhaps via servers).
+The aforementioned calendar app is an example of local-first software.
+
+Local-first software contrasts with web applications such as Google Docs, which store all of their data on cloud servers.
+Cloud storage makes it easy to share data with colleagues and access it from multiple devices, but it has the disadvantage that the software usually does not work offline.
+Moreover, if a user gets locked out of their account or if the cloud service shuts down, they lose access to all of the data they have created.
+
+Local-first software has several advantages over web apps: users can continue accessing their local copy of the data, even while they are offline or if they lose access to the cloud service.
+This gives users greater control over their data while enabling similar collaboration features as in web apps.
+
+\begin{frame}
+    \label{s:local-first}
+    \frametitle{Local-first software}
+    \textbf{End-user device is a full replica}; servers are just for backup.\\
+    ``Local-first'': a term introduced by me and my colleagues\\
+    \url{https://www.inkandswitch.com/local-first/}\\[1em]
+    Calendar app with cross-device sync is an example:\pause
+    \begin{itemize}
+        \item App works \textbf{offline} (can both read and modify data)
+        \item \textbf{Fast}: no need to wait for network round-trip
+        \item \textbf{Sync} with other devices when online
+        \item \textbf{Real-time collaboration} with other users\pause
+        \item \textbf{Longevity}: even if cloud service shuts down, you have a copy of your files on your own computer
+        \item Supports \textbf{end-to-end encryption} for better security
+        \item Simpler \textbf{programming model} than RPC
+        \item \textbf{User control} and agency over their own data
+    \end{itemize}
+\end{frame}
+\inlineslide{s:local-first}{}\label{l:local-first}
+
 Collaboration software is a broad category of software that facilitates several people working together on some task.
 This includes applications such as Google Docs/Office 365 (multi-user text documents, spreadsheets, presentations, etc.), Overleaf (collaborative {\LaTeX} documents), multi-user graphics software (e.g.\ Figma), project planning tools (e.g.\ Trello), note-taking apps (e.g.\ OneNote, Evernote, Notion), and shared calendars between colleagues or family members (like the calendar sync we saw on \autoref{l:calendar}).
+Many of these are web apps, not local-first software, but similar approaches apply to both.
 
 Modern collaboration software allows several people to update a document concurrently, without having to email files back and forth.
 This makes collaboration another example of replication: each device on which a user has opened a document is a replica, and any updates made to one replica need to be sent over the network to the replicas on other devices.
@@ -5799,7 +5831,7 @@ Instead, for the sake of better performance and better robustness to network int
         \item \textbf{Examples:} calendar sync, text editors (Google Docs), spreadsheets, presentations, graphics apps\dots\pause
         \item Several users/devices working on a shared file/document
         \item Each user device has local replica of the data\pause
-        \item Update local replica anytime (even while offline),\\sync with others when network available\pause
+        \item Update local replica optimistically, sync with others asynchronously (waiting for round trip is too slow)\pause
         \item \textbf{Challenge:} how to reconcile concurrent updates?\\[1em]\pause
     \end{itemize}
     Families of \textbf{algorithms}:
@@ -6016,13 +6048,6 @@ Moreover, even though messages may be delivered in different orders on different
     \end{algorithmic}
 }
 
-An alternative CRDT algorithm for the same map datatype is shown on \autoref{l:state-crdt-map}.
-The definition of $\mathit{values}$ and the function for reading the value for a key is the same as on \autoref{l:op-crdt-map}.
-However, updates are handled differently: instead of broadcasting each operation, we directly update $\mathit{values}$ and then broadcast the whole of $\mathit{values}$.
-On delivering this message at another replica, we merge together the two replicas' states using a merge function $\sqcup$.
-This merge function compares the timestamps of entries with the same key, and keeps those with the greater timestamp.
-This approach of broadcasting the entire replica state and merging it with another replica's state is called a \emph{state-based CRDT}.
-
 \begin{frame}
     \label{s:state-crdt-map}
     \frametitle{State-based map CRDT}
@@ -6050,6 +6075,13 @@ This approach of broadcasting the entire replica state and merging it with anoth
     \end{algorithmic}
 \end{frame}
 \inlineslide{s:state-crdt-map}{}\label{l:state-crdt-map}
+
+An alternative CRDT algorithm for the same map datatype is shown on \autoref{l:state-crdt-map}.
+The definition of $\mathit{values}$ and the function for reading the value for a key is the same as on \autoref{l:op-crdt-map}.
+However, updates are handled differently: instead of broadcasting each operation, we directly update $\mathit{values}$ and then broadcast the whole of $\mathit{values}$.
+On delivering this message at another replica, we merge together the two replicas' states using a merge function $\sqcup$.
+This merge function compares the timestamps of entries with the same key, and keeps those with the greater timestamp.
+This approach of broadcasting the entire replica state and merging it with another replica's state is called a \emph{state-based CRDT}.
 
 \begin{frame}
     \label{s:state-crdt}
