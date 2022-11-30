@@ -1,3 +1,9 @@
+% Lecturing at TUM in Nov 2022: have a 2.5 hour time slot, of which about 2 hours are used for lecture, and the rest is break.
+% Week 1: got up to \autoref{l:model-summary}
+% Week 2: got up to \autoref{l:causal-broadcast}
+% Week 3: got up to \autoref{l:consistency}
+% Week 4: Consensus/Raft and atomic commit (but skipped section on linearizability)
+
 % Stuff that may change from year to year; also check slide s:other-courses
 \newcommand{\thisyear}{WS 2022/23}
 \newcommand{\timestampexample}{2021-11-09T09:50:17+00:00}
@@ -517,7 +523,7 @@ Waiting forever is not a good approach, so in practice the client will have to g
         \item If a timeout occurs, the RPC client doesn't know whether the server executed the function; local function calls don't have this uncertainty.
         \item RPC is often much slower than a local function call, due to network latency.
             Moreover, network latency is often variable and unpredictable, while the execution speed of a local function is usually predictable.
-        \item RPC clients and servers may need to take measures to make function invocation \emph{idempotent} (this concept is introduced in Lecture 5), to allow safe retries in case of message loss.
+        \item RPC clients and servers may need to take measures to make function invocation \emph{idempotent} (this concept is introduced a later lecture), to allow safe retries in case of message loss.
         \item Another difference is that if an object reference is passed as an argument, a local function call can potentially mutate the object (unless it is immutable).
             This is not possible with RPC, since the remote function cannot access the caller's memory; the only way how the remote function can pass information back to the caller is through the return value, or through another RPC.
         \item Perfect location transparency can only be achieved by making local function calls more like RPCs (e.g.\ allowing them to unpredictably fail).
@@ -591,12 +597,15 @@ Such server-to-server RPC is especially common in large enterprises, whose softw
 To manage this complexity, the system is broken down into multiple services, which are developed and administered by different teams and which may even be implemented in different programming languages.
 RPC frameworks facilitate the communication between these services.
 
+% TODO: note that microservices don't make sense for small organisations; cite Sam Newman's book
+
 When different programming languages are used, the RPC framework needs to convert datatypes such that the caller's arguments are understood by the code being called, and likewise for the function's return value.
 A typical solution is to use an \emph{Interface Definition Language} (IDL) to provide language-independent type signatures of the functions that are being made available over RPC.
 From the IDL, software developers can then automatically generate marshalling/unmarshalling code and RPC stubs for the respective programming languages of each service and its clients.
 \autoref{l:rpc-idl} shows an example of the IDL used by gRPC, called \emph{Protocol Buffers}.
 The details of the language are not important for this course.
 
+% TODO: latest version of Protobuf doesn't have required fields any more
 \begin{frame}
     \label{s:rpc-idl}
     \frametitle{gRPC IDL example}
@@ -1141,7 +1150,7 @@ To overcome network partitions that last for longer than this duration, a separa
     When the server receives several identical requests, it needs to somehow determine whether they are duplicates, or whether the client really wanted the action to take place several times.
     One solution is for the client to attach a unique identifier to each distinct request, and to include the same identifier in all retries of that request.
     The server can then keep track of all request identifiers it has processed, and ignore any requests with identifiers it has already seen.
-    This approach has the effect of making the RPC \emph{idempotent}, which we will discuss further in Lecture 5.
+    This approach has the effect of making the RPC \emph{idempotent}, which we will discuss further in a later lecture.
 }
 
 An arbitrary link is an accurate model for communication over the Internet: whenever your communication is routed through a network (be it a coffee shop wifi or an Internet backbone network), the operator of that network can potentially interfere with and manipulate your network packets in arbitrary ways.
@@ -1591,6 +1600,9 @@ CET is defined to be UTC~+~1~hour, and CEST is UTC~+~2~hours.
 
 % Earth has slowed down, so there might not be another leap second for a while:
 % https://fanf.dreamwidth.org/133823.html
+
+% TODO: leap seconds to be discontinued by 2035!
+% https://www.theguardian.com/world/2022/nov/18/do-not-adjust-your-clock-scientists-call-time-on-the-leap-second
 
 The difference between UTC and TAI is that UTC includes \emph{leap seconds}, which are added as needed to keep UTC roughly in sync with the rotation of the Earth.
 
@@ -2122,6 +2134,10 @@ Whether one event truly ``caused'' another is a philosophical question that we d
 \end{frame}
 \inlineslide{s:causality}{}\label{l:causality}
 
+% TODO: not sure if TUM students have encountered "strict total order" before.
+% The above introduction of "consistent with causality" is quite abstract. Introduce it with an example?
+% Say the physical timestamp comparison is a total order, happens-before is a partial order
+
 The notion of causality is borrowed from physics, where it is generally believed that it is not possible for information to travel faster than the speed of light.
 Thus, if you have two events $a$ and $b$ that occur sufficiently far apart in space, but close together in time, then it is impossible for a signal sent from $a$ to arrive at $b$'s location before event $b$, and vice versa.
 Therefore, $a$ and $b$ must be \emph{causally unrelated}.
@@ -2507,8 +2523,8 @@ In this way, the vector timestamps mirror the transitivity of the happens-before
     \frametitle{Vector clocks ordering}
     Define the following order on vector timestamps\\(in a system with $n$ nodes):
     \begin{itemize}
-        \item $T = T'$ iff $T[i] = T'[i]$ for all $i \in \{1, \dots, n\}$
-        \item $T \le T'$ iff $T[i] \le T'[i]$ for all $i \in \{1, \dots, n\}$
+        \item $T = T'$ iff $T[i] = T'[i]$ for all $i \in \{0, \dots, n-1\}$
+        \item $T \le T'$ iff $T[i] \le T'[i]$ for all $i \in \{0, \dots, n-1\}$
         \item $T < T'$ iff $T \le T'$ and $T \ne T'$
         \item $T \parallel T'$ iff $T \not\le T'$ and $T' \not\le T$\\[1em]
     \end{itemize}\pause
@@ -2527,6 +2543,12 @@ We say that one vector is less than or equal to another vector if every element 
 One vector is strictly less than another vector if they are less than or equal, and if they differ in at least one element.
 However, two vectors are incomparable if one vector has a greater value in one element, and the other has a greater value in a different element.
 For example, $T = \langle 2, 2, 0\rangle$ and $T' = \langle 0, 0, 1\rangle$ are incomparable because $T[1] > T'[1]$ but $T[3] < T'[3]$.
+
+% TODO: vector representation is not practical in systems where nodes can join and leave; explain alternative representation as map from node ID to integer
+% also acknowledge that vectors can get quite large, suggest alternatives (e.g. dotted version vectors, tracking dependencies using unique IDs) -- some discussion already appears later in the context of LWW
+% Mention Charron-Bost result?
+
+% Note the system model assumptions of these algorithms?
 
 The partial order over vector timestamps corresponds exactly to the partial order defined by the happens-before relation.
 Thus, the vector clock algorithm provides us with a mechanism for computing the happens-before relation in practice.
@@ -4050,6 +4072,9 @@ This can be done, and we will see some techniques for commutativity in \autoref{
 \end{frame}
 \inlineslide{s:causal-replication}{}\label{l:causal-replication}
 
+
+% TODO reorder these sections as follows: first cover Raft (to follow on from SMR which we just covered); then atomic commit/2PC; then linearizability.
+
 \section{Replica consistency}\label{sec:consistency}
 
 \begin{frame}
@@ -4078,7 +4103,7 @@ We will see more models in this lecture.
         \item \textbf{ACID}: a transaction transforms the database from one ``consistent'' state to another\\[0.5em]\pause
             Here, ``consistent'' = satisfying application-specific invariants\\[0.5em]
             e.g. ``every course with students enrolled must have at least one lecturer''\\[0.5em]\pause
-        \item \textbf{Read-after-write consistency} (lecture 5)\\[0.5em]\pause
+        \item \textbf{Read-after-write consistency}\\[0.5em]\pause
         \item \textbf{Replication}: replica should be ``consistent'' with other replicas\\[0.5em]\pause
             ``consistent'' = in the same state? (when exactly?)\\[0.5em]
             ``consistent'' = read operations return same result?\\[0.5em]
@@ -5124,6 +5149,9 @@ On hearing about a higher term, the former leader steps down to become a followe
 \inlineslide{s:raft-states}{}\label{l:raft-states}
 
 % TODO: show examples of log consistency/invariants before going into the details of the code?
+% Invariant: if two nodes have the same term number at the same index, their logs are identical up to that index
+% How could logs get into inconsistent states where different nodes have different suffixes?
+% Illustrate this graphically.
 
 % Differences between this formulation of the algorithm and that in Diego Ongaro's thesis:
 % - arrays (log, list of entries) use 0-based indexing
@@ -5657,6 +5685,8 @@ If the calendar app's replication protocol was linearizable, this would not be p
 % clicking the little drop-down next to the big red record button. Now you should have a QuickTime
 % window showing a live video feed from the iOS device. Next, place that QuickTime video side-by-side
 % with the other app, and back in QuickTime do File -> New Screen Recording.
+
+% Also demo Google Docs here?
 
 \begin{frame}[plain]
     \label{s:calendar}
@@ -6311,6 +6341,8 @@ $T$ returns a transformed operation $\mathit{op}_1'$ such that applying $\mathit
 For example, if $\mathit{op}_1 = (\mathsf{insert}, 2, \text{``D''})$ and $\mathit{op}_2 = (\mathsf{insert}, 0, \text{``A''})$ then the transformed operation is $T(\mathit{op}_1, \mathit{op}_2) = (\mathsf{insert}, 3, \text{``D''})$ because the original insertion $\mathit{op}_1$ at index 2 now needs to be instead be performed at index 3 due to the concurrent insertion at index 0.
 On the other hand, $T(\mathit{op}_2, \mathit{op}_1) = \mathit{op}_2$ returns the unmodified $\mathit{op}_2$ because the insertion at index 0 is not affected by a concurrent insertion later in the document.
 
+% TODO: give pseudocode for T
+
 The transformation function becomes more complicated when deletions, formatting etc.\ are taken into account, and we will skip the details.
 However, this approach is used in practice: for example, the conflict resolution algorithm in Google Docs uses an operational transformation approach based on the Xerox PARC research system Jupiter \citep{Nichols:1995}.
 A limitation of this approach is that it requires communication between users to use total order broadcast, requiring the use of a designated leader node to sequence the updates, or a consensus algorithm as in \autoref{sec:consensus}.
@@ -6501,6 +6533,8 @@ On delivery of a $\mathsf{delete}$ message, a replica removes the element in $\m
 The reason for using causal broadcast (rather than just reliable broadcast) in this algorithm is to ensure that if a character is deleted, all replicas process the insertion of the character before processing the deletion.
 This restriction is necessary because the operations to insert and delete the same character do not commute.
 However, insertions and deletions of different characters commute, allowing this algorithm to ensure convergence and strong eventual consistency.
+
+% TODO: talk about interleaving problem; introduce RGA
 
 \newpage
 \subsection{Wrapping up}
