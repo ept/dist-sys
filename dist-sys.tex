@@ -4225,6 +4225,8 @@ Otherwise a node must wait until it has delivered at least one vote from each re
 Once these votes have been delivered, and none of the replicas vote to abort in their first delivered message, then the transaction can be committed.
 Thanks to total order broadcast, all nodes are guaranteed to make the same decision on whether to abort or to commit, which preserves atomicity.
 
+% TODO: visualise this algorithm graphically
+
 \begin{frame}
     \label{s:paxos-commit1}
     \frametitle{Fault-tolerant two-phase commit (1/2)}
@@ -5513,6 +5515,8 @@ What remains is to switch back to the leader, and to show how it processes the $
 \end{frame}
 \inlineslide{s:raft8}{}\label{l:raft8}
 
+% TODO: rather than decrementing sentLength[follower], a better approach would be for the follower to send its commitLength to the leader as part of an unsuccessful LogResponse. Any log entries committed on the follower must be identical on the leader, so the new sentLength will always be safe. This might result in some log entries being replicated unnecessarily, because the follower already has them, but has the advantage of minimising round trips.
+
 A leader receiving a $\mathsf{LogResponse}$ message first checks the term in the message: if the sender's term is later than the recipient's term, that means a new leader election has been started, and so this node transitions from leader to follower.
 Messages with an outdated term are ignored.
 For messages with the correct term, we check the $\mathit{success}$ boolean field to see whether the follower accepted the log entries.
@@ -5564,6 +5568,8 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
     \begin{itemize}
         \item Efficient \textbf{log reconciliation} when $\neg\mathit{logOk}$
         \item Allow \textbf{reconfiguration}:\\ allow administrators to add or remove nodes, adjusting quorums accordingly
+            % TODO: avoid having to store the entire log forever
+            % TODO: less susceptibility to denial of service through duelling leaders or partial disconnection
         \item Better \textbf{throughput}:\\ avoid having to do everything through the leader? \\
             (some Paxos variants are less leader-centric) \pause\\[1em]
     \end{itemize}
