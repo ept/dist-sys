@@ -1215,6 +1215,8 @@ In the case of the network, it was possible to convert one model to another usin
 This is not the case with the different models of node behaviour.
 For instance, an algorithm designed for a crash-recovery system model may look very different from a Byzantine algorithm.
 
+% TODO: Dimitra Giantsidi's "Recipe" paper converts a CFT algorithm to BFT using TEEs. Paper not published yet, see Papers for draft
+
 \begin{frame}
     \label{s:model-synchrony}
     \frametitle{System model: timing assumptions}
@@ -4653,7 +4655,8 @@ To tell them apart, we can give each client a unique ID, and incorporate that ID
 When a $\mathsf{get}$ operation encounters responses with the same timestamp, but different client IDs, it can use a total ordering on client IDs to determine which one is the ``winner'' (similarly to the Lamport timestamp definition we saw on \autoref{l:lamport-definition} to \ref{l:lamport-example}).
 This algorithm ensures linearizable $\mathsf{get}$ and $\mathsf{set}$ operations for any number of nodes \citep{Cachin:2011,Lynch:1997}.
 
-% TODO: add a slide explaining single-writer ABD and the multi-writer generalisation, including logical timestamps construction
+% TODO: add a slide explaining single-writer ABD and the multi-writer generalisation, including logical timestamps construction.
+% Multi-writer generalisation first appears in \cite{Lynch:1997}
 
 \begin{frame}
     \label{s:cas-1}
@@ -4912,6 +4915,8 @@ The five properties are broken down into two categories: \emph{safety} and \emph
     \item A liveness property is an expectation of a future state: initially it might not be satisfied (for example, a node may have broadcast a message, but it has not yet been delivered), but we can ensure that we wait long enough, it will eventually become true.
         Liveness properties do not have a time bound on how long it might take until the property is satisfied: we only require them to hold \emph{eventually}, i.e.\ after some arbitrary but finite amount of time.
 \end{itemize}
+
+% TODO: safety properties are not necessarily invariants; they can also be properties of finite sequences of states, e.g. allowed state transitions https://www.hillelwayne.com/post/safety-and-liveness/
 
 Liveness properties are intentionally vague with regard to timing.
 Ideally we would have some sort of SLA, such as ``99.9\% of broadcast messages are delivered within 200~ms'' (\autoref{l:availability}); however, if we wanted to prove that an algorithm meets some SLA, we would have to make a lot of assumptions about network latency, probability of message loss, and other factors that affect timing.
@@ -5812,6 +5817,8 @@ A more refined approach might merge the updates to the time and the title, as sh
     \end{tabular}
 \end{frame}
 \inlineslide{s:model-requirements}{}\label{l:model-requirements}
+
+% Note: the participants in atomic commit could be fault-tolerant services, not individual nodes
 
 Atomic commit makes the strongest assumptions, since it must wait for communication with all nodes participating in a transaction (potentially all of the nodes in the system) in order to complete successfully.
 Consensus, total order broadcast, and linearizable algorithms make weaker assumptions since they only require waiting for communication with a quorum, so they can tolerate some unavailable nodes.
