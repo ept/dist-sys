@@ -29,3 +29,11 @@ Guide to the source files:
   written to `exercises.tex` when you build `dist-sys-notes.pdf`.
 
 Copyright 2020-2021 Martin Kleppmann
+
+
+Translations
+------------
+
+* Chinese translation by Weiran Liu (刘巍然): 
+  [videos on Bilibili](https://space.bilibili.com/5277360/channel/collectiondetail?sid=1194136),
+  [subtitles](https://github.com/liuweiran900217/doss/tree/main/Distributed%20System%20-%20Martin%20Kleppmann)
