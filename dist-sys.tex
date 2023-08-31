@@ -5411,7 +5411,6 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
                 \On{receiving $(\mathsf{LogRequest}, \mathit{leaderId}, \mathit{term}, \mathit{prefixLen}, \mathit{prefixTerm},$\\\hspace{58pt}$\mathit{leaderCommit}, \mathit{suffix})$ at node $\mathit{nodeId}$}
                     \If{$\mathit{term} > \mathit{currentTerm}$}
                         \State $\mathit{currentTerm} := \mathit{term};\; \mathit{votedFor} := \mathsf{null}$
-                        \State cancel election timer
                     \EndIf
                     % Originally the following condition had an extra term $\wedge \mathit{currentRole} = \mathsf{candidate}$.
                     % This was supposed to mirror the "return to follower state" step in Diego's thesis, p. 211 lines 342--346.
@@ -5420,6 +5419,7 @@ If the message is from an outdated term or $\mathit{logOk}$ is false, the follow
                     % for tracking the nodeId of the leader.
                     \If{$\mathit{term} = \mathit{currentTerm}$}
                         \State $\mathit{currentRole} := \mathsf{follower};\; \mathit{currentLeader} := \mathit{leaderId}$
+                        \State cancel election timer
                     \EndIf
                     \State $\mathit{logOk} := (\mathit{log}.\mathsf{length} \ge \mathit{prefixLen}) \;\wedge$
                     \State \hspace{41.5pt}$(\mathit{prefixLen} = 0 \vee \mathit{log}[\mathit{prefixLen} - 1].\mathsf{term} = \mathit{prefixTerm})$
