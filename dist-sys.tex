@@ -182,6 +182,8 @@ The ``wire'' may actually be radio waves, lasers, a USB thumb drive in someone's
 \end{frame}
 \inlineslide{s:snowball}{}
 
+% Snowmobile is a whole shipping container full of hard drives https://aws.amazon.com/snowmobile/
+
 Indeed, if you want to send a very large message (think tens of terabytes), it would be slow to send that data over the Internet, and it is in fact faster to write that data to a bunch of hard drives, load them into a van, and to drive them to their destination.
 But from a distributed systems point of view, the method of delivering the message is not important: we only see an abstract communication channel with a certain \emph{latency} (delay from the time a message is sent until it is received) and \emph{bandwidth} (the volume of data that can be transferred per unit time).
 
@@ -5168,6 +5170,9 @@ On hearing about a higher term, the former leader steps down to become a followe
 
 % See http://wcl.cs.rpi.edu/pilots/library/papers/consensus/RAFTOngaroPhD.pdf for proof of Raft correctness
 
+% Liangrun did an implementation in Rust https://liangrunda.com/posts/raft-lite/
+% and is planning to model-check it with Stateright
+
 \autoref{l:raft1} shows the pseudocode for starting up, and for starting an election.
 The variables defined in the initialisation block constitute the state of a node.
 Four of the variables ($\mathit{currentTerm}$, $\mathit{votedFor}$, $\mathit{log}$, and $\mathit{commitLength}$) need to be maintained in stable storage (e.g.\ on disk), since their values must not be lost in the case of a crash.
@@ -5565,6 +5570,8 @@ On the next $\mathsf{LogRequest}$ message that the leader sends to followers, th
     \end{algorithmic}
 \end{frame}
 \inlineslide{s:raft9}{}\label{l:raft9}
+
+% Partial disconnection discussed in OmniPaxos paper https://dl.acm.org/doi/pdf/10.1145/3552326.3587441
 
 \begin{frame}
     \label{s:raft-end}
