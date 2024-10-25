@@ -28,7 +28,7 @@ Guide to the source files:
 * `solutions.tex` is the entry point for the solution notes for exercises. The content is
   written to `exercises.tex` when you build `dist-sys-notes.pdf`.
 
-Copyright 2020-2021 Martin Kleppmann
+Copyright 2020-2024 Martin Kleppmann
 
 
 Translations
