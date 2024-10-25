@@ -489,6 +489,8 @@ From a theoretical point of view, it is therefore not correct to call TCP ``reli
 \end{frame}
 \inlineslide{s:networking2}{}\label{l:networking2}
 
+\subsection{Availability and fault tolerance}\label{sec:availability}
+
 \begin{frame}
     \label{s:availability}
     \frametitle{Availability}
@@ -581,7 +583,7 @@ For the programmers who are implementing the online shop, the code for processin
             \node [rectangle,fill=red!10,draw] (server) at (8,4) {payments service};
             \draw (client) -- (0,0);
             \draw (server) -- (8,0);
-            \draw<2-> [bigarrow] (0,3) -- node [above,sloped] {charge {\euro}3.99 to credit card 1234\dots} (8,2);
+            \draw<2-> [bigarrow] (0,3) -- node [above,sloped] {charge {\textsterling}3.99 to credit card 1234\dots} (8,2);
             \draw<3> [bigarrow] (8,1.5) -- node [above,sloped] {success} (0,0.5);
         \end{tikzpicture}
     \end{center}
@@ -1501,7 +1503,7 @@ Let's start with a riddle, which will be resolved later in this lecture.
 \begin{frame}
     \label{s:mystery}
     \frametitle{A detective story}
-    In the night from 30 June to 1 July 2012 (CET), many online services and systems around the world crashed simultaneously.\\[1em]
+    In the night from 30 June to 1 July 2012 (UK time), many online services and systems around the world crashed simultaneously.\\[1em]
     Servers locked up and stopped responding.\\[1em]
     Some airlines could not process any reservations or check-ins for several hours.\\[1em]
     What happened?
@@ -1609,7 +1611,7 @@ In fact, the time unit of \emph{one second} in the International System of Units
                 \item Tune an electronic oscillator to that resonant frequency
                 \item 1 second = 9,192,631,770 periods of that signal
                 \item Accuracy $\approx 1 \text{ in } 10^{-14}$ (1 second in 3 million years)
-                \item Price $\approx$ {\euro}20,000 (?)\\ (can get cheaper rubidium clocks for $\approx$ {\euro}1,000)
+                \item Price $\approx$ {\textsterling}20,000 (?)\\ (can get cheaper rubidium clocks for $\approx$ {\textsterling}1,000)
             \end{itemize}
         \end{column}
         \begin{column}{0.5\textwidth}
@@ -1655,10 +1657,9 @@ We now have a problem: we have two different definitions of time~-- one based on
 The solution is \emph{Coordinated Universal Time} (UTC), which is based on atomic time, but includes corrections to account for variations in the Earth's rotation.
 In everyday life we use our local \emph{time zone}, which is specified as an offset to UTC.
 
-The local time zone in Munich is called \emph{Central European Time} (CET) in winter, and \emph{Central European Summer Time} (CEST) in summer.
-CET is defined to be UTC~+~1~hour, and CEST is UTC~+~2~hours.
-% Confusingly, the term \emph{Greenwich Mean Time} was originally used to refer to mean solar time on the Greenwich meridian, i.e.\ it used to be defined in terms of astronomy, while now it is defined in terms of atomic clocks.
-% Today, the term \emph{UT1} is used to refer to mean solar time at 0{\textdegree} longitude.
+The UK's local time zone is called \emph{Greenwich Mean Time} (GMT) in winter, and \emph{British Summer Time} (BST) in summer, where GMT is defined to be equal to UTC, and BST is defined to be UTC~+~1~hour.
+Confusingly, the term \emph{Greenwich Mean Time} was originally used to refer to mean solar time on the Greenwich meridian, i.e.\ it used to be defined in terms of astronomy, while now it is defined in terms of atomic clocks.
+Today, the term \emph{UT1} is used to refer to mean solar time at 0{\textdegree} longitude.
 
 \begin{frame}
     \label{s:utc}
@@ -3505,7 +3506,7 @@ However, if we are not careful, the retry could lead to the request being proces
 Lest you think this is a purely hypothetical problem, consider \autoref{l:negative-followers}, a genuine (I promise!) screenshot of Twitter that I made in 2014, which shows the profile of a user who is apparently following a negative number of people.
 I don't have insight into Twitter's internals to know exactly what happened here, but my guess is that this person used to follow several people, then unfollowed them, and due to a network problem during the unfollowing process, the decrement of the follow counter was retried, resulting in more decrements than the user was originally following.
 
-If following a negative number of people seems like a trivial problem, then instead of decrementing a follow counter, consider the act of deducting {\euro}1,000 from your bank account balance.
+If following a negative number of people seems like a trivial problem, then instead of decrementing a follow counter, consider the act of deducting {\textsterling}1,000 from your bank account balance.
 The database operation is essentially the same, but performing this operation too many times has the potential to make you rather unhappy.
 
 One way of preventing an update from taking effect multiple times is to deduplicate requests.

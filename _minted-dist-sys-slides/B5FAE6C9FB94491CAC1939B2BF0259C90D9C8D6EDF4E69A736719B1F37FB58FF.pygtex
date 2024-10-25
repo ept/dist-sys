@@ -1,5 +1,5 @@
 \begin{Verbatim}[commandchars=\\\{\}]
-\PYG{k+kd}{let}\PYG{+w}{ }\PYG{n+nx}{args}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n+nx}{amount}\PYG{o}{:}\PYG{+w}{ }\PYG{l+m+mf}{3.99}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nx}{currency}\PYG{o}{:}\PYG{+w}{ }\PYG{l+s+s1}{\PYGZsq{}EUR\PYGZsq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{c+cm}{/*...*/}\PYG{p}{\PYGZcb{};}
+\PYG{k+kd}{let}\PYG{+w}{ }\PYG{n+nx}{args}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{n+nx}{amount}\PYG{o}{:}\PYG{+w}{ }\PYG{l+m+mf}{3.99}\PYG{p}{,}\PYG{+w}{ }\PYG{n+nx}{currency}\PYG{o}{:}\PYG{+w}{ }\PYG{l+s+s1}{\PYGZsq{}GBP\PYGZsq{}}\PYG{p}{,}\PYG{+w}{ }\PYG{c+cm}{/*...*/}\PYG{p}{\PYGZcb{};}
 \PYG{k+kd}{let}\PYG{+w}{ }\PYG{n+nx}{request}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{p}{\PYGZob{}}
 \PYG{+w}{  }\PYG{n+nx}{method}\PYG{o}{:}\PYG{+w}{  }\PYG{l+s+s1}{\PYGZsq{}POST\PYGZsq{}}\PYG{p}{,}
 \PYG{+w}{  }\PYG{n+nx}{body}\PYG{o}{:}\PYG{+w}{    }\PYG{n+nb}{JSON}\PYG{p}{.}\PYG{n+nx}{stringify}\PYG{p}{(}\PYG{n+nx}{args}\PYG{p}{),}

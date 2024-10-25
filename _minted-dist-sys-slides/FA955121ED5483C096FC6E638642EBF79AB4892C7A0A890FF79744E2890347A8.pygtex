@@ -6,7 +6,7 @@
 \PYG{+w}{    }\PYG{k}{optional}\PYG{+w}{ }\PYG{k+kt}{int32}\PYG{+w}{  }\PYG{n+na}{expiryYear}\PYG{+w}{  }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{3}\PYG{p}{;}
 \PYG{+w}{    }\PYG{k}{optional}\PYG{+w}{ }\PYG{k+kt}{int32}\PYG{+w}{  }\PYG{n+na}{CVC}\PYG{+w}{         }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{4}\PYG{p}{;}
 \PYG{+w}{  }\PYG{p}{\PYGZcb{}}
-\PYG{+w}{  }\PYG{k+kd}{enum}\PYG{+w}{ }\PYG{n}{Currency}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{EUR}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{;}\PYG{+w}{ }\PYG{n+na}{USD}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{p}{;}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
+\PYG{+w}{  }\PYG{k+kd}{enum}\PYG{+w}{ }\PYG{n}{Currency}\PYG{+w}{ }\PYG{p}{\PYGZob{}}\PYG{+w}{ }\PYG{n+na}{GBP}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{;}\PYG{+w}{ }\PYG{n+na}{USD}\PYG{+w}{ }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{p}{;}\PYG{+w}{ }\PYG{p}{\PYGZcb{}}
 
 \PYG{+w}{  }\PYG{k}{required}\PYG{+w}{ }\PYG{n}{Card}\PYG{+w}{     }\PYG{n+na}{card}\PYG{+w}{     }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{1}\PYG{p}{;}
 \PYG{+w}{  }\PYG{k}{required}\PYG{+w}{ }\PYG{k+kt}{int64}\PYG{+w}{    }\PYG{n+na}{amount}\PYG{+w}{   }\PYG{o}{=}\PYG{+w}{ }\PYG{l+m+mi}{2}\PYG{p}{;}

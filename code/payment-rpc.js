@@ -1,4 +1,4 @@
-let args = {amount: 3.99, currency: 'EUR', /*...*/};
+let args = {amount: 3.99, currency: 'GBP', /*...*/};
 let request = {
   method:  'POST',
   body:    JSON.stringify(args),

@@ -7,6 +7,6 @@
 \PYG{+w}{    }\PYG{n+nt}{\PYGZdq{}CVC\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}123\PYGZdq{}}
 \PYG{+w}{  }\PYG{p}{\PYGZcb{},}
 \PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}amount\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+m+mf}{3.99}\PYG{p}{,}
-\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}currency\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}EUR\PYGZdq{}}
+\PYG{+w}{  }\PYG{n+nt}{\PYGZdq{}currency\PYGZdq{}}\PYG{p}{:}\PYG{+w}{ }\PYG{l+s+s2}{\PYGZdq{}GBP\PYGZdq{}}
 \PYG{p}{\PYGZcb{}}
 \end{Verbatim}

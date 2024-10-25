@@ -5,7 +5,7 @@ message PaymentRequest {
     optional int32  expiryYear  = 3;
     optional int32  CVC         = 4;
   }
-  enum Currency { EUR = 1; USD = 2; }
+  enum Currency { GBP = 1; USD = 2; }
 
   required Card     card     = 1;
   required int64    amount   = 2;
