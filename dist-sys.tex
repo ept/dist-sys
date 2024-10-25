@@ -444,19 +444,21 @@ But from a distributed systems point of view, the method of delivering the messa
     \frametitle{Latency and bandwidth}
     \textbf{Latency}: time until message arrives
     \begin{itemize}
-        \item In the same building/datacenter: $\approx 1$ ms
+        \item In the same datacenter: $\approx 100$ {\textmu}s
         \item One continent to another: $\approx 100$ ms
         \item Hard drives in a van: $\approx 1$ day\\[2em]
     \end{itemize}\pause
     \textbf{Bandwidth}: data volume per unit time
     \begin{itemize}
-        \item 3G cellular data: $\approx 1$ Mbit/s
-        \item Home broadband: $\approx 10$ Mbit/s
-        \item Hard drives in a van: 50~TB/box $\approx 1$ Gbit/s\\[1em]
+        \item 4G cellular data: $\approx 10$ Mbit/s
+        \item Home broadband: $\approx 100$ Mbit/s
+        \item Hard drives in a van: 50~TB/box $\approx 1$ Gbit/s
+        \item In the same datacenter: $\approx 10$ Gbit/s\\[1em]
     \end{itemize}
     (Very rough numbers, vary hugely in practice!)
 \end{frame}
 \inlineslide{s:latency-bandwidth}{}
+% Datacenter network stats: https://github.com/sirupsen/napkin-math
 
 The \href{\networking}{Computer Networking} course (\whenisnetworking) focusses on the network protocols that enable messages to get to their destination.
 Distributed systems build upon that facility, and instead focus on how several nodes should coordinate in order to achieve some shared task.
