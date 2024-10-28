@@ -16,9 +16,15 @@ all:	dist-sys-notes.pdf dist-sys-slides.pdf solutions.pdf examples1.pdf
 %.bbl:	references.bib %.aux
 	bibtex $*
 
+# Actually depends on exercises.tex, which is generated as a side-effect of building dist-sys-notes.pdf
 solutions.pdf: dist-sys-notes.pdf
 
+# Slides from dist-sys-handout.pdf are embedded in the notes
 dist-sys-notes.pdf:	dist-sys-handout.pdf dist-sys-notes.bbl
+
+dist-sys-handout.pdf:	dist-sys.tex
+
+dist-sys-slides.pdf:	dist-sys.tex
 
 clean:
 	rm -f {dist-sys-{slides,handout,notes},solutions,examples1}.{log,aux,out,bbl,blg,nav,snm,toc,dvi,ps,pdf}
