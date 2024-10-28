@@ -4456,15 +4456,6 @@ We can therefore leave out all of the replicas and message-sending arrows, and l
 The key thing that linearizability cares about is whether one operation finished before another operation started, regardless of the nodes on which they took place.
 On \autoref{l:read-after-write-3}, the two $\mathsf{get}$ operations both start after the $\mathsf{set}$ operation has finished, and therefore we expect the $\mathsf{get}$ operations to return the value $v_1$ written by $\mathsf{set}$.
 
-On the other hand, on \autoref{l:overlapping}, the $\mathsf{get}$ and $\mathsf{set}$ operation overlap in time: in this case we don't necessarily know in which order the operations take effect.
-$\mathsf{get}$ may return either the value $v_1$ written by $\mathsf{set}$, or $x$'s previous value $v_0$, and either result is acceptable.
-
-Note that ``operation A finished before operation B started'' is not the same as ``A happened before B''.
-The happens-before relation (\autoref{sec:causality}) is defined in terms of messages sent and received; it is possible to have two operations that do not overlap in time, but are still concurrent according to the happens-before relation, because no communication has occurred between those operations.
-On the other hand, linearizability is defined in terms of \emph{real time}: that is, a hypothetical global observer who can instantaneously see the state of all nodes (or, a perfectly synchronised clock on each node) determines the start and finish times of each operation.
-In reality, such a global observer or perfectly synchronised clock does not exist in a system with variable network latency, but we can nevertheless define linearizability in terms of such a hypothetical observer.
-This has the advantage that if we prove a system to be linearizable, we can be sure that its consistency guarantees hold regardless of whether some communication has taken place or not.
-
 \begin{frame}
     \label{s:read-after-write-3}
     \frametitle{From the client's point of view}
@@ -4503,6 +4494,15 @@ This has the advantage that if we prove a system to be linearizable, we can be s
     \end{columns}
 \end{frame}
 \inlineslide{s:read-after-write-3}{}\label{l:read-after-write-3}
+
+On the other hand, on \autoref{l:overlapping}, the $\mathsf{get}$ and $\mathsf{set}$ operation overlap in time: in this case we don't necessarily know in which order the operations take effect.
+$\mathsf{get}$ may return either the value $v_1$ written by $\mathsf{set}$, or $x$'s previous value $v_0$, and either result is acceptable.
+
+Note that ``operation A finished before operation B started'' is not the same as ``A happened before B''.
+The happens-before relation (\autoref{sec:causality}) is defined in terms of messages sent and received; it is possible to have two operations that do not overlap in time, but are still concurrent according to the happens-before relation, because no communication has occurred between those operations.
+On the other hand, linearizability is defined in terms of \emph{real time}: that is, a hypothetical global observer who can instantaneously see the state of all nodes (or, a perfectly synchronised clock on each node) determines the start and finish times of each operation.
+In reality, such a global observer or perfectly synchronised clock does not exist in a system with variable network latency, but we can nevertheless define linearizability in terms of such a hypothetical observer.
+This has the advantage that if we prove a system to be linearizable, we can be sure that its consistency guarantees hold regardless of whether some communication has taken place or not.
 
 \begin{frame}
     \label{s:overlapping}
