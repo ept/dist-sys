@@ -1,19 +1,24 @@
+SHELL=/bin/bash
+LATEX=pdflatex -shell-escape -halt-on-error -file-line-error
+
 .SUFFIXES: .tex .bib .aux .bbl .dvi .ps .pdf .thy
+.PRECIOUS: %.aux
 
-solutions.pdf: dist-sys-notes.pdf
-	pdflatex -shell-escape solutions
+all:	dist-sys-notes.pdf dist-sys-slides.pdf solutions.pdf examples1.pdf
 
-dist-sys-notes.pdf:	dist-sys-slides.pdf dist-sys-handout.pdf dist-sys-notes.bbl
-	pdflatex -shell-escape dist-sys-notes
+%.pdf: %.tex %.aux
+	$(LATEX) $<
+	while grep 'Rerun to get ' $*.log; do $(LATEX) $<; done
 
-%.pdf: %.aux
-	pdflatex -shell-escape $(@:.pdf=)
+%.aux:	%.tex
+	$(LATEX) $<
 
 %.bbl:	references.bib %.aux
-	bibtex $(@:.bbl=)
+	bibtex $*
 
-%.aux:	*.tex
-	pdflatex -shell-escape $(@:.aux=)
+solutions.pdf: dist-sys-notes.pdf
+
+dist-sys-notes.pdf:	dist-sys-handout.pdf dist-sys-notes.bbl
 
 clean:
-	rm -f dist-sys-{slides,handout,notes}.{log,aux,out,bbl,blg,dvi,ps,pdf}
+	rm -f {dist-sys-{slides,handout,notes},solutions,examples1}.{log,aux,out,bbl,blg,nav,snm,toc,dvi,ps,pdf}
