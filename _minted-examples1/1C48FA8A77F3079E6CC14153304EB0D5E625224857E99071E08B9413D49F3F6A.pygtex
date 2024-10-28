@@ -1,0 +1,9 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{from} \PYG{n+nn}{flask} \PYG{k+kn}{import} \PYG{n}{Flask}
+
+\PYG{n}{app} \PYG{o}{=} \PYG{n}{Flask}\PYG{p}{(}\PYG{n+nv+vm}{\PYGZus{}\PYGZus{}name\PYGZus{}\PYGZus{}}\PYG{p}{)}
+
+\PYG{n+nd}{@app}\PYG{o}{.}\PYG{n}{route}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}/\PYGZdq{}}\PYG{p}{)}
+\PYG{k}{def} \PYG{n+nf}{index}\PYG{p}{():}
+    \PYG{k}{return} \PYG{l+s+s2}{\PYGZdq{}\PYGZlt{}p\PYGZgt{}Hello world!\PYGZlt{}/p\PYGZgt{}\PYGZdq{}}
+\end{Verbatim}

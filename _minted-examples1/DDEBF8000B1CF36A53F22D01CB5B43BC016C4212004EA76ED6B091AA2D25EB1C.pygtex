@@ -1,0 +1,4 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{c+c1}{\PYGZsh{} Fix number of workers to 1 since we\PYGZsq{}re keeping state in global variables}
+web: gunicorn \PYGZhy{}\PYGZhy{}workers \PYG{l+m}{1} \PYGZhy{}\PYGZhy{}threads \PYG{l+m}{1} app:app
+\end{Verbatim}

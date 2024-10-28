@@ -1,0 +1,17 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+python3 \PYGZhy{}m venv venv
+. venv/bin/activate
+pip install Flask
+\PYG{n+nb}{export} \PYG{n+nv}{FLASK\PYGZus{}ENV}\PYG{o}{=}development \PYG{c+c1}{\PYGZsh{} enables automatic code reloading}
+flask run
+
+\PYG{c+c1}{\PYGZsh{} For Heroku deployment}
+pip install gunicorn
+pip freeze \PYGZgt{} requirements.txt
+git init
+git add app.py Procfile requirements.txt .gitignore
+git commit \PYGZhy{}m \PYG{l+s+s1}{\PYGZsq{}Flask environment setup\PYGZsq{}}
+git branch \PYGZhy{}m main
+heroku create
+git push heroku main
+\end{Verbatim}

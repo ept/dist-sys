@@ -1,0 +1,39 @@
+\begin{Verbatim}[commandchars=\\\{\}]
+\PYG{k+kn}{from} \PYG{n+nn}{flask} \PYG{k+kn}{import} \PYG{n}{Flask}\PYG{p}{,} \PYG{n}{request}\PYG{p}{,} \PYG{n}{render\PYGZus{}template}\PYG{p}{,} \PYG{n}{jsonify}
+
+\PYG{n}{app} \PYG{o}{=} \PYG{n}{Flask}\PYG{p}{(}\PYG{n+nv+vm}{\PYGZus{}\PYGZus{}name\PYGZus{}\PYGZus{}}\PYG{p}{)}
+
+\PYG{n}{tasks} \PYG{o}{=} \PYG{p}{[]}
+\PYG{n}{next\PYGZus{}task\PYGZus{}id} \PYG{o}{=} \PYG{l+m+mi}{1}
+
+\PYG{n+nd}{@app}\PYG{o}{.}\PYG{n}{route}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}/tasks\PYGZdq{}}\PYG{p}{)}
+\PYG{k}{def} \PYG{n+nf}{list\PYGZus{}tasks}\PYG{p}{():}
+    \PYG{k}{return} \PYG{n}{jsonify}\PYG{p}{(}\PYG{n}{tasks}\PYG{p}{)}
+
+\PYG{n+nd}{@app}\PYG{o}{.}\PYG{n}{route}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}/tasks\PYGZdq{}}\PYG{p}{,} \PYG{n}{methods}\PYG{o}{=}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}POST\PYGZdq{}}\PYG{p}{])}
+\PYG{k}{def} \PYG{n+nf}{add\PYGZus{}task}\PYG{p}{():}
+    \PYG{k}{global} \PYG{n}{tasks}\PYG{p}{,} \PYG{n}{next\PYGZus{}task\PYGZus{}id}
+    \PYG{n}{task} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}id\PYGZdq{}}\PYG{p}{:} \PYG{n}{next\PYGZus{}task\PYGZus{}id}\PYG{p}{,} \PYG{l+s+s2}{\PYGZdq{}text\PYGZdq{}}\PYG{p}{:} \PYG{n}{request}\PYG{o}{.}\PYG{n}{form}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}text\PYGZdq{}}\PYG{p}{],} \PYG{l+s+s2}{\PYGZdq{}done\PYGZdq{}}\PYG{p}{:} \PYG{k+kc}{False}\PYG{p}{\PYGZcb{}}
+    \PYG{n}{tasks}\PYG{o}{.}\PYG{n}{append}\PYG{p}{(}\PYG{n}{task}\PYG{p}{)}
+    \PYG{n}{next\PYGZus{}task\PYGZus{}id} \PYG{o}{+=} \PYG{l+m+mi}{1}
+    \PYG{k}{return} \PYG{n}{task}
+
+\PYG{n+nd}{@app}\PYG{o}{.}\PYG{n}{route}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}/tasks/\PYGZlt{}int:task\PYGZus{}id\PYGZgt{}\PYGZdq{}}\PYG{p}{)}
+\PYG{k}{def} \PYG{n+nf}{get\PYGZus{}task}\PYG{p}{(}\PYG{n}{task\PYGZus{}id}\PYG{p}{):}
+    \PYG{k}{return} \PYG{n+nb}{next}\PYG{p}{(}\PYG{n}{task} \PYG{k}{for} \PYG{n}{task} \PYG{o+ow}{in} \PYG{n}{tasks} \PYG{k}{if} \PYG{n}{task}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}id\PYGZdq{}}\PYG{p}{]} \PYG{o}{==} \PYG{n}{task\PYGZus{}id}\PYG{p}{)}
+
+\PYG{n+nd}{@app}\PYG{o}{.}\PYG{n}{route}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}/tasks/\PYGZlt{}int:task\PYGZus{}id\PYGZgt{}\PYGZdq{}}\PYG{p}{,} \PYG{n}{methods}\PYG{o}{=}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}POST\PYGZdq{}}\PYG{p}{])}
+\PYG{k}{def} \PYG{n+nf}{update\PYGZus{}task}\PYG{p}{(}\PYG{n}{task\PYGZus{}id}\PYG{p}{):}
+    \PYG{n}{task} \PYG{o}{=} \PYG{n+nb}{next}\PYG{p}{(}\PYG{n}{task} \PYG{k}{for} \PYG{n}{task} \PYG{o+ow}{in} \PYG{n}{tasks} \PYG{k}{if} \PYG{n}{task}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}id\PYGZdq{}}\PYG{p}{]} \PYG{o}{==} \PYG{n}{task\PYGZus{}id}\PYG{p}{)}
+    \PYG{n}{done} \PYG{o}{=} \PYG{n}{request}\PYG{o}{.}\PYG{n}{form}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}done\PYGZdq{}}\PYG{p}{]} \PYG{o}{==} \PYG{l+s+s2}{\PYGZdq{}true\PYGZdq{}}
+    \PYG{n}{task}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}done\PYGZdq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{done}
+    \PYG{k}{return} \PYG{n}{task}
+
+\PYG{n+nd}{@app}\PYG{o}{.}\PYG{n}{route}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}/\PYGZdq{}}\PYG{p}{)}
+\PYG{k}{def} \PYG{n+nf}{index}\PYG{p}{():}
+    \PYG{k}{return} \PYG{n}{render\PYGZus{}template}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}index.html\PYGZdq{}}\PYG{p}{)}
+
+\PYG{n+nd}{@app}\PYG{o}{.}\PYG{n}{errorhandler}\PYG{p}{(}\PYG{n+ne}{StopIteration}\PYG{p}{)}
+\PYG{k}{def} \PYG{n+nf}{handle\PYGZus{}exception}\PYG{p}{(}\PYG{n}{e}\PYG{p}{):}
+    \PYG{k}{return} \PYG{p}{\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}message\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}Item does not exist\PYGZdq{}}\PYG{p}{\PYGZcb{},} \PYG{l+m+mi}{404}
+\end{Verbatim}
