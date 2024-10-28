@@ -966,7 +966,7 @@ Nevertheless, the shop wants to ensure that it dispatches the goods only if they
 \inlineslide{s:two-generals-applied}{}\label{l:two-generals-applied}
 
 In practice, the online shopping example does not exactly match the two generals problem: in this scenario, it is safe for the payments service to always go ahead with a payment, because if the shop ends up not being able to dispatch the goods, it can refund the payment.
-The fact that a payment is something that can be undone (unlike an army being defeated) makes the problem solvable.
+The fact that a payment is something that can be undone (unlike an army being defeated, or Romeo/Juliet suffering a tragedy) makes the problem solvable.
 If the communication between shop and payment service is interrupted, the shop can wait until the connection is restored, and then query the payments service to find out the status of any transactions whose outcome was unknown.
 
 \begin{frame}
@@ -1179,7 +1179,7 @@ Any of these can cause messages to be lost.
 \inlineslide{s:shark-bite}{}\label{l:shark-bite}
 
 In a system model, we take a more abstract view, which saves us from the details of worrying about sharks and cows.
-Most distributed algorithms assume that the network provides bidirectional message-passing between a pair of nodes, also known as \emph{point-to-point} or \emph{unicast} communication.
+Most distributed algorithms assume that the network provides bidirectional message-passing between pairs of nodes, also known as \emph{point-to-point} or \emph{unicast} communication.
 Real networks do sometimes allow \emph{broadcast} or \emph{multicast} communication (sending a packet to many recipients at the same time, which is used e.g.\ for discovering a printer on a local network), but broadly speaking, assuming unicast-only is a good model of the Internet today.
 Later, in \autoref{sec:broadcast}, we will explore how to implement broadcast on top of unicast communication.
 
@@ -1277,9 +1277,9 @@ Next, we consider different options for how nodes might behave.
 % be detected, but not always in an accurate manner (accuracy is only eventual);
 
 In the \emph{crash-stop} model, we assume that after a node crashes, it never recovers.
-This is a reasonable model for an unrecoverable hardware fault, or for the situation where a person drops their phone in the toilet, after which it is permanently out of order.
+This is a reasonable model for an unrecoverable hardware fault, or when a phone is dropped in the river.
 With a software crash, the crash-stop model might seem unrealistic, because we can just restart the node, after which it will recover.
-Nevertheless, some algorithms assume a crash-stop model, since that makes the algorithm simpler.
+Nevertheless, some algorithms assume a crash-stop model, since that makes the algorithm simpler than explicitly handling recovery after a crash.
 In this case, a node that crashes and recovers would have to re-join the system as a new node.
 
 Alternatively, the \emph{crash-recovery} model explicitly allows nodes to restart and resume processing after a crash.
@@ -1706,7 +1706,7 @@ The difference between UTC and TAI is that UTC includes \emph{leap seconds}, whi
 \end{frame}
 \inlineslide{s:leap-seconds}{}\label{l:leap-seconds}
 
-Due to leap seconds, it is not true that an hour always as 3600 seconds, and a day always has 86,400 seconds.
+Due to leap seconds, it is not true that an hour always has 3600 seconds, and a day always has 86,400 seconds.
 In the UTC timescale, a day can be 86,399 seconds, 86,400 seconds, or 86,401 seconds long due to a leap second.
 This complicates software that needs to work with dates and times.
 
@@ -2319,7 +2319,7 @@ In the example on \autoref{l:lamport-example}, $t=2$ is attached to $m_1$ and $t
 When the recipient receives a message, it moves its local Lamport clock forward to the timestamp in the message plus one; if the recipient's clock is already ahead of the timestamp in the message, it is only incremented.
 
 Lamport timestamps have the property that if $a$ happened before $b$, then $b$ always has a greater timestamp than $a$; in other words, the timestamps are consistent with causality.
-However, the converse is not true: in general, if $b$ has a greater timestamp than $a$, we know that $b \not\rightarrow a$, but we do not know whether it is the case that $a \rightarrow b$ or that $a \parallel b$.
+However, the converse is not true: in general, if $b$ has a greater timestamp than $a$, we know that $b \not\rightarrow a$, but we do not know whether $a \rightarrow b$ or $a \parallel b$.
 
 It is also possible for two different events to have the same timestamp.
 In the example on \autoref{l:lamport-example}, the third event on node $A$ and the first event on node $B$ both have a timestamp of 3.
@@ -2509,7 +2509,7 @@ If we do want to detect when events are concurrent, we need a different type of 
 
 While Lamport timestamps are just a single integer (possibly with a node name attached), vector timestamps are a list of integers, one for each node in the system.
 By convention, if we put the $n$ nodes into a vector $\langle N_0, N_1, \dots, N_{n-1} \rangle$, then a vector timestamp is a similar vector $\langle t_0, t_1, \dots, t_{n-1} \rangle$ where $t_i$ is the entry corresponding to node $N_i$.
-Concretely, $t_i$ is the number of events known to have occurred at node $N_i$.
+The value of $t_i$ is the number of events known to have occurred at node $N_i$.
 In a vector $T = \langle t_0, t_1, \dots, t_{n-1} \rangle$ we refer to element $t_i$ as $T[i]$, like an index into an array.
 
 \begin{frame}
@@ -3105,10 +3105,10 @@ In this situation, one of the nodes will never receive that message.
 \inlineslide{s:broadcast-alg}{}\label{l:broadcast-alg}
 
 To improve the reliability, we can enlist the help of the other nodes.
-For example, we could say that the first time a node receives a particular message, it forwards it to every other node (this is called \emph{eager reliable broadcast}).
+For example, we could say that the first time a node receives a particular message, it forwards the message to every other node (this is called \emph{eager reliable broadcast}).
 This algorithm ensures that even if some nodes crash, all of the remaining (non-faulty) nodes will receive every message.
 However, this algorithm is fairly inefficient: in the absence of faults, every message is sent $O(n^2)$ times in a group of $n$ nodes, as each node will receive every message $n-1$ times.
-This means it uses a large amount of redundant network traffic.
+This means it sends a large amount of redundant network traffic.
 
 \begin{frame}
     \label{s:eager-broadcast}
@@ -3410,6 +3410,7 @@ We will return to the problem of fault-tolerant total order broadcast in \autore
     Give pseudocode for an algorithm that implements FIFO-total order broadcast using Lamport clocks.
     You may assume that each node has a unique ID, and that the set of all node IDs is known.
     Further assume that the underlying network provides reliable FIFO broadcast.
+    [\href{https://www.cl.cam.ac.uk/teaching/exams/pastpapers/y2020p5q8.pdf}{2020 Paper 5 Question 8}]
 }{
     Each node maintains its state in the following variables:
     \begin{itemize}
@@ -3508,10 +3509,8 @@ I don't have insight into Twitter's internals to know exactly what happened here
 If following a negative number of people seems like a trivial problem, then instead of decrementing a follow counter, consider the act of deducting {\textsterling}1,000 from your bank account balance.
 The database operation is essentially the same, but performing this operation too many times has the potential to make you rather unhappy.
 
-One way of preventing an update from taking effect multiple times is to deduplicate requests.
-However, in a crash-recovery system model, this requires storing requests (or some metadata about requests, such as a vector clock) in stable storage, so that duplicates can be accurately detected even after a crash.
-
-An alternative to recording requests for deduplication is to make requests \emph{idempotent}.
+To prevent an update from taking effect multiple times, we need to deduplicate requests.
+More formally speaking, we need to make requests \emph{idempotent}.
 
 \begin{frame}
     \label{s:idempotence}
@@ -3521,7 +3520,7 @@ An alternative to recording requests for deduplication is to make requests \emph
         \item \textbf{Not idempotent:} $f(\mathit{likeCount}) = \mathit{likeCount} + 1$
         \item \textbf{Idempotent:} $f(\mathit{likeSet}) = \mathit{likeSet} \cup \{\mathit{userID}\}$
     \end{itemize}
-    Idempotent requests can be retried without deduplication.\\[1em]\pause
+    Idempotent requests can be retried safely.\\[1em]\pause
     Choice of retry behaviour:
     \begin{itemize}
         \item \textbf{At-most-once} semantics:\\
@@ -3536,10 +3535,12 @@ An alternative to recording requests for deduplication is to make requests \emph
 
 Incrementing a counter is not idempotent, but adding an element to a set is.
 Therefore, if a counter is required (as in the number of likes), it might be better to actually maintain the set of elements in the database, and to derive the counter value from the set by computing its cardinality.
+In a crash-recovery system model, we can deduplicate requests storing them (or some metadata about requests, such as a vector clock) in stable storage, so that duplicates can be accurately detected even after a crash.
 
 An idempotent update can safely be retried, because performing it several times has the same effect as performing it once.
 Idempotence allows an update to have \emph{exactly-once} semantics: that is, the update may actually be applied multiple times, but the effect is the same as if it had been applied exactly once.
 Idempotence is a very useful property in practical systems, and it is often found in the context of RPC (\autoref{sec:rpc}), where retries are often unavoidable.
+
 
 However, idempotence has a limitation that becomes apparent when there are multiple updates in progress.
 On \autoref{l:retry-union}, client 1 adds a user ID to the set of likes for a post, but the acknowledgement is lost.
@@ -3741,7 +3742,7 @@ To ensure that both replicas end up in the same state, we rely not on the order 
 The details of this approach depend on the type of timestamps used.
 If we use Lamport clocks (with the total order defined on \autoref{l:lamport-example}), two concurrent updates will be ordered arbitrarily, depending on how the timestamps happen to get assigned.
 In this case, we get what is known as \emph{last writer wins} (LWW) semantics: the update with the greatest timestamp takes effect, and any concurrent updates with lower timestamps to the same key are discarded.
-This approach is simple to work with, but it does imply data loss when multiple updates are performed concurrently.
+This approach is simple to work with, but it implies data loss when multiple updates are performed concurrently.
 Whether or not this is a problem depends on the application: in some systems, discarding concurrent updates is fine.
 
 When discarding concurrent updates is not acceptable, we need to use a type of timestamp that allows us to detect when updates happen concurrently, such as vector clocks.
@@ -4282,7 +4283,7 @@ If the decision was to abort, the replica rolls back the transaction.
         \item Coordinator writes its decision to disk
         \item When it recovers, read decision from disk and send it to replicas
             (or abort if no decision was made before crash)\pause
-        \item \textbf{Problem:} if coordinator crashes after prepare, but before broadcasting decision, other nodes do not know how it has decided\pause
+        \item \textbf{Problem:} if coordinator crashes after prepare, but before broadcasting decision, other nodes do not know what it has decided\pause
         \item Replicas participating in transaction cannot commit or abort after responding ``ok'' to the \emph{prepare} request (otherwise we risk violating atomicity)\pause
         \item Algorithm is blocked until coordinator recovers
     \end{itemize}
@@ -5059,7 +5060,7 @@ Paxos and Raft assume a system model with fair-loss links (\autoref{l:model-netw
 
 The assumptions on network and node behaviour can be weakened to Byzantine, and such algorithms are used in blockchains.
 However, Byzantine fault-tolerant consensus algorithms are significantly more complicated and less efficient than non-Byzantine ones.
-We will focus on fair-loss, crash-recovery algorithms for now, which are useful in many practical settings (such as datacenters with trusted private networks).
+We will focus on fair-loss, crash-recovery algorithms for now, which are useful in many practical settings (such as datacenters in which the machines are running trusted code).
 The \href{\ledgersystems}{R47 unit in Part~III} goes into detail of Byzantine consensus.
 
 On the other hand, the assumption of partial synchrony cannot be weakened to asynchrony.
