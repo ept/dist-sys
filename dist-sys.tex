@@ -1169,7 +1169,7 @@ Any of these can cause messages to be lost.
     \includegraphics[height=4cm]{images/network-cable.jpg}
     \includegraphics[height=4cm]{images/shark-bite.jpg}\\[1em]
     In the sea, sharks bite fibre optic cables \\
-    {\scriptsize\url{https://slate.com/technology/2014/08/shark-attacks-threaten-google-s-undersea-internet-cables-video.html}}\\[1em]
+    {\scriptsize\url{https://www.theguardian.com/technology/2014/aug/14/google-undersea-fibre-optic-cables-shark-attacks}}\\[1em]
     On land, cows step on the cables \\
     {\scriptsize\url{https://twitter.com/uhoelzle/status/1263333283107991558}}
 \end{frame}
@@ -2550,7 +2550,7 @@ Finally, when a message is received, the recipient merges the vector timestamp i
         \EndOn
         \State
         \On{receiving $(T', m)$ at node $N_i$ via the network}
-            \State $T[j] := \mathrm{max}(T[j], T'[j])$ for every $j \in \{1, \dots, n\}$
+            \State $T[j] := \mathrm{max}(T[j], T'[j])$ for every $j \in \{0, \dots, n-1\}$
             \State $T[i] := T[i] + 1$; deliver $m$ to the application
         \EndOn
     \end{algorithmic}
@@ -4083,10 +4083,14 @@ A ``smart contract'' is just a deterministic program that a replica executes whe
 \end{frame}
 \inlineslide{s:smr2}{}\label{l:smr2}
 
-The downsides of state machine replication are the limitations of total order broadcast.
-As discussed in \autoref{sec:delivery-order}, when a node wants to broadcast a message through a total order broadcast, it cannot immediately deliver that message to itself.
-For this reason, when using state machine replication, a replica that wants to update its state cannot do so immediately, but it has to go through the broadcast process, coordinate with other nodes, and wait for the update to be delivered back to itself.
-The fault tolerance of state machine replication depends on the fault tolerance of the underlying total order broadcast, which we will discuss in \autoref{sec:consensus}.
+The downsides of state machine replication are the limitations of total order broadcast:
+\begin{itemize}
+    \item As discussed in \autoref{sec:delivery-order}, when a node wants to broadcast a message through a total order broadcast, it cannot immediately deliver that message to itself.
+        For this reason, when using state machine replication, a replica that wants to update its state cannot do so immediately, but it has to go through the broadcast process, coordinate with other nodes, and wait for the update to be delivered back to itself.
+    \item The fault tolerance of state machine replication depends on the fault tolerance of the underlying total order broadcast protocol.
+        A good protocol will be able to tolerate some faults: that is, while one node is down, the remaining nodes can continue broadcasting and delivering messages, and when the faulty nodes recovers it will deliver the backlog of messages that were broadcast while it was down.
+        We will discuss this further in \autoref{sec:consensus}.
+\end{itemize}
 Nevertheless, replication based on total order broadcast is widely used.
 
 \begin{frame}
@@ -4260,7 +4264,8 @@ The communication flow of 2PC is illustrated on \autoref{l:2pc}.
 
 When using two-phase commit, a client first starts a regular single-node transaction on each replica that is participating in the transaction, and performs the usual reads and writes within those transactions.
 When the client is ready to commit the transaction, it sends a commit request to the \emph{transaction coordinator}, a designated node that manages the 2PC protocol.
-(In some systems, the coordinator is part of the client.)
+In some systems, the coordinator is a part of the client.
+Note that the coordinator only handles the process of committing or aborting a transaction, and is not involved in the execution of the rest of the transaction.
 
 The coordinator first sends a \emph{prepare} message to each replica participating in the transaction, and each replica replies with a message indicating whether it is able to commit the transaction (this is the first phase of the protocol).
 The replicas do not actually commit the transaction yet, but they must ensure that they will definitely be able to commit the transaction in the second phase if instructed by the coordinator.
@@ -4620,7 +4625,7 @@ In this model, $\mathsf{set}$ operations don't change: as before, they send the 
 For $\mathsf{get}$ operations, another step is required, as shown on \autoref{l:non-linearizable-3}.
 A client must first send the $\mathsf{get}$ request to replicas, and wait for responses from a quorum.
 If some responses include a more recent value than other responses, as indicated by their timestamps, then the client must write back the most recent value to all replicas that did not already respond with the most recent value, like in read repair (\autoref{l:read-repair}).
-The $\mathsf{get}$ operation finishes only after the client is sure that the most recent value is stored on a quorum of replicas: that is, after a quorum of replicas either responded $\mathsf{ok}$ to the read repair, or replied with the most recent value in the first place.
+The $\mathsf{get}$ operation returns its value to the application only after the client is sure that the most recent value is stored on a quorum of replicas: that is, after a quorum of replicas either responded $\mathsf{ok}$ to the read repair, or replied with the most recent value in the first place.
 
 This approach is known as the \emph{ABD algorithm}, after its authors Attiya, Bar-Noy, and Dolev \citep{Attiya:1995}.
 It ensures linearizable reads and writes, because whenever a $\mathsf{get}$ and $\mathsf{set}$ operation finishes, we know that the value read or written is present on a quorum of replicas, and therefore any subsequent quorum read is guaranteed to observe that value (or a later value).
