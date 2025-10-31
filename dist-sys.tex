@@ -1,14 +1,13 @@
 % Stuff that may change from year to year; also check slide s:other-courses
-\newcommand{\coursepath}{/teaching/2425/ConcDisSys/}
+\newcommand{\coursepath}{/teaching/2526/ConcDisSys/}
 \newcommand{\courseurl}{\url{https://www.cst.cam.ac.uk\coursepath}}
-\newcommand{\thisyear}{2024/25}
+\newcommand{\thisyear}{2025/26}
 \newcommand{\timestampexample}{2021-11-09T09:50:17+00:00}
 \newcommand{\whenissecurity}{Part IB Easter term}
 \newcommand{\whenisnetworking}{Part IB Lent term}
-\newcommand{\networking}{https://www.cl.cam.ac.uk/teaching/2425/CompNet/}
-\newcommand{\security}{https://www.cl.cam.ac.uk/teaching/2425/CySecurity/}
-\newcommand{\ledgersystems}{https://www.cl.cam.ac.uk/teaching/2425/R47/}
-\newcommand{\multicore}{https://www.cl.cam.ac.uk/teaching/2425/L304/}
+\newcommand{\networking}{https://www.cl.cam.ac.uk/teaching/2526/CompNet/}
+\newcommand{\security}{https://www.cl.cam.ac.uk/teaching/2526/CySecurity/}
+\newcommand{\multicore}{https://www.cl.cam.ac.uk/teaching/2526/MSP/}
 
 \newcommand{\mydetails}{%
     Dr.\ Martin Kleppmann\\
@@ -221,8 +220,6 @@ This course is related to several other courses in the tripos, as shown on \auto
             (many modern databases are distributed)
         \item \textbf{Computer Networking} -- \whenisnetworking\\
             (distributed systems involve network communication)
-        \item \textbf{Further Java} -- Part IB Michaelmas\\
-            (distributed programming practical exercises)
         \item \textbf{Cybersecurity} -- \whenissecurity\\
             (web and internet security)
         \item \textbf{Cloud Computing} -- Part II\\
@@ -4383,7 +4380,7 @@ Linearizability is a useful concept not only in distributed systems, but also in
 Interestingly, on a computer with multiple CPU cores (pretty much all servers, laptops and smartphones nowadays), memory access is not linearizable by default!
 This is because each CPU core has its own caches, and an update made by one core is not immediately reflected in another core's cache.
 Thus, even a single computer starts behaving a bit like a replicated system.
-The \href{\multicore}{L304 unit in Part~III} goes into detail of multicore memory behaviour.
+The \href{\multicore}{Multicore Semantics and Programming} module in Part~II goes into detail of multicore memory behaviour.
 % TODO: Introduction to Computer Architecture discusses multicore cache coherence and barriers https://www.cl.cam.ac.uk/teaching/2122/IntComArch/
 % This course runs in part IB in the first 5 weeks of Michaelmas term, just before this lecture
 
@@ -5061,7 +5058,6 @@ Paxos and Raft assume a system model with fair-loss links (\autoref{l:model-netw
 The assumptions on network and node behaviour can be weakened to Byzantine, and such algorithms are used in blockchains.
 However, Byzantine fault-tolerant consensus algorithms are significantly more complicated and less efficient than non-Byzantine ones.
 We will focus on fair-loss, crash-recovery algorithms for now, which are useful in many practical settings (such as datacenters in which the machines are running trusted code).
-The \href{\ledgersystems}{R47 unit in Part~III} goes into detail of Byzantine consensus.
 
 On the other hand, the assumption of partial synchrony cannot be weakened to asynchrony.
 The reason is that consensus requires a failure detector (\autoref{l:failure-detector}), which in turn requires a local clock to trigger timeouts \citep{Chandra:1996}.
