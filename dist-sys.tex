@@ -1683,6 +1683,8 @@ Today, the term \emph{UT1} is used to refer to mean solar time at 0{\textdegree}
 % TODO: leap seconds to be discontinued by 2035!
 % https://www.theguardian.com/world/2022/nov/18/do-not-adjust-your-clock-scientists-call-time-on-the-leap-second
 
+% https://aphyr.com/posts/378-seconds-since-the-epoch
+
 The difference between UTC and TAI is that UTC includes \emph{leap seconds}, which are added as needed to keep UTC roughly in sync with the rotation of the Earth.
 
 \begin{frame}
@@ -2627,6 +2629,7 @@ For example, $T = \langle 2, 2, 0\rangle$ and $T' = \langle 0, 0, 1\rangle$ are 
 % TODO: vector representation is not practical in systems where nodes can join and leave; explain alternative representation as map from node ID to integer
 % also acknowledge that vectors can get quite large, suggest alternatives (e.g. dotted version vectors, tracking dependencies using unique IDs) -- some discussion already appears later in the context of LWW
 % Mention Charron-Bost result?
+% https://www.exhypothesi.com/clocks-and-causality/
 
 % Note the system model assumptions of these algorithms?
 
@@ -2808,6 +2811,8 @@ It turns out that this difference in ordering has very fundamental consequences 
 
 % TODO: the use of \rightarrow in the definitions above is problematic, because broadcast protocols make a distinction between "receiving" and "delivering" a message; when m1 is received but not delivered before m2 is broadcast, it's unclear whether broadcast(m1) -> broadcast(m2) or not.
 % A better definition of causal broadcast might be: if m2 is broadcast by node i, and m1 is broadcast by i or delivered by i before m2 is broadcast, then m1 must be delivered before m2 on all nodes.
+
+% TODO: in the diagram below, show all three possible delivery orders, not just two
 
 \begin{frame}
     \label{s:fifo-broadcast}
@@ -3329,6 +3334,9 @@ Let's start with FIFO broadcast.
 \end{frame}
 \inlineslide{s:fifo-algorithm}{}\label{l:fifo-algorithm}
 
+% TODO: visualise the operation of the above algorithm, and also the following causal broadcast algorithm.
+% Can show the visualisation and the pseudocode side-by-side in the lecture using both projectors
+
 Each FIFO broadcast message sent by node $N_i$ is tagged with the sending node number $i$ and a sequence number that is 0 for the first message sent by $N_i$, 1 for the second message, and so on.
 The local state at each node consists of the sequence number \emph{sendSeq} (counting the number of messages broadcast by this node), \emph{delivered} (a vector with one entry per node, counting the number of messages from each sender that this node has delivered), and \emph{buffer} (a buffer for holding back messages until they are ready to be delivered).
 The algorithm checks for messages from any sender that match the expected next sequence number, and then increments that number, ensuring that messages from each particular sender are delivered in order of increasing sequence number.
@@ -3396,6 +3404,8 @@ Any messages that are causally ready are then delivered to the application and r
     \end{itemize}
 \end{frame}
 \inlineslide{s:total-bcast-alg}{}\label{l:total-bcast-alg}
+
+% TODO: would be good to represent those two algorithms diagramatically rather than in prose
 
 Finally, total order broadcast (and FIFO-total order broadcast) are trickier.
 Two simple approaches are outlined on \autoref{l:total-bcast-alg}, one based on a designated leader node, and a leaderless algorithm using Lamport timestamps.
@@ -3801,6 +3811,8 @@ Unavailability could be due to a faulty node (e.g.\ a crash or a hardware failur
 However, the details of how exactly the replication is performed have a big impact on the reliability of the system.
 Without fault tolerance, having multiple replicas would make reliability \emph{worse}: the more replicas you have, the greater the probability that \emph{any one} of the replicas is faulty at any one time (assuming faults are not perfectly correlated).
 However, if the system continues working despite some faulty replicas, then reliability improves: the probability that \emph{all} replicas are faulty at the same time is much lower than the probability of one replica being faulty.
+
+% TODO: could drop this slide to save a bit of time -- it's not really necessary
 
 \begin{frame}
     \label{s:fault-probability}
@@ -4296,6 +4308,9 @@ The problem with two-phase commit is that the coordinator is a single point of f
 Crashes of the coordinator can be tolerated by having the coordinator write its commit/abort decisions to stable storage, but even so, there may be transactions that have prepared but not yet committed/aborted at the time of the coordinator crash (called \emph{in-doubt transactions}).
 Any in-doubt transactions must wait until the coordinator recovers to learn their fate; they cannot unilaterally decide to commit or abort, because that decision could end up being inconsistent with the coordinator and other nodes, which might violate atomicity.
 
+% TODO: even if the coordinator is made fault-tolerant, there's still the problem that a single faulty participating replica results in all transactions getting aborted.
+% Also mention that 2PC offers no concurrency control (so writes may be ordered differently on different replicas) and no detection of deadlocks that span multiple replicas (other than a timeout)?
+
 Fortunately it is possible to avoid the single point of failure of the coordinator by using a total order broadcast protocol.
 \autoref{l:paxos-commit1} shows a fault-tolerant two-phase commit algorithm based on Paxos Commit \citep{Gray:2006}.
 The idea is that every node that is participating in the transaction uses total order broadcast to disseminate its vote on whether to commit or abort.
@@ -4311,7 +4326,7 @@ Otherwise a node must wait until it has delivered at least one vote from each re
 Once these votes have been delivered, and none of the replicas vote to abort in their first delivered message, then the transaction can be committed.
 Thanks to total order broadcast, all nodes are guaranteed to make the same decision on whether to abort or to commit, which preserves atomicity.
 
-% TODO: visualise this algorithm graphically
+% TODO: visualise this algorithm graphically. or maybe drop this algorithm to save time?
 
 \begin{frame}
     \label{s:paxos-commit1}
@@ -4739,7 +4754,7 @@ To tell them apart, we can give each client a unique ID, and incorporate that ID
 When a $\mathsf{get}$ operation encounters responses with the same timestamp, but different client IDs, it can use a total ordering on client IDs to determine which one is the ``winner'' (similarly to the Lamport timestamp definition we saw on \autoref{l:lamport-definition} to \ref{l:lamport-example}).
 This algorithm ensures linearizable $\mathsf{get}$ and $\mathsf{set}$ operations for any number of nodes \citep{Cachin:2011,Lynch:1997}.
 
-% TODO: add a slide explaining single-writer ABD and the multi-writer generalisation, including logical timestamps construction.
+% TODO: add a slide explaining single-writer ABD and the multi-writer generalisation, including logical timestamps construction and visualising the timestamp-reading phase.
 % Multi-writer generalisation first appears in \cite{Lynch:1997}
 
 \begin{frame}
@@ -4805,6 +4820,8 @@ The ABD algorithm is not able to implement CAS, because different replicas may s
 However, it is possible to implement a linearizable, replicated CAS operation using total order broadcast, as shown on \autoref{l:cas-2}.
 We simply broadcast every operation we want to perform, and actually execute the operation when it is delivered.
 Like in state machine replication (\autoref{l:smr}), this algorithm ensures that an operation has the same effect and outcome on every replica.
+
+% TODO: add an exercise to show why ABD can't do CAS individually on each replica (or use the lowest timestamp instead of the greatest), and can't roll back either
 
 \supervision{
     Is the following execution linearizable? If not, where does the violation occur?
@@ -5886,6 +5903,8 @@ A more refined approach might merge the updates to the time and the title, as sh
 
 \autoref{l:model-requirements} summarises some of the key properties of the consistency models we have seen, in descending order of the minimum strength of assumptions that they must make about the system model.
 
+% TODO: move the following slide elsewhere? it's a bit of a non-sequitur: the previous slide ends on conflict resolution, so it would be good to go straight into that
+
 \begin{frame}
     \label{s:model-requirements}
     \frametitle{Summary of minimum system model requirements}
@@ -5931,6 +5950,8 @@ Moreover, if a user gets locked out of their account or if the cloud service shu
 
 Local-first software has several advantages over web apps: users can continue accessing their local copy of the data, even while they are offline or if they lose access to the cloud service.
 This gives users greater control over their data while enabling similar collaboration features as in web apps.
+
+% TODO: move this slide to the end, so that we go straight into conflict resolution
 
 \begin{frame}
     \label{s:local-first}
