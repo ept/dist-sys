@@ -37,7 +37,7 @@ Michaelmas term \thisyear\\%
 \maketitle
 \tableofcontents
 
-\vspace{10pt}\noindent Thank you to Jean-Pascal Billaud, Alexandre Fruchaud, Leela Venkaiah Gangavarapu, Joshua George, David Greaves, Rishabh Jain, and Jorn Janneck for reporting mistakes in earlier versions of these notes.
+\vspace{10pt}\noindent Thank you to Jean-Pascal Billaud, Alexandre Fruchaud, Leela Venkaiah Gangavarapu, Joshua George, David Greaves, Rishabh Jain, Jorn Janneck, and Tom Van Cutsem for reporting mistakes in earlier versions of these notes.
 
 \def\sectionautorefname{Section}%
 \def\subsectionautorefname{Section}%
@@ -5217,7 +5217,8 @@ To make these ideas concrete, we will now walk through the full Raft algorithm f
 It is by far the most complex algorithm that we look at in this course, with pseudocode spanning nine slides.
 (Paxos and other consensus algorithms are similarly complex, if not worse.)
 There is no need to memorise the whole algorithm for the exam, but it is worth studying carefully in order to understand the underlying principles.
-For a graphical visualisation of the algorithm, see \url{http://thesecretlivesofdata.com/raft/}.
+For an interactive visualisation of the algorithm by \citet{VanCutsem:2026}, see \url{https://tvcutsem.github.io/raftviz/}.
+There is an alternative visualisation at \url{http://thesecretlivesofdata.com/raft/}.
 
 In order to understand the algorithm, it is worth keeping in mind the state machine on \autoref{l:raft-states}.
 A node can be in one of three states: \emph{leader}, \emph{candidate}, or \emph{follower}.
@@ -5353,7 +5354,7 @@ The message contains the $\mathit{nodeId}$ of the candidate, its $\mathit{curren
             \State \hspace{25pt}$(\mathit{cLogTerm} = \mathit{lastTerm} \wedge \mathit{cLogLength} \ge \mathit{log}.\mathsf{length})$
             \State
             \If{$\mathit{cTerm} = \mathit{currentTerm} \wedge \mathit{logOk} \wedge \mathit{votedFor} \in \{\mathit{cId}, \mathsf{null}\} $}
-                \State $\mathit{votedFor} := \mathit{cId}$
+                \State $\mathit{votedFor} := \mathit{cId}$; cancel election timer
                 \State \textbf{send} $(\mathsf{VoteResponse}, \mathit{nodeId}, \mathit{currentTerm}, \mathsf{true})$ to node $\mathit{cId}$
             \Else
                 \State \textbf{send} $(\mathsf{VoteResponse}, \mathit{nodeId}, \mathit{currentTerm}, \mathsf{false})$ to node $\mathit{cId}$
