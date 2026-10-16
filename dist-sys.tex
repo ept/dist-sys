@@ -2084,6 +2084,8 @@ This is a \emph{partial order}, which means that it is possible that for some ev
 In that case, we call $a$ and $b$ \emph{concurrent}.
 Note that here, ``concurrent'' does not mean literally ``at the same time'', but rather that $a$ and $b$ are independent in the sense that there is no sequence of messages leading from one to the other.
 
+% TODO: introduce partial and total orders more explicitly? covered in discrete maths. connection to DAG?
+
 \begin{frame}
     \label{s:happens-before}
     \frametitle{The happens-before relation}
@@ -2216,6 +2218,10 @@ Whether one event truly ``caused'' another is a philosophical question that we d
     \textbf{NB.} ``causal'' $\neq$ ``casual''!}
 \end{frame}
 \inlineslide{s:causality}{}\label{l:causality}
+
+% TODO: remove stuff about "strict total order" from causality slide; better to introduce Lamport
+% timestamps first and then talk about total order; make clear that there is no well-defined total
+% order globally.
 
 % The above introduction of "consistent with causality" is quite abstract. Introduce it with an example?
 % Say the physical timestamp comparison is a total order, happens-before is a partial order
